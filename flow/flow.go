@@ -195,7 +195,9 @@ func (f *Flow[E]) summary() {
 }
 
 func (f *Flow[E]) state() []string {
-	lines := f.source.State()
+	sourceLines := f.source.State()
+	lines := make([]string, len(sourceLines))
+	copy(lines, sourceLines)
 
 	for _, a := range f.actions {
 		lines = append(lines, a.Summary())
