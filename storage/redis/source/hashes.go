@@ -41,7 +41,7 @@ func (h *hashesKey) scan(entriesChan chan<- storage.MapOfStringsEntries, c *clie
 
 		entries := make(storage.MapOfStringsEntries, 0, len(items)/2)
 
-		for i := 0; i < len(items)/2; i++ {
+		for i := 0; i < len(items)-1; i += 2 {
 			entries = append(entries, storage.MapOfStringsEntry{items[i]: items[i+1]})
 		}
 
