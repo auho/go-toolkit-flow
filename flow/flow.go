@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/action"
@@ -37,7 +38,7 @@ type Flow[E storage.Entry] struct {
 	refreshOutput *output.Refresh
 	actions       []action.Actor[E]
 	stateInterval time.Duration
-	firstErr      error
+	firstErr      atomic.Value
 	errOnce       sync.Once
 }
 
@@ -119,7 +120,7 @@ func (f *Flow[E]) transport() {
 		defer func() {
 			if r := recover(); r != nil {
 				f.errOnce.Do(func() {
-					f.firstErr = fmt.Errorf("transport panic: %v", r)
+					f.firstErr.Store(fmt.Errorf("transport panic: %v", r))
 				})
 			}
 		}()
@@ -134,18 +135,18 @@ func (f *Flow[E]) transport() {
 				if needCopy {
 					newItems := f.source.Copy(items)
 					if err := a.Send(newItems); err != nil {
-						f.errOnce.Do(func() { f.firstErr = err })
+						f.errOnce.Do(func() { f.firstErr.Store(err) })
 						break
 					}
 				} else {
 					if err := a.Send(items); err != nil {
-						f.errOnce.Do(func() { f.firstErr = err })
+						f.errOnce.Do(func() { f.firstErr.Store(err) })
 						break
 					}
 				}
 			}
 
-			if f.firstErr != nil {
+			if v := f.firstErr.Load(); v != nil {
 				break
 			}
 		}
@@ -155,12 +156,17 @@ func (f *Flow[E]) transport() {
 }
 
 func (f *Flow[E]) finish() error {
-	if f.firstErr != nil {
+	var firstErr error
+	if v := f.firstErr.Load(); v != nil {
+		firstErr = v.(error)
+	}
+
+	if firstErr != nil {
 		_ = f.actionsFinish()
 		f.refreshOutput.Stop()
 		f.actionsOutput()
 
-		return fmt.Errorf("receive error; %w", f.firstErr)
+		return fmt.Errorf("receive error; %w", firstErr)
 	}
 
 	err := f.actionsFinish()
@@ -214,51 +220,33 @@ func (f *Flow[E]) actionsOutput() {
 }
 
 func (f *Flow[E]) actionsRun() error {
-	var err error
 	for _, a := range f.actions {
-		aErr := a.Run()
-		if aErr != nil {
-			if err != nil {
-				err = fmt.Errorf("%w, %w", err, aErr)
-			} else {
-				err = fmt.Errorf("run error; %w", aErr)
-			}
+		if err := a.Run(); err != nil {
+			return fmt.Errorf("run error; %w", err)
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (f *Flow[E]) actionsPrepare() error {
-	var err error
 	for _, a := range f.actions {
-		aErr := a.Prepare()
-		if aErr != nil {
-			if err != nil {
-				err = fmt.Errorf("%w, %w", err, aErr)
-			} else {
-				err = fmt.Errorf("prepare error; %w", aErr)
-			}
+		if err := a.Prepare(); err != nil {
+			return fmt.Errorf("prepare error; %w", err)
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (f *Flow[E]) actionsFinish() error {
-	var err error
 	for _, a := range f.actions {
-		aErr := a.Finish()
-		if aErr != nil {
-			if err != nil {
-				err = fmt.Errorf("%w, %w", err, aErr)
-			} else {
-				err = fmt.Errorf("finish error; %w", aErr)
-			}
+		if err := a.Finish(); err != nil {
+			return fmt.Errorf("finish error; %w", err)
 		}
 	}
 
-	return err
+	return nil
 }
 
 func (f *Flow[E]) actionsDone() {
