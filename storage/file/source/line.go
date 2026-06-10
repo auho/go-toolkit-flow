@@ -18,6 +18,7 @@ type Line struct {
 	scanner   *bufio.Scanner
 	state     *storage.State
 	itemsChan chan []string
+	scanErr   error
 }
 
 func NewLine(c Config) (*Line, error) {
@@ -51,7 +52,8 @@ func (l *Line) Scan() error {
 	l.state.Title = l.Title()
 	l.itemsChan = make(chan []string, l.config.Concurrency)
 
-	go func() error {
+	go func() {
+		defer close(l.itemsChan)
 		items := make([]string, 0, l.config.Line)
 		for l.scanner.Scan() {
 			items = append(items, l.scanner.Text())
@@ -66,16 +68,13 @@ func (l *Line) Scan() error {
 			l.itemsChan <- items
 		}
 
-		err := l.scanner.Err()
-		if err != nil {
-			close(l.itemsChan)
-			return fmt.Errorf("file source scan error; %w", err)
+		if err := l.scanner.Err(); err != nil {
+			l.scanErr = fmt.Errorf("file source scan error: %w", err)
+			return
 		}
 
-		close(l.itemsChan)
 		l.state.MarkAsFinished()
 		l.state.DurationStop()
-		return nil
 	}()
 
 	return nil
@@ -85,7 +84,15 @@ func (l *Line) ReceiveChan() <-chan []string {
 	return l.itemsChan
 }
 
+func (l *Line) Err() error {
+	return l.scanErr
+}
+
 func (l *Line) Close() error {
+	if l.scanErr != nil {
+		_ = l.file.Close()
+		return l.scanErr
+	}
 	return l.file.Close()
 }
 
