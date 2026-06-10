@@ -12,11 +12,11 @@ var _ sectionQuery[storage.MapEntry] = (*sectionSliceMap)(nil)
 
 type sectionSliceMap struct{}
 
-func (ssm *sectionSliceMap) Query(se *Section[storage.MapEntry], startId, endId int64) ([]storage.MapEntry, error) {
+func (ssm *sectionSliceMap) Query(se *Section[storage.MapEntry], startID, endID int64) ([]storage.MapEntry, error) {
 	var rows storage.MapEntries
 
-	tx := se.conf.querior(se.db)
-	err := tx.Where(fmt.Sprintf("%s >= ? and %s <= ?", se.conf.IdName, se.conf.IdName), startId, endId).
+	tx := se.config.buildQuery(se.db)
+	err := tx.Where(fmt.Sprintf("%s >= ? and %s <= ?", se.config.IDName, se.config.IDName), startID, endID).
 		Scan(&rows).Error
 
 	return rows, err
