@@ -20,9 +20,10 @@ type Config struct {
 
 type QueryConfig struct {
 	Config
-	Fields []string
-	Where  string // "field1 = ? and field2 = ?"
-	Order  string // "field1 desc"
+	Fields    []string
+	Where     string // "field1 = ? and field2 = ?"
+	WhereArgs []any  // parameters for Where clause
+	Order     string // "field1 desc"
 }
 
 func (q *QueryConfig) buildQuery(db *database.DB) *gorm.DB {
@@ -37,7 +38,11 @@ func (q *QueryConfig) buildQuery(db *database.DB) *gorm.DB {
 	}
 
 	if q.Where != "" {
-		tx = tx.Where(q.Where)
+		if len(q.WhereArgs) > 0 {
+			tx = tx.Where(q.Where, q.WhereArgs...)
+		} else {
+			tx = tx.Where(q.Where)
+		}
 	}
 
 	if q.Order != "" {
