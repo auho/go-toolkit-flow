@@ -17,7 +17,7 @@ type Line struct {
 	f      *os.File
 	b      *bufio.Writer
 	state  *storage.State
-	sw     sync.WaitGroup
+	wg     sync.WaitGroup
 }
 
 func NewLine(c Config) (*Line, error) {
@@ -40,7 +40,7 @@ func NewLine(c Config) (*Line, error) {
 func (l *Line) Accept() error {
 	l.state.MarkAsAccepted()
 	l.state.DurationStart()
-	l.sw.Add(1)
+	l.wg.Add(1)
 
 	return nil
 }
@@ -70,11 +70,11 @@ func (l *Line) Done() {
 	}
 
 	l.isDone = true
-	l.sw.Done()
+	l.wg.Done()
 }
 
 func (l *Line) Finish() error {
-	l.sw.Wait()
+	l.wg.Wait()
 
 	l.state.DurationStop()
 	l.state.MarkAsFinished()

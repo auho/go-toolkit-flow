@@ -13,10 +13,10 @@ var _ storage.Source[string] = (*Line)(nil)
 
 type Line struct {
 	storage.Storage
-	c         Config
-	f         *os.File
-	fi        os.FileInfo
-	b         *bufio.Scanner
+	config    Config
+	file      *os.File
+	fileInfo  os.FileInfo
+	scanner   *bufio.Scanner
 	state     *storage.State
 	itemsChan chan []string
 }
@@ -24,28 +24,28 @@ type Line struct {
 func NewLine(c Config) (*Line, error) {
 	var err error
 	l := &Line{
-		c: c,
+		config: c,
 	}
 
-	l.f, err = os.Open(l.c.Name)
+	l.file, err = os.Open(l.config.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	l.fi, err = l.f.Stat()
+	l.fileInfo, err = l.file.Stat()
 	if err != nil {
 		return nil, err
 	}
 
-	l.b = bufio.NewScanner(l.f)
+	l.scanner = bufio.NewScanner(l.file)
 	l.state = storage.NewState()
 
-	if l.c.Concurrency <= 0 {
-		l.c.Concurrency = runtime.NumCPU()
+	if l.config.Concurrency <= 0 {
+		l.config.Concurrency = runtime.NumCPU()
 	}
 
-	if l.c.Line <= 0 {
-		l.c.Line = 100
+	if l.config.Line <= 0 {
+		l.config.Line = 100
 	}
 
 	return l, nil
@@ -55,18 +55,18 @@ func (l *Line) Scan() error {
 	l.state.MarkAsScanning()
 	l.state.DurationStart()
 	l.state.Title = l.Title()
-	l.itemsChan = make(chan []string, l.c.Concurrency)
+	l.itemsChan = make(chan []string, l.config.Concurrency)
 
 	go func() error {
-		items := make([]string, 0, l.c.Line)
+		items := make([]string, 0, l.config.Line)
 		i := 1
-		for l.b.Scan() {
-			if i%l.c.Line == 0 {
+		for l.scanner.Scan() {
+			if i%l.config.Line == 0 {
 				l.itemsChan <- items
-				items = make([]string, 0, l.c.Line)
+				items = make([]string, 0, l.config.Line)
 			}
 
-			items = append(items, l.b.Text())
+			items = append(items, l.scanner.Text())
 			l.state.AddAmount(1)
 			i++
 		}
@@ -75,7 +75,7 @@ func (l *Line) Scan() error {
 			l.itemsChan <- items
 		}
 
-		err := l.b.Err()
+		err := l.scanner.Err()
 		if err != nil {
 			close(l.itemsChan)
 			return fmt.Errorf("file source scan error; %w", err)
@@ -95,7 +95,7 @@ func (l *Line) ReceiveChan() <-chan []string {
 }
 
 func (l *Line) Close() error {
-	return l.f.Close()
+	return l.file.Close()
 }
 
 func (l *Line) Summary() []string {
@@ -113,5 +113,5 @@ func (l *Line) Copy(items []string) []string {
 }
 
 func (l *Line) Title() string {
-	return fmt.Sprintf("Source file[%s]\n", l.f.Name())
+	return fmt.Sprintf("Source file[%s]\n", l.file.Name())
 }
