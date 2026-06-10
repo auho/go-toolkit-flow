@@ -22,7 +22,7 @@ func CopySliceMap[E Entry](items []map[string]E) []map[string]E {
 }
 
 func CopySliceSlice[E Entry](items [][]E) [][]E {
-	newItems := make([][]E, len(items), len(items))
+	newItems := make([][]E, 0, len(items))
 	for _, v := range items {
 		newItem := make([]E, len(v), len(v))
 		_ = copy(newItem, v)
