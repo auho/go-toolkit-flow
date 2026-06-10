@@ -11,9 +11,9 @@ import (
 
 var _ Actor[string] = (*Action[string])(nil)
 
-type Moder[E storage.Entry] interface {
+type Mode[E storage.Entry] interface {
 	Concurrency() int
-	Tasker() task.Tasker[E]
+	Task() task.Task[E]
 
 	// Run
 	// amount: input amount
@@ -37,15 +37,15 @@ type Action[E storage.Entry] struct {
 	amount    int64
 	effected  int64
 	itemsChan chan []E
-	mode      Moder[E]
-	task      task.Tasker[E]
+	mode      Mode[E]
+	task      task.Task[E]
 	taskWg    sync.WaitGroup
 }
 
-func NewAction[E storage.Entry](mode Moder[E]) *Action[E] {
+func NewAction[E storage.Entry](mode Mode[E]) *Action[E] {
 	a := &Action[E]{}
 	a.mode = mode
-	a.task = a.mode.Tasker()
+	a.task = a.mode.Task()
 	a.itemsChan = make(chan []E, a.mode.Concurrency())
 
 	return a

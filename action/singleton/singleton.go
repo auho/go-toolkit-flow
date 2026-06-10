@@ -8,7 +8,7 @@ import (
 	"github.com/auho/go-toolkit-flow/task"
 )
 
-var _ action.Moder[string] = (*Action[string])(nil)
+var _ action.Mode[string] = (*Action[string])(nil)
 
 type Option[E storage.Entry] func(singleton *Action[E])
 
@@ -40,7 +40,7 @@ func (a *Action[E]) Concurrency() int {
 	return a.singleton.Concurrency()
 }
 
-func (a *Action[E]) Tasker() task.Tasker[E] {
+func (a *Action[E]) Task() task.Task[E] {
 	return a.singleton
 }
 
