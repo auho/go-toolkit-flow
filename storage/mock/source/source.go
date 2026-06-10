@@ -41,7 +41,7 @@ func newMock[E storage.Entry](config Config, mocker mocker[E]) *Mock[E] {
 	}
 
 	if m.pageSize <= 0 {
-		m.total = 1e1
+		m.pageSize = 1e1
 	}
 
 	if m.idName == "" {
