@@ -36,7 +36,7 @@ func (s *sortedSetsKey) scan(entriesChan chan<- storage.MapOfStringsEntries, c *
 	for {
 		items, cursor, err = c.ZScan(context.Background(), key, cursor, "", count).Result()
 		if err != nil {
-			s.LogFatal(err)
+			panic(fmt.Sprintf("zscan: %v", err))
 		}
 
 		entries := make(storage.MapOfStringsEntries, 0, len(items)/2)

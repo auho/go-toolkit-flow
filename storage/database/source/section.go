@@ -137,7 +137,7 @@ func (s *Section[E]) scanRows() {
 
 				rows, err := s.query.Query(s, leftID, rightID)
 				if err != nil {
-					s.LogFatalWithTitle(fmt.Sprintf("left id[%d] - right id[%d]", leftID, rightID), err)
+						panic(fmt.Sprintf("left id[%d] - right id[%d]: %v", leftID, rightID, err))
 				}
 
 				if len(rows) == 0 {

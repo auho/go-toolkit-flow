@@ -50,7 +50,7 @@ func (s *scanKey) config(config Config) error {
 	}
 
 	if config.Options == nil {
-		s.LogFatalWithTitle("config options is nil")
+		panic("config options is nil")
 	}
 
 	s.state = storage.NewState()
@@ -83,7 +83,7 @@ func (s *scanKey) Scan() error {
 		for {
 			keys, cursor, err = s.client.Scan(context.Background(), cursor, s.keyPattern, s.pageSize).Result()
 			if err != nil {
-				s.LogFatal(err)
+				panic(fmt.Sprintf("scan keys: %v", err))
 			}
 
 			if len(keys) > 0 {

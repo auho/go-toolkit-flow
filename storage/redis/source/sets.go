@@ -36,7 +36,7 @@ func (s *setsKey) scan(entriesChan chan<- []string, c *client.Redis, key string,
 	for {
 		items, cursor, err = c.SScan(context.Background(), key, cursor, "", count).Result()
 		if err != nil {
-			s.LogFatal(err)
+			panic(fmt.Sprintf("sscan: %v", err))
 		}
 
 		if len(items) > 0 {

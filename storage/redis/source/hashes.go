@@ -36,7 +36,7 @@ func (h *hashesKey) scan(entriesChan chan<- storage.MapOfStringsEntries, c *clie
 	for {
 		items, cursor, err = c.HScan(context.Background(), key, cursor, "", count).Result()
 		if err != nil {
-			h.LogFatal(err)
+			panic(fmt.Sprintf("hscan: %v", err))
 		}
 
 		entries := make(storage.MapOfStringsEntries, 0, len(items)/2)

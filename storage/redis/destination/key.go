@@ -155,7 +155,7 @@ func (k *key[E]) config(config Config) error {
 	}
 
 	if k.keyName == "" {
-		k.LogFatalWithTitle("key name is empty")
+		panic("key name is empty")
 	}
 
 	var err error

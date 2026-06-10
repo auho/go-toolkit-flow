@@ -34,7 +34,7 @@ func (l *listsKey) scan(entriesChan chan<- []string, c *client.Redis, key string
 	for {
 		items, err := c.LRange(context.Background(), key, start, stop).Result()
 		if err != nil {
-			l.LogFatal(err)
+			panic(fmt.Sprintf("lrange: %v", err))
 		}
 
 		if len(items) <= 0 {
