@@ -11,7 +11,7 @@ import (
 	redis2 "github.com/go-redis/redis/v8"
 )
 
-var _ keyWriter[storage.ScoreMap] = (*sortedSets)(nil)
+var _ keyWriter[storage.ScoreMapEntry] = (*sortedSets)(nil)
 
 type sortedSets struct {
 	redis.SortedSets
