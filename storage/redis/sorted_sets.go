@@ -13,7 +13,7 @@ type SortedSets struct {
 }
 
 func (l *SortedSets) Type() KeyType {
-	return KeyTypeList
+	return KeyTypeSortedSets
 }
 
 func (l *SortedSets) Len(ctx context.Context, c *client.Redis, key string) (int64, error) {
