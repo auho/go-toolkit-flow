@@ -16,17 +16,17 @@ type Task[E storage.Entry] interface {
 	// Prepare need to be implemented
 	Prepare() error
 
-	// PreDo need to be implemented
-	PreDo() error
+	// BeforeRun need to be implemented
+	BeforeRun() error
 
-	// PostDo need to be implemented
-	PostDo() error
+	// AfterRun need to be implemented
+	AfterRun() error
 
 	// Close need to be implemented
 	Close() error
 
-	// Blink need to be implemented
-	Blink()
+	// RefreshState need to be implemented
+	RefreshState()
 
 	Init(...Option)
 	HasBeenInit() bool

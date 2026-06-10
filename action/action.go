@@ -17,13 +17,13 @@ type Mode[E storage.Entry] interface {
 
 	// Run
 	// amount: input amount
-	// effected: output effected amount
-	Run([]E) (int, int) // Process data
+	// affected: output affected amount
+	Run(items []E) (amount int, affected int) // Process data
 }
 
 type Actor[E storage.Entry] interface {
 	Prepare() error // preparation before processing data
-	Receive([]E) error // receive data asynchronously
+	Send([]E) error  // send data asynchronously
 	Run() error     // Process data
 	Done()          // triggered after upstream data processing
 	Finish() error  // data processing completed
@@ -64,15 +64,15 @@ func (a *Action[E]) Prepare() error {
 	return nil
 }
 
-func (a *Action[E]) Receive(items []E) error {
+func (a *Action[E]) Send(items []E) error {
 	a.itemsChan <- items
 	return nil
 }
 
 func (a *Action[E]) Run() error {
-	err := a.task.PreDo()
+	err := a.task.BeforeRun()
 	if err != nil {
-		return fmt.Errorf("PreDo error; %w", err)
+		return fmt.Errorf("BeforeRun error; %w", err)
 	}
 
 	for i := 0; i < a.task.Concurrency(); i++ {
@@ -100,9 +100,9 @@ func (a *Action[E]) Done() {
 func (a *Action[E]) Finish() error {
 	a.taskWg.Wait()
 
-	err := a.task.PostDo()
+	err := a.task.AfterRun()
 	if err != nil {
-		return fmt.Errorf("PostDo error; %w", err)
+		return fmt.Errorf("AfterRun error; %w", err)
 	}
 
 	err = a.task.Close()
@@ -118,7 +118,7 @@ func (a *Action[E]) Summary() string {
 }
 
 func (a *Action[E]) State() []string {
-	a.task.Blink()
+	a.task.RefreshState()
 	return append([]string{fmt.Sprintf("Total: %d, Amount %d, effected %d", a.total, a.amount, a.effected)}, a.task.State()...)
 }
 

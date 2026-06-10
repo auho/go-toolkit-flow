@@ -10,7 +10,7 @@ type work struct {
 	task.BaseTask
 }
 
-func (w *work) Blink() {}
+func (w *work) RefreshState() {}
 
 func (w *work) Title() string {
 	return "test work"
@@ -29,14 +29,14 @@ func (w *work) Do(items []map[string]any) (int, error) {
 	return len(items), nil
 }
 
-func (w *work) PreDo() error {
+func (w *work) BeforeRun() error {
 	w.SetState(0, "pre do")
 	w.Println("pre do")
 
 	return nil
 }
 
-func (w *work) PostDo() error {
+func (w *work) AfterRun() error {
 	w.SetState(0, "post do")
 	w.Println("post do")
 
