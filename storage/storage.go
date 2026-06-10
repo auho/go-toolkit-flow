@@ -7,7 +7,7 @@ type SliceOfStringsEntry = []string
 
 type MapEntry = map[string]any
 type MapOfStringsEntry = map[string]string
-type ScoreMap = map[any]float64
+type ScoreMapEntry = map[any]float64
 
 type SliceEntries = []SliceEntry
 type SliceOfStringsEntries = []SliceOfStringsEntry
@@ -15,7 +15,7 @@ type MapEntries = []MapEntry
 type MapOfStringsEntries = []MapOfStringsEntry
 
 type Entry interface {
-	SliceEntry | SliceOfStringsEntry | MapEntry | MapOfStringsEntry | ScoreMap | string
+	SliceEntry | SliceOfStringsEntry | MapEntry | MapOfStringsEntry | ScoreMapEntry | string
 }
 
 type Storage struct {

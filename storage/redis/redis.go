@@ -6,18 +6,20 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-const KeyTypeList KeyType = "lists"
-const KeyTypeSet KeyType = "sets"
-const KeyTypeSortedSets KeyType = "sortedSets"
-const KeyTypeHash KeyType = "hashes"
+const (
+	KeyTypeLists      KeyType = "lists"
+	KeyTypeSets       KeyType = "sets"
+	KeyTypeSortedSets KeyType = "sortedSets"
+	KeyTypeHashes     KeyType = "hashes"
+)
 
 type KeyType string
 
-type Rediser interface {
+type ClientProvider interface {
 	GetClient() *client.Redis
 }
 
-type Keyer interface {
+type KeyOperator interface {
 	Type() KeyType
 	Len(ctx context.Context, c *client.Redis, key string) (int64, error)
 	Truncate(ctx context.Context, c *client.Redis, key string) (int64, error)

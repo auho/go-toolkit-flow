@@ -7,13 +7,15 @@ import (
 	"github.com/auho/go-toolkit/time/timing"
 )
 
-const StatusConfig = "config"
-const StatusAccept = "accept"
-const StatusScan = "scan"
-const StatusDone = "done"
-const StatusFinish = "finish"
+const (
+	StatusConfig  = "config"
+	StatusAccept  = "accept"
+	StatusScan    = "scan"
+	StatusDone    = "done"
+	StatusFinish  = "finish"
+)
 
-type Stater interface {
+type StateProvider interface {
 	GetStatus() string
 	Overview() string
 }

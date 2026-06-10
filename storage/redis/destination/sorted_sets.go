@@ -11,7 +11,7 @@ import (
 	redis2 "github.com/go-redis/redis/v8"
 )
 
-var _ keyer[storage.ScoreMap] = (*sortedSets)(nil)
+var _ keyWriter[storage.ScoreMap] = (*sortedSets)(nil)
 
 type sortedSets struct {
 	redis.SortedSets
@@ -22,11 +22,11 @@ func (h *sortedSets) stateAmount() int64 {
 	return h.amount
 }
 
-func NewSortedSets(config Config) (*key[storage.ScoreMap], error) {
-	return newKey[storage.ScoreMap](config, &sortedSets{})
+func NewSortedSets(config Config) (*key[storage.ScoreMapEntry], error) {
+	return newKey[storage.ScoreMapEntry](config, &sortedSets{})
 }
 
-func (h *sortedSets) accept(itemsChan <-chan []storage.ScoreMap, c *client.Redis, key string, pageSize int64) error {
+func (h *sortedSets) accept(itemsChan <-chan []storage.ScoreMapEntry, c *client.Redis, key string, pageSize int64) error {
 	ctx := context.Background()
 	pipe := c.Pipeline()
 

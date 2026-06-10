@@ -9,7 +9,7 @@ import (
 
 var _sortedSetsKey = "test:destination:sortedSets"
 
-func _buildSortedSetsData(k *key[storage.ScoreMap]) int64 {
+func _buildSortedSetsData(k *key[storage.ScoreMapEntry]) int64 {
 	amount := _randAmount()
 	size := 100
 
@@ -20,10 +20,10 @@ func _buildSortedSetsData(k *key[storage.ScoreMap]) int64 {
 			tSize = amount - i
 		}
 
-		items := make([]storage.ScoreMap, 0, tSize)
+		items := make([]storage.ScoreMapEntry, 0, tSize)
 		for j := 0; j < tSize; j++ {
 			a := i + j
-			items = append(items, storage.ScoreMap{strconv.Itoa(a): float64(a) + 1e-5})
+			items = append(items, storage.ScoreMapEntry{strconv.Itoa(a): float64(a) + 1e-5})
 		}
 
 		k.Receive(items)
@@ -33,5 +33,5 @@ func _buildSortedSetsData(k *key[storage.ScoreMap]) int64 {
 }
 
 func TestSortedSets(t *testing.T) {
-	_testKey[storage.ScoreMap](t, _sortedSetsKey, NewSortedSets, _buildSortedSetsData)
+	_testKey[storage.ScoreMapEntry](t, _sortedSetsKey, NewSortedSets, _buildSortedSetsData)
 }
