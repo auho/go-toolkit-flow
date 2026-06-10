@@ -15,7 +15,6 @@ type Line struct {
 	storage.Storage
 	config    Config
 	file      *os.File
-	fileInfo  os.FileInfo
 	scanner   *bufio.Scanner
 	state     *storage.State
 	itemsChan chan []string
@@ -28,11 +27,6 @@ func NewLine(c Config) (*Line, error) {
 	}
 
 	l.file, err = os.Open(l.config.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	l.fileInfo, err = l.file.Stat()
 	if err != nil {
 		return nil, err
 	}
@@ -59,16 +53,13 @@ func (l *Line) Scan() error {
 
 	go func() error {
 		items := make([]string, 0, l.config.Line)
-		i := 1
 		for l.scanner.Scan() {
-			if i%l.config.Line == 0 {
+			items = append(items, l.scanner.Text())
+			l.state.AddAmount(1)
+			if len(items) >= l.config.Line {
 				l.itemsChan <- items
 				items = make([]string, 0, l.config.Line)
 			}
-
-			items = append(items, l.scanner.Text())
-			l.state.AddAmount(1)
-			i++
 		}
 
 		if len(items) > 0 {
@@ -107,7 +98,7 @@ func (l *Line) State() []string {
 }
 
 func (l *Line) Copy(items []string) []string {
-	ns := make([]string, 0, len(items))
+	ns := make([]string, len(items))
 	copy(ns, items)
 	return ns
 }
