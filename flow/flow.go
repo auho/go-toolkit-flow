@@ -133,12 +133,12 @@ func (f *Flow[E]) transport() {
 			for _, a := range f.actions {
 				if needCopy {
 					newItems := f.source.Copy(items)
-					if err := a.Receive(newItems); err != nil {
+					if err := a.Send(newItems); err != nil {
 						f.errOnce.Do(func() { f.firstErr = err })
 						break
 					}
 				} else {
-					if err := a.Receive(items); err != nil {
+					if err := a.Send(items); err != nil {
 						f.errOnce.Do(func() { f.firstErr = err })
 						break
 					}
