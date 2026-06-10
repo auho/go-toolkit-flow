@@ -18,7 +18,7 @@ type Mode[E storage.Entry] interface {
 	// Run
 	// amount: input amount
 	// affected: output affected amount
-	Run(items []E) (amount int, affected int) // Process data
+	Run(items []E) (amount int, affected int, err error) // Process data
 }
 
 type Actor[E storage.Entry] interface {
@@ -40,6 +40,8 @@ type Action[E storage.Entry] struct {
 	mode      Mode[E]
 	task      task.Task[E]
 	taskWg    sync.WaitGroup
+	firstErr  error
+	errOnce   sync.Once
 }
 
 func NewAction[E storage.Entry](mode Mode[E]) *Action[E] {
@@ -81,7 +83,11 @@ func (a *Action[E]) Run() error {
 		go func() {
 			for items := range a.itemsChan {
 				atomic.AddInt64(&a.total, int64(len(items)))
-				amount, effected := a.mode.Run(items)
+				amount, effected, err := a.mode.Run(items)
+				if err != nil {
+					a.errOnce.Do(func() { a.firstErr = err })
+					break
+				}
 				atomic.AddInt64(&a.amount, int64(amount))
 				atomic.AddInt64(&a.effected, int64(effected))
 			}
@@ -99,6 +105,10 @@ func (a *Action[E]) Done() {
 
 func (a *Action[E]) Finish() error {
 	a.taskWg.Wait()
+
+	if a.firstErr != nil {
+		return fmt.Errorf("run error; %w", a.firstErr)
+	}
 
 	err := a.task.AfterRun()
 	if err != nil {

@@ -1,8 +1,6 @@
 package singleton
 
 import (
-	"log"
-
 	"github.com/auho/go-toolkit-flow/action"
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/task"
@@ -44,7 +42,7 @@ func (a *Action[E]) Task() task.Task[E] {
 	return a.singleton
 }
 
-func (a *Action[E]) Run(items []E) (amount int, affected int) {
+func (a *Action[E]) Run(items []E) (amount int, affected int, err error) {
 	amount = 0
 	newItems := make([]E, 0, len(items))
 	for k := range items {
@@ -54,10 +52,10 @@ func (a *Action[E]) Run(items []E) (amount int, affected int) {
 		}
 	}
 
-	err := a.singleton.PostBatchDo(newItems)
+	err = a.singleton.PostBatchDo(newItems)
 	if err != nil {
-		log.Printf("singleton.PostBatchDo error: %v", err)
+		return amount, len(newItems), err
 	}
 
-	return amount, len(newItems)
+	return amount, len(newItems), nil
 }

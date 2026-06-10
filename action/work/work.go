@@ -1,8 +1,6 @@
 package work
 
 import (
-	"log"
-
 	"github.com/auho/go-toolkit-flow/action"
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/task"
@@ -44,13 +42,11 @@ func (a *Action[E]) Task() task.Task[E] {
 	return a.work
 }
 
-func (a *Action[E]) Run(items []E) (amount int, affected int) {
-	effected := 0
+func (a *Action[E]) Run(items []E) (amount int, affected int, err error) {
 	n, err := a.work.Do(items)
 	if err != nil {
-		log.Printf("work.Do error: %v", err)
+		return 0, 0, err
 	}
-	effected += n
 
-	return len(items), effected
+	return len(items), n, nil
 }
