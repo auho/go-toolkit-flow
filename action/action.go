@@ -23,7 +23,7 @@ type Moder[E storage.Entry] interface {
 
 type Actor[E storage.Entry] interface {
 	Prepare() error // preparation before processing data
-	Receive([]E)    // receive data asynchronously
+	Receive([]E) error // receive data asynchronously
 	Run() error     // Process data
 	Done()          // triggered after upstream data processing
 	Finish() error  // data processing completed
@@ -64,8 +64,9 @@ func (a *Action[E]) Prepare() error {
 	return nil
 }
 
-func (a *Action[E]) Receive(items []E) {
+func (a *Action[E]) Receive(items []E) error {
 	a.itemsChan <- items
+	return nil
 }
 
 func (a *Action[E]) Run() error {
