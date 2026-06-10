@@ -7,7 +7,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/database"
 )
 
-var _ Destinationer[storage.SliceEntry] = (*InsertSliceSlice)(nil)
+var _ Executor[storage.SliceEntry] = (*InsertSliceSlice)(nil)
 
 type InsertSliceSlice struct {
 	fields []string

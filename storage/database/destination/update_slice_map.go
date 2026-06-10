@@ -5,7 +5,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/database"
 )
 
-var _ Destinationer[storage.MapEntry] = (*UpdateSliceMap)(nil)
+var _ Executor[storage.MapEntry] = (*UpdateSliceMap)(nil)
 
 type UpdateSliceMap struct {
 	idName string
