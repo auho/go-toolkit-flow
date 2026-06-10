@@ -14,7 +14,7 @@ var _ storage.Destinationer[storage.MapEntry] = (*key[storage.MapEntry])(nil)
 
 type keyer[E storage.Entry] interface {
 	redis.Keyer
-	accept(itemsChan <-chan []E, c *client.Redis, key string, pageSize int64)
+	accept(itemsChan <-chan []E, c *client.Redis, key string, pageSize int64) error
 	stateAmount() int64
 }
 
@@ -30,6 +30,8 @@ type key[E storage.Entry] struct {
 	client      *client.Redis
 	keyer       keyer[E]
 	state       *storage.State
+	errChan     chan error
+	firstErr    error
 }
 
 func newKey[E storage.Entry](config Config, keyer keyer[E]) (*key[E], error) {
@@ -59,11 +61,14 @@ func (k *key[E]) Accept() error {
 	}
 
 	k.itemsChan = make(chan []E, k.concurrency)
+	k.errChan = make(chan error, k.concurrency)
 
 	for i := 0; i < k.concurrency; i++ {
 		k.doWg.Add(1)
 		go func() {
-			k.keyer.accept(k.itemsChan, k.client, k.keyName, k.pageSize)
+			if err := k.keyer.accept(k.itemsChan, k.client, k.keyName, k.pageSize); err != nil {
+				k.errChan <- err
+			}
 
 			k.doWg.Done()
 		}()
@@ -72,8 +77,9 @@ func (k *key[E]) Accept() error {
 	return nil
 }
 
-func (k *key[E]) Receive(items []E) {
+func (k *key[E]) Receive(items []E) error {
 	k.itemsChan <- items
+	return nil
 }
 
 func (k *key[E]) Done() {
@@ -88,11 +94,24 @@ func (k *key[E]) Done() {
 	close(k.itemsChan)
 }
 
-func (k *key[E]) Finish() {
+func (k *key[E]) Finish() error {
 	k.doWg.Wait()
+	close(k.errChan)
+
+	for err := range k.errChan {
+		if k.firstErr == nil {
+			k.firstErr = err
+		}
+	}
 
 	k.state.StatusFinish()
 	k.state.DurationStop()
+
+	return k.firstErr
+}
+
+func (k *key[E]) Err() error {
+	return k.firstErr
 }
 
 func (k *key[E]) Summary() []string {
@@ -105,7 +124,7 @@ func (k *key[E]) State() []string {
 }
 
 func (k *key[E]) Title() string {
-	return fmt.Sprintf("Destiantion redis[%s] %s", k.keyer.Type(), k.keyName)
+	return fmt.Sprintf("Destination redis[%s] %s", k.keyer.Type(), k.keyName)
 }
 
 func (k *key[E]) Close() error {
