@@ -7,5 +7,5 @@ type Work[E storage.Entry] interface {
 
 	// Do need to be implemented
 	// effected
-	Do([]E) int
+	Do([]E) (int, error)
 }

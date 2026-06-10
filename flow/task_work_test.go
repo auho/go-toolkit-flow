@@ -21,12 +21,12 @@ func (w *work) Prepare() error {
 	return nil
 }
 
-func (w *work) Do(items []map[string]any) int {
+func (w *work) Do(items []map[string]any) (int, error) {
 	for _, item := range items {
 		_ = item
 	}
 
-	return len(items)
+	return len(items), nil
 }
 
 func (w *work) PreDo() error {

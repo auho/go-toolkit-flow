@@ -23,10 +23,12 @@ func (s *singleton) Do(item map[string]any) ([]map[string]any, bool) {
 	return []map[string]any{item}, true
 }
 
-func (s *singleton) PostBatchDo(items []map[string]any) {
+func (s *singleton) PostBatchDo(items []map[string]any) error {
 	for _, item := range items {
 		_ = item
 	}
+
+	return nil
 }
 
 func (s *singleton) PreDo() error {

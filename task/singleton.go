@@ -9,5 +9,5 @@ type Singleton[E storage.Entry] interface {
 	Do(E) ([]E, bool)
 
 	// PostBatchDo need to be implemented
-	PostBatchDo([]E)
+	PostBatchDo([]E) error
 }

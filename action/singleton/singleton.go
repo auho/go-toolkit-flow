@@ -1,6 +1,8 @@
 package singleton
 
 import (
+	"log"
+
 	"github.com/auho/go-toolkit-flow/action"
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/task"
@@ -52,7 +54,10 @@ func (a *Action[E]) Run(items []E) (int, int) {
 		}
 	}
 
-	a.singleton.PostBatchDo(newItems)
+	err := a.singleton.PostBatchDo(newItems)
+	if err != nil {
+		log.Printf("singleton.PostBatchDo error: %v", err)
+	}
 
 	return amount, len(newItems)
 }

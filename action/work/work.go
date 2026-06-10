@@ -1,6 +1,8 @@
 package work
 
 import (
+	"log"
+
 	"github.com/auho/go-toolkit-flow/action"
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/task"
@@ -44,7 +46,11 @@ func (a *Action[E]) Tasker() task.Tasker[E] {
 
 func (a *Action[E]) Run(items []E) (int, int) {
 	effected := 0
-	effected += a.work.Do(items)
+	n, err := a.work.Do(items)
+	if err != nil {
+		log.Printf("work.Do error: %v", err)
+	}
+	effected += n
 
 	return len(items), effected
 }
