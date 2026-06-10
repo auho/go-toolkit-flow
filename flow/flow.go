@@ -14,7 +14,7 @@ import (
 
 type Option[E storage.Entry] func(*Flow[E])
 
-func WithSource[E storage.Entry](se storage.Sourceor[E]) Option[E] {
+func WithSource[E storage.Entry](se storage.Source[E]) Option[E] {
 	return func(s *Flow[E]) {
 		s.source = se
 	}
@@ -33,7 +33,7 @@ func WithStateInterval[E storage.Entry](d time.Duration) Option[E] {
 }
 
 type Flow[E storage.Entry] struct {
-	source        storage.Sourceor[E]
+	source        storage.Source[E]
 	refreshOutput *output.Refresh
 	actions       []action.Actor[E]
 	stateInterval time.Duration

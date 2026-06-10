@@ -8,7 +8,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-var _ storage.Sourceor[storage.MapEntry] = (*Mock[storage.MapEntry])(nil)
+var _ storage.Source[storage.MapEntry] = (*Mock[storage.MapEntry])(nil)
 
 type mocker[E storage.Entry] interface {
 	// id name, id, page size => stopId, items

@@ -1,6 +1,6 @@
 package storage
 
-type Sourceor[E Entry] interface {
+type Source[E Entry] interface {
 	Scan() error
 	ReceiveChan() <-chan []E
 	Close() error

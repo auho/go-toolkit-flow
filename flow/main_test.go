@@ -12,7 +12,7 @@ import (
 	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
 
-var dataSource storage.Sourceor[map[string]any]
+var dataSource storage.Source[map[string]any]
 
 func TestMain(m *testing.M) {
 	setUp()

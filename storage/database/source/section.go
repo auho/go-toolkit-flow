@@ -11,7 +11,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/database"
 )
 
-var _ storage.Sourceor[storage.MapEntry] = (*Section[storage.MapEntry])(nil)
+var _ storage.Source[storage.MapEntry] = (*Section[storage.MapEntry])(nil)
 var _ database.Driver = (*Section[storage.MapEntry])(nil)
 
 type sectionQuery[E storage.Entry] interface {
@@ -243,7 +243,7 @@ func (s *Section[E]) idRange() error {
 }
 
 func (s *Section[E]) Title() string {
-	return fmt.Sprintf("Sourceor db[%s]", s.db.Name())
+	return fmt.Sprintf("Source db[%s]", s.db.Name())
 }
 
 func (s *Section[E]) Close() error {

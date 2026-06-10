@@ -9,7 +9,7 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-var _ storage.Sourceor[string] = (*scanKey)(nil)
+var _ storage.Source[string] = (*scanKey)(nil)
 var _ redis.Rediser = (*scanKey)(nil)
 
 type scanKey struct {
