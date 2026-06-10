@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis"
@@ -32,6 +33,8 @@ type key[E storage.Entry] struct {
 	state       *storage.State
 	errChan     chan error
 	firstErr    error
+	workerErr   error
+	workerFailed atomic.Bool
 }
 
 func newKey[E storage.Entry](config Config, handler keyWriter[E]) (*key[E], error) {
@@ -67,6 +70,8 @@ func (k *key[E]) Accept() error {
 		k.workerWg.Add(1)
 		go func() {
 			if err := k.handler.accept(k.itemsChan, k.client, k.keyName, k.pageSize); err != nil {
+				k.workerErr = err
+				k.workerFailed.Store(true)
 				k.errChan <- err
 			}
 
@@ -78,6 +83,10 @@ func (k *key[E]) Accept() error {
 }
 
 func (k *key[E]) Receive(items []E) error {
+	if k.workerFailed.Load() {
+		return k.workerErr
+	}
+
 	k.itemsChan <- items
 	return nil
 }

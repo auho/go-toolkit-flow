@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database"
@@ -31,9 +32,11 @@ type Destination[E storage.Entry] struct {
 	state     *storage.State
 	workerWg  sync.WaitGroup
 	dst       Executor[E]
-	itemsChan chan []E
-	errChan   chan error
-	firstErr  error
+	itemsChan   chan []E
+	errChan     chan error
+	firstErr    error
+	workerErr   error
+	workerFailed atomic.Bool
 }
 
 func NewDestination[E storage.Entry](config *Config, dst Executor[E], b database.BuildDb) (*Destination[E], error) {
@@ -120,6 +123,10 @@ func (d *Destination[E]) Accept() (err error) {
 }
 
 func (d *Destination[E]) Receive(items []E) error {
+	if d.workerFailed.Load() {
+		return d.workerErr
+	}
+
 	d.itemsChan <- items
 	return nil
 }
@@ -177,6 +184,8 @@ func (d *Destination[E]) do() {
 			if end <= length {
 				err := d.dst.Exec(d, descItems[start:end])
 				if err != nil {
+					d.workerErr = err
+					d.workerFailed.Store(true)
 					d.errChan <- fmt.Errorf("database destination exec error; %w", err)
 					return
 				}
@@ -196,6 +205,8 @@ func (d *Destination[E]) do() {
 	if len(descItems) > 0 {
 		err := d.dst.Exec(d, descItems)
 		if err != nil {
+			d.workerErr = err
+			d.workerFailed.Store(true)
 			d.errChan <- fmt.Errorf("database destination exec error; %w", err)
 			return
 		}
