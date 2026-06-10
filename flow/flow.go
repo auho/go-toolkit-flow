@@ -3,6 +3,7 @@ package flow
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/action"
@@ -36,6 +37,8 @@ type Flow[E storage.Entry] struct {
 	refreshOutput *output.Refresh
 	actions       []action.Actor[E]
 	stateInterval time.Duration
+	firstErr      error
+	errOnce       sync.Once
 }
 
 func RunFlow[E storage.Entry](opts ...Option[E]) error {
@@ -63,6 +66,10 @@ func RunFlow[E storage.Entry](opts ...Option[E]) error {
 }
 
 func (f *Flow[E]) check() error {
+	if f.source == nil {
+		return errors.New("source not found")
+	}
+
 	if len(f.actions) <= 0 {
 		return errors.New("action not found")
 	}
@@ -85,14 +92,14 @@ func (f *Flow[E]) run() error {
 
 	err = f.actionsPrepare()
 	if err != nil {
-		return fmt.Errorf("actioins prepare error;%w", err)
+		return fmt.Errorf("actions prepare error; %w", err)
 	}
 
 	f.summary()
 
 	err = f.actionsRun()
 	if err != nil {
-		return fmt.Errorf("actioins run error;%w", err)
+		return fmt.Errorf("actions run error; %w", err)
 	}
 
 	f.refreshOutput.Start()
@@ -109,6 +116,14 @@ func (f *Flow[E]) transport() {
 	}
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				f.errOnce.Do(func() {
+					f.firstErr = fmt.Errorf("transport panic: %v", r)
+				})
+			}
+		}()
+
 		for {
 			items, ok := <-f.source.ReceiveChan()
 			if !ok {
@@ -118,10 +133,20 @@ func (f *Flow[E]) transport() {
 			for _, a := range f.actions {
 				if needCopy {
 					newItems := f.source.Copy(items)
-					a.Receive(newItems)
+					if err := a.Receive(newItems); err != nil {
+						f.errOnce.Do(func() { f.firstErr = err })
+						break
+					}
 				} else {
-					a.Receive(items)
+					if err := a.Receive(items); err != nil {
+						f.errOnce.Do(func() { f.firstErr = err })
+						break
+					}
 				}
+			}
+
+			if f.firstErr != nil {
+				break
 			}
 		}
 
@@ -130,15 +155,23 @@ func (f *Flow[E]) transport() {
 }
 
 func (f *Flow[E]) finish() error {
+	if f.firstErr != nil {
+		_ = f.actionsFinish()
+		f.refreshOutput.Stop()
+		f.actionsOutput()
+
+		return fmt.Errorf("receive error; %w", f.firstErr)
+	}
+
 	err := f.actionsFinish()
 	f.refreshOutput.Stop()
 	f.actionsOutput()
 
 	if err != nil {
 		return fmt.Errorf("actions finish error; %w", err)
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 func (f *Flow[E]) summary() {
