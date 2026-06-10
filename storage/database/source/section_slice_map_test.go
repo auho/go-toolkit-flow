@@ -14,11 +14,11 @@ func TestSectionSliceMapFromTable(t *testing.T) {
 			Config: Config{
 				Concurrency: 4,
 				Maximum:     100000,
-				StartId:     0,
-				EndId:       100000,
+				StartID:     0,
+				EndID:       100000,
 				PageSize:    337,
 				TableName:   tableName,
-				IdName:      idName,
+				IDName:      idName,
 			},
 			Fields: []string{nameName, valueName},
 		}, func() (*database.DB, error) {

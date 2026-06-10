@@ -175,13 +175,13 @@ func (f *Flow[E]) finish() error {
 }
 
 func (f *Flow[E]) summary() {
-	sss := f.source.Summary()
-	sss = append(sss, "Tasks: ")
+	lines := f.source.Summary()
+	lines = append(lines, "Tasks: ")
 	for _, a := range f.actions {
-		sss = append(sss, "  "+a.Summary())
+		lines = append(lines, "  "+a.Summary())
 	}
 
-	for _, s := range sss {
+	for _, s := range lines {
 		fmt.Println(s)
 	}
 
@@ -189,16 +189,16 @@ func (f *Flow[E]) summary() {
 }
 
 func (f *Flow[E]) state() []string {
-	sss := f.source.State()
+	lines := f.source.State()
 
 	for _, a := range f.actions {
-		sss = append(sss, a.Summary())
+		lines = append(lines, a.Summary())
 		for _, _s := range a.State() {
-			sss = append(sss, "  "+_s)
+			lines = append(lines, "  "+_s)
 		}
 	}
 
-	return sss
+	return lines
 }
 
 func (f *Flow[E]) actionsOutput() {

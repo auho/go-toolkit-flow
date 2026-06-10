@@ -18,7 +18,7 @@ var dbName = "_test_flow"
 
 var SourceTable = "source"
 var DestinationTable = "destination"
-var IdName = "id"
+var IDName = "id"
 var NameName = "name"
 var ValueName = "value"
 var Dsn = _dsn + dbName

@@ -10,7 +10,7 @@ import (
 
 var mysqlDsn = mysql.Dsn
 var tableName = mysql.DestinationTable
-var idName = mysql.IdName
+var idName = mysql.IDName
 var nameName = mysql.NameName
 var valueName = mysql.ValueName
 

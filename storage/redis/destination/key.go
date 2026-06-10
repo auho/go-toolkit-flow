@@ -26,7 +26,7 @@ type key[E storage.Entry] struct {
 	keyName     string
 	isDone      bool
 	itemsChan   chan []E
-	doWg        sync.WaitGroup
+	workerWg    sync.WaitGroup
 	client      *client.Redis
 	keyer       keyer[E]
 	state       *storage.State
@@ -64,13 +64,13 @@ func (k *key[E]) Accept() error {
 	k.errChan = make(chan error, k.concurrency)
 
 	for i := 0; i < k.concurrency; i++ {
-		k.doWg.Add(1)
+		k.workerWg.Add(1)
 		go func() {
 			if err := k.keyer.accept(k.itemsChan, k.client, k.keyName, k.pageSize); err != nil {
 				k.errChan <- err
 			}
 
-			k.doWg.Done()
+			k.workerWg.Done()
 		}()
 	}
 
@@ -95,7 +95,7 @@ func (k *key[E]) Done() {
 }
 
 func (k *key[E]) Finish() error {
-	k.doWg.Wait()
+	k.workerWg.Wait()
 	close(k.errChan)
 
 	for err := range k.errChan {

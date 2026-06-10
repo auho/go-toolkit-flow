@@ -29,7 +29,7 @@ type Destination[E storage.Entry] struct {
 	pageSize    int64
 
 	state     *storage.State
-	doWg      sync.WaitGroup
+	workerWg  sync.WaitGroup
 	dst       Destinationer[E]
 	itemsChan chan []E
 	errChan   chan error
@@ -108,11 +108,11 @@ func (d *Destination[E]) Accept() (err error) {
 	d.errChan = make(chan error, d.concurrency)
 
 	for i := 0; i < d.concurrency; i++ {
-		d.doWg.Add(1)
+		d.workerWg.Add(1)
 		go func() {
 			d.do()
 
-			d.doWg.Done()
+			d.workerWg.Done()
 		}()
 	}
 
@@ -137,7 +137,7 @@ func (d *Destination[E]) Done() {
 }
 
 func (d *Destination[E]) Finish() error {
-	d.doWg.Wait()
+	d.workerWg.Wait()
 	close(d.errChan)
 	for err := range d.errChan {
 		if d.firstErr == nil {
@@ -168,24 +168,24 @@ func (d *Destination[E]) do() {
 
 		descItems = append(descItems, items...)
 
-		_len := len(descItems)
-		_start := 0
-		_end := 0
-		_size := int(d.pageSize)
+		length := len(descItems)
+		start := 0
+		end := 0
+		batchSize := int(d.pageSize)
 		for {
-			_end = _start + _size
-			if _end <= _len {
-				err := d.dst.Exec(d, descItems[_start:_end])
+			end = start + batchSize
+			if end <= length {
+				err := d.dst.Exec(d, descItems[start:end])
 				if err != nil {
 					d.errChan <- fmt.Errorf("database destination exec error; %w", err)
 					return
 				}
 
-				d.state.AddAmount(int64(_size))
+				d.state.AddAmount(int64(batchSize))
 
-				_start += _size
+				start += batchSize
 			} else {
-				descItems = slices.Clone(descItems[_start:])
+				descItems = slices.Clone(descItems[start:])
 				descItems = slices.Clip(descItems)
 
 				break

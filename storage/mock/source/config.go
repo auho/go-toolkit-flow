@@ -1,7 +1,7 @@
 package source
 
 type Config struct {
-	IdName   string
+	IDName   string
 	PageSize int64
 	Total    int64
 }

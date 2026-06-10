@@ -28,7 +28,7 @@ func setUp() {
 			Concurrency: 0,
 			PageSize:    rand.Int63n(177) + 93,
 			TableName:   mysql.SourceTable,
-			IdName:      mysql.IdName,
+			IDName:      mysql.IDName,
 		},
 		Fields: []string{mysql.NameName, mysql.ValueName},
 		Where:  "",
