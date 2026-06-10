@@ -26,11 +26,15 @@ type baseState struct {
 	Title       string
 	amount      int64
 	duration    timing.Duration
-	status      string
+	status      atomic.Value
 }
 
 func (s *baseState) Status() string {
-	return s.status
+	v := s.status.Load()
+	if v == nil {
+		return ""
+	}
+	return v.(string)
 }
 
 func (s *baseState) Amount() int64 {
@@ -46,27 +50,27 @@ func (s *baseState) AddAmount(n int64) {
 }
 
 func (s *baseState) SetStatus(status string) {
-	s.status = status
+	s.status.Store(status)
 }
 
 func (s *baseState) MarkAsConfigured() {
-	s.status = StatusConfig
+	s.SetStatus(StatusConfig)
 }
 
 func (s *baseState) MarkAsAccepted() {
-	s.status = StatusAccept
+	s.SetStatus(StatusAccept)
 }
 
 func (s *baseState) MarkAsScanning() {
-	s.status = StatusScan
+	s.SetStatus(StatusScan)
 }
 
 func (s *baseState) MarkAsDone() {
-	s.status = StatusDone
+	s.SetStatus(StatusDone)
 }
 
 func (s *baseState) MarkAsFinished() {
-	s.status = StatusFinish
+	s.SetStatus(StatusFinish)
 }
 
 func (s *baseState) DurationStart() {
@@ -88,7 +92,7 @@ func NewState() *State {
 
 func (s *State) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d, Duration: %s",
-		s.status,
+		s.Status(),
 		s.Concurrency,
 		s.amount,
 		s.duration.StringStartToStop())
@@ -106,7 +110,7 @@ func NewTotalState() *TotalState {
 
 func (t *TotalState) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Duration: %s",
-		t.status,
+		t.Status(),
 		t.Concurrency,
 		t.amount,
 		t.Total,
@@ -128,7 +132,7 @@ func NewPageState() *PageState {
 
 func (p *PageState) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Page: %d/%d(%d), Duration: %s",
-		p.status,
+		p.Status(),
 		p.Concurrency,
 		p.amount,
 		p.Total,
