@@ -52,7 +52,7 @@ func NewLine(c Config) (*Line, error) {
 }
 
 func (l *Line) Scan() error {
-	l.state.StatusScan()
+	l.state.MarkAsScanning()
 	l.state.DurationStart()
 	l.state.Title = l.Title()
 	l.itemsChan = make(chan []string, l.c.Concurrency)
@@ -82,7 +82,7 @@ func (l *Line) Scan() error {
 		}
 
 		close(l.itemsChan)
-		l.state.StatusFinish()
+		l.state.MarkAsFinished()
 		l.state.DurationStop()
 		return nil
 	}()

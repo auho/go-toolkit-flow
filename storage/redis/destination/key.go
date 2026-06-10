@@ -50,7 +50,7 @@ func (k *key[E]) GetClient() *client.Redis {
 }
 
 func (k *key[E]) Accept() error {
-	k.state.StatusAccept()
+	k.state.MarkAsAccepted()
 	k.state.DurationStart()
 
 	if k.isTruncate {
@@ -83,7 +83,7 @@ func (k *key[E]) Receive(items []E) error {
 }
 
 func (k *key[E]) Done() {
-	k.state.StatusDone()
+	k.state.MarkAsDone()
 
 	if k.isDone {
 		return
@@ -104,7 +104,7 @@ func (k *key[E]) Finish() error {
 		}
 	}
 
-	k.state.StatusFinish()
+	k.state.MarkAsFinished()
 	k.state.DurationStop()
 
 	return k.firstErr
@@ -157,7 +157,7 @@ func (k *key[E]) config(config Config) error {
 
 	k.state = storage.NewState()
 	k.state.Title = k.Title()
-	k.state.StatusConfig()
+	k.state.MarkAsConfigured()
 
 	return nil
 }

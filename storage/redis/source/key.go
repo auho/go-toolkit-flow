@@ -74,7 +74,7 @@ func (k *key[E]) config(config Config) error {
 	}
 
 	k.state = storage.NewTotalState()
-	k.state.StatusConfig()
+	k.state.MarkAsConfigured()
 	k.state.Concurrency = k.concurrency
 	k.state.Title = k.Title()
 
@@ -88,7 +88,7 @@ func (k *key[E]) config(config Config) error {
 }
 
 func (k *key[E]) Scan() error {
-	k.state.StatusScan()
+	k.state.MarkAsScanning()
 	k.state.DurationStart()
 	k.itemsChan = make(chan []E, k.concurrency)
 
@@ -110,7 +110,7 @@ func (k *key[E]) Scan() error {
 		close(k.itemsChan)
 
 		k.state.DurationStop()
-		k.state.StatusFinish()
+		k.state.MarkAsFinished()
 	}()
 
 	return nil

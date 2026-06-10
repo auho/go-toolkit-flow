@@ -88,13 +88,13 @@ func (d *Destination[E]) config(config *Config, b database.BuildDb) (err error) 
 	d.state = storage.NewState()
 	d.state.Concurrency = d.concurrency
 	d.state.Title = d.Title()
-	d.state.StatusConfig()
+	d.state.MarkAsConfigured()
 
 	return
 }
 
 func (d *Destination[E]) Accept() (err error) {
-	d.state.StatusAccept()
+	d.state.MarkAsAccepted()
 	d.state.DurationStart()
 
 	if d.isTruncate {
@@ -125,7 +125,7 @@ func (d *Destination[E]) Receive(items []E) error {
 }
 
 func (d *Destination[E]) Done() {
-	d.state.StatusDone()
+	d.state.MarkAsDone()
 
 	if d.isDone {
 		return
@@ -145,7 +145,7 @@ func (d *Destination[E]) Finish() error {
 		}
 	}
 
-	d.state.StatusFinish()
+	d.state.MarkAsFinished()
 	d.state.DurationStop()
 
 	return d.firstErr

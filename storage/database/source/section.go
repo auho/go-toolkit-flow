@@ -73,7 +73,7 @@ func (s *Section[E]) Copy(items []E) []E {
 }
 
 func (s *Section[E]) Scan() error {
-	s.state.StatusScan()
+	s.state.MarkAsScanning()
 	s.state.DurationStart()
 	s.idRangeChan = make(chan []int64, s.conf.Concurrency)
 	s.rowsChan = make(chan []E, s.conf.Concurrency)
@@ -91,7 +91,7 @@ func (s *Section[E]) Scan() error {
 		close(s.rowsChan)
 
 		s.state.DurationStop()
-		s.state.StatusFinish()
+		s.state.MarkAsFinished()
 	}()
 
 	return nil
@@ -188,7 +188,7 @@ func (s *Section[E]) config(config *QueryConfig, b database.BuildDb) (err error)
 	s.state = storage.NewPageState()
 	s.state.Concurrency = s.conf.Concurrency
 	s.state.Title = s.Title()
-	s.state.StatusConfig()
+	s.state.MarkAsConfigured()
 
 	return
 }

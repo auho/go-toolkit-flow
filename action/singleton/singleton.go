@@ -44,8 +44,8 @@ func (a *Action[E]) Task() task.Task[E] {
 	return a.singleton
 }
 
-func (a *Action[E]) Run(items []E) (int, int) {
-	amount := 0
+func (a *Action[E]) Run(items []E) (amount int, affected int) {
+	amount = 0
 	newItems := make([]E, 0, len(items))
 	for k := range items {
 		if v, ok := a.singleton.Do(items[k]); ok {

@@ -44,7 +44,7 @@ func (a *Action[E]) Task() task.Task[E] {
 	return a.work
 }
 
-func (a *Action[E]) Run(items []E) (int, int) {
+func (a *Action[E]) Run(items []E) (amount int, affected int) {
 	effected := 0
 	n, err := a.work.Do(items)
 	if err != nil {

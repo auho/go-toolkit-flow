@@ -53,7 +53,7 @@ func (s *scanKey) config(config Config) error {
 	}
 
 	s.state = storage.NewState()
-	s.state.StatusConfig()
+	s.state.MarkAsConfigured()
 	s.state.Concurrency = s.concurrency
 	s.state.Title = s.Title()
 
@@ -71,7 +71,7 @@ func (s *scanKey) GetClient() *client.Redis {
 }
 
 func (s *scanKey) Scan() error {
-	s.state.StatusScan()
+	s.state.MarkAsScanning()
 	s.state.DurationStart()
 	s.itemsChan = make(chan []string, s.concurrency)
 
@@ -102,7 +102,7 @@ func (s *scanKey) Scan() error {
 		close(s.itemsChan)
 
 		s.state.DurationStop()
-		s.state.StatusFinish()
+		s.state.MarkAsFinished()
 	}()
 
 	return nil

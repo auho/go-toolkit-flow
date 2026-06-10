@@ -38,7 +38,7 @@ func NewLine(c Config) (*Line, error) {
 }
 
 func (l *Line) Accept() error {
-	l.state.StatusAccept()
+	l.state.MarkAsAccepted()
 	l.state.DurationStart()
 	l.sw.Add(1)
 
@@ -63,7 +63,7 @@ func (l *Line) Receive(items []string) error {
 }
 
 func (l *Line) Done() {
-	l.state.StatusDone()
+	l.state.MarkAsDone()
 
 	if l.isDone {
 		return
@@ -77,7 +77,7 @@ func (l *Line) Finish() error {
 	l.sw.Wait()
 
 	l.state.DurationStop()
-	l.state.StatusFinish()
+	l.state.MarkAsFinished()
 
 	return nil
 }

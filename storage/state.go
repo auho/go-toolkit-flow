@@ -43,27 +43,27 @@ func (s *baseState) AddAmount(n int64) {
 	atomic.AddInt64(&s.amount, n)
 }
 
-func (s *baseState) StatusCustomize(status string) {
+func (s *baseState) SetStatus(status string) {
 	s.status = status
 }
 
-func (s *baseState) StatusConfig() {
+func (s *baseState) MarkAsConfigured() {
 	s.status = StatusConfig
 }
 
-func (s *baseState) StatusAccept() {
+func (s *baseState) MarkAsAccepted() {
 	s.status = StatusAccept
 }
 
-func (s *baseState) StatusScan() {
+func (s *baseState) MarkAsScanning() {
 	s.status = StatusScan
 }
 
-func (s *baseState) StatusDone() {
+func (s *baseState) MarkAsDone() {
 	s.status = StatusDone
 }
 
-func (s *baseState) StatusFinish() {
+func (s *baseState) MarkAsFinished() {
 	s.status = StatusFinish
 }
 
