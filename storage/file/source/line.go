@@ -57,7 +57,7 @@ func (l *Line) Scan() error {
 	l.state.Title = l.Title()
 	l.itemsChan = make(chan []string, l.c.Concurrency)
 
-	go func() {
+	go func() error {
 		items := make([]string, 0, l.c.Line)
 		i := 1
 		for l.b.Scan() {
@@ -77,12 +77,14 @@ func (l *Line) Scan() error {
 
 		err := l.b.Err()
 		if err != nil {
-			panic(l.Title() + err.Error())
+			close(l.itemsChan)
+			return fmt.Errorf("file source scan error; %w", err)
 		}
 
 		close(l.itemsChan)
 		l.state.StatusFinish()
 		l.state.DurationStop()
+		return nil
 	}()
 
 	return nil
