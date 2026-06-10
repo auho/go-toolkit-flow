@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis"
@@ -86,7 +87,7 @@ func (s *scanKey) Scan() error {
 			}
 
 			if len(keys) > 0 {
-				s.amount += int64(len(keys))
+				s.amount = atomic.AddInt64(&s.amount, int64(len(keys)))
 				s.itemsChan <- keys
 			}
 
@@ -94,7 +95,7 @@ func (s *scanKey) Scan() error {
 				break
 			}
 
-			if s.total > 0 && s.amount >= s.total {
+			if s.total > 0 && atomic.LoadInt64(&s.amount) >= s.total {
 				break
 			}
 		}
@@ -121,7 +122,7 @@ func (s *scanKey) Summary() []string {
 }
 
 func (s *scanKey) State() []string {
-	s.state.SetAmount(s.amount)
+	s.state.SetAmount(atomic.LoadInt64(&s.amount))
 	return []string{s.state.Overview()}
 }
 

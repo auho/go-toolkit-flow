@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis"
@@ -44,14 +45,14 @@ func (s *sortedSetsKey) scan(entriesChan chan<- storage.MapOfStringsEntries, c *
 			entries = append(entries, storage.MapOfStringsEntry{items[i]: items[i+1]})
 		}
 
-		s.amount += int64(len(entries))
+		s.amount = atomic.AddInt64(&s.amount, int64(len(entries)))
 		entriesChan <- entries
 
 		if cursor == 0 {
 			break
 		}
 
-		if s.amount >= amount {
+		if atomic.LoadInt64(&s.amount) >= amount {
 			break
 		}
 	}
@@ -62,5 +63,5 @@ func (s *sortedSetsKey) duplicate(items storage.MapOfStringsEntries) storage.Map
 }
 
 func (s *sortedSetsKey) stateAmount() int64 {
-	return s.amount
+	return atomic.LoadInt64(&s.amount)
 }
