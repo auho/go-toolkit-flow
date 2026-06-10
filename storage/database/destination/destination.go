@@ -11,7 +11,7 @@ import (
 	"github.com/auho/go-toolkit/time/timing"
 )
 
-var _ storage.Destinationer[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
+var _ storage.Destination[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
 var _ database.Driver = (*Destination[storage.MapEntry])(nil)
 
 type Destinationer[E storage.Entry] interface {

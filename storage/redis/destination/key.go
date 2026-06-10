@@ -10,7 +10,7 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-var _ storage.Destinationer[storage.MapEntry] = (*key[storage.MapEntry])(nil)
+var _ storage.Destination[storage.MapEntry] = (*key[storage.MapEntry])(nil)
 
 type keyer[E storage.Entry] interface {
 	redis.Keyer

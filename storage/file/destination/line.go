@@ -9,7 +9,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-var _ storage.Destinationer[string] = (*Line)(nil)
+var _ storage.Destination[string] = (*Line)(nil)
 
 type Line struct {
 	storage.Storage

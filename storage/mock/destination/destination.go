@@ -8,7 +8,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-var _ storage.Destinationer[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
+var _ storage.Destination[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
 
 type Destination[E storage.Entry] struct {
 	isDone    bool

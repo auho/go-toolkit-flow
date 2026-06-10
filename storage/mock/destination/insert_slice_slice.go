@@ -4,7 +4,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-var _ storage.Destinationer[storage.SliceEntry] = (*InsertSliceSlice)(nil)
+var _ storage.Destination[storage.SliceEntry] = (*InsertSliceSlice)(nil)
 
 type InsertSliceSlice struct {
 	Destination[storage.SliceEntry]
