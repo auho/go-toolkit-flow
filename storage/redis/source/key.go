@@ -9,9 +9,9 @@ import (
 )
 
 var _ storage.Source[storage.MapEntry] = (*key[storage.MapEntry])(nil)
-var _ redis.Rediser = (*key[storage.MapEntry])(nil)
+var _ redis.ClientProvider = (*key[storage.MapEntry])(nil)
 
-type keyer[E storage.Entry] interface {
+type keyScanner[E storage.Entry] interface {
 	// redis key type
 	keyType() redis.KeyType
 	// redis client, key name
@@ -32,13 +32,13 @@ type key[E storage.Entry] struct {
 	keyName     string
 	state       *storage.TotalState
 	client      *client.Redis
-	keyer       keyer[E]
+	handler     keyScanner[E]
 	itemsChan   chan []E
 }
 
-func newKey[E storage.Entry](config Config, keyer keyer[E]) (*key[E], error) {
+func newKey[E storage.Entry](config Config, handler keyScanner[E]) (*key[E], error) {
 	k := &key[E]{}
-	k.keyer = keyer
+	k.handler = handler
 	err := k.config(config)
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func (k *key[E]) Scan() error {
 	k.itemsChan = make(chan []E, k.concurrency)
 
 	var err error
-	k.total, err = k.keyer.len(k.client, k.keyName)
+	k.total, err = k.handler.len(k.client, k.keyName)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (k *key[E]) Scan() error {
 	k.state.Total = k.total
 
 	go func() {
-		k.keyer.scan(k.itemsChan, k.client, k.keyName, k.total, k.pageSize)
+		k.handler.scan(k.itemsChan, k.client, k.keyName, k.total, k.pageSize)
 
 		close(k.itemsChan)
 
@@ -125,16 +125,16 @@ func (k *key[E]) Summary() []string {
 }
 
 func (k *key[E]) State() []string {
-	k.state.SetAmount(k.keyer.stateAmount())
+	k.state.SetAmount(k.handler.stateAmount())
 	return []string{k.state.Overview()}
 }
 
 func (k *key[E]) Copy(items []E) []E {
-	return k.keyer.duplicate(items)
+	return k.handler.duplicate(items)
 }
 
 func (k *key[E]) Title() string {
-	return fmt.Sprintf("Source redis[%s]:%s", k.keyer.keyType(), k.keyName)
+	return fmt.Sprintf("Source redis[%s]:%s", k.handler.keyType(), k.keyName)
 }
 
 func (k *key[E]) Close() error {

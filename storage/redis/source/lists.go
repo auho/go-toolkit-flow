@@ -8,7 +8,7 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-var _ keyer[string] = (*listsKey)(nil)
+var _ keyScanner[string] = (*listsKey)(nil)
 
 type listsKey struct {
 	storage.Storage

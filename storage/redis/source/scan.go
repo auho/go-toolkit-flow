@@ -10,7 +10,7 @@ import (
 )
 
 var _ storage.Source[string] = (*scanKey)(nil)
-var _ redis.Rediser = (*scanKey)(nil)
+var _ redis.ClientProvider = (*scanKey)(nil)
 
 type scanKey struct {
 	storage.Storage

@@ -9,7 +9,7 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-var _ keyer[string] = (*sets)(nil)
+var _ keyWriter[string] = (*sets)(nil)
 
 type sets struct {
 	redis.Sets

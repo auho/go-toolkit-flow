@@ -76,7 +76,7 @@ func _testKey[E storage.Entry](
 		t.Error(fmt.Sprintf("actual != expected %d != %d", k.state.Amount(), amount))
 	}
 
-	dbAmount, err := k.keyer.Len(ctx, k.client, k.keyName)
+	dbAmount, err := k.handler.Len(ctx, k.client, k.keyName)
 	if err != nil {
 		t.Error("db amount ", err)
 	}

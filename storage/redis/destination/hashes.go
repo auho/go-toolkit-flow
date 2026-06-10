@@ -10,7 +10,7 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-var _ keyer[storage.MapEntry] = (*hashes)(nil)
+var _ keyWriter[storage.MapEntry] = (*hashes)(nil)
 
 type hashes struct {
 	redis.Hashes

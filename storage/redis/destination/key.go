@@ -12,8 +12,8 @@ import (
 
 var _ storage.Destination[storage.MapEntry] = (*key[storage.MapEntry])(nil)
 
-type keyer[E storage.Entry] interface {
-	redis.Keyer
+type keyWriter[E storage.Entry] interface {
+	redis.KeyOperator
 	accept(itemsChan <-chan []E, c *client.Redis, key string, pageSize int64) error
 	stateAmount() int64
 }
@@ -28,15 +28,15 @@ type key[E storage.Entry] struct {
 	itemsChan   chan []E
 	workerWg    sync.WaitGroup
 	client      *client.Redis
-	keyer       keyer[E]
+	handler     keyWriter[E]
 	state       *storage.State
 	errChan     chan error
 	firstErr    error
 }
 
-func newKey[E storage.Entry](config Config, keyer keyer[E]) (*key[E], error) {
+func newKey[E storage.Entry](config Config, handler keyWriter[E]) (*key[E], error) {
 	k := &key[E]{}
-	k.keyer = keyer
+	k.handler = handler
 	err := k.config(config)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (k *key[E]) Accept() error {
 	k.state.DurationStart()
 
 	if k.isTruncate {
-		_, err := k.keyer.Truncate(context.Background(), k.client, k.keyName)
+		_, err := k.handler.Truncate(context.Background(), k.client, k.keyName)
 		if err != nil {
 			return err
 		}
@@ -66,7 +66,7 @@ func (k *key[E]) Accept() error {
 	for i := 0; i < k.concurrency; i++ {
 		k.workerWg.Add(1)
 		go func() {
-			if err := k.keyer.accept(k.itemsChan, k.client, k.keyName, k.pageSize); err != nil {
+			if err := k.handler.accept(k.itemsChan, k.client, k.keyName, k.pageSize); err != nil {
 				k.errChan <- err
 			}
 
@@ -119,12 +119,12 @@ func (k *key[E]) Summary() []string {
 }
 
 func (k *key[E]) State() []string {
-	k.state.SetAmount(k.keyer.stateAmount())
+	k.state.SetAmount(k.handler.stateAmount())
 	return []string{k.state.Overview()}
 }
 
 func (k *key[E]) Title() string {
-	return fmt.Sprintf("Destination redis[%s] %s", k.keyer.Type(), k.keyName)
+	return fmt.Sprintf("Destination redis[%s] %s", k.handler.Type(), k.keyName)
 }
 
 func (k *key[E]) Close() error {
