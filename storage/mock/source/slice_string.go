@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var _ mocker[string] = (*SliceString)(nil)
+var _ generator[string] = (*SliceString)(nil)
 
 type SliceString struct {
 }

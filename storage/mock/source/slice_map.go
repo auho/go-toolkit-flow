@@ -8,7 +8,7 @@ import (
 	"github.com/auho/go-toolkit-flow/tool"
 )
 
-var _ mocker[storage.MapEntry] = (*SliceMap)(nil)
+var _ generator[storage.MapEntry] = (*SliceMap)(nil)
 
 type SliceMap struct {
 }

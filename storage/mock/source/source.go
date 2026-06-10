@@ -10,7 +10,7 @@ import (
 
 var _ storage.Source[storage.MapEntry] = (*Mock[storage.MapEntry])(nil)
 
-type mocker[E storage.Entry] interface {
+type generator[E storage.Entry] interface {
 	// id name, id, page size => stopId, items
 	scan(string, *int64, int64) (*int64, []E)
 	duplicate([]E) []E
@@ -25,16 +25,16 @@ type Mock[E storage.Entry] struct {
 	totalPage int64
 	amount    int64
 	idName    string
-	itemChan  chan []E
-	mocker    mocker[E]
+	itemsChan  chan []E
+	generator  generator[E]
 }
 
-func newMock[E storage.Entry](config Config, mocker mocker[E]) *Mock[E] {
+func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
 	m := &Mock[E]{}
-	m.idName = config.IdName
+	m.idName = config.IDName
 	m.total = config.Total
 	m.pageSize = config.PageSize
-	m.mocker = mocker
+	m.generator = generator
 
 	if m.total <= 0 {
 		m.total = 1e2
@@ -54,7 +54,7 @@ func newMock[E storage.Entry](config Config, mocker mocker[E]) *Mock[E] {
 }
 
 func (m *Mock[E]) Scan() error {
-	m.itemChan = make(chan []E)
+	m.itemsChan = make(chan []E)
 
 	go func() {
 		for i := int64(0); i < m.total; i += m.pageSize {
@@ -63,21 +63,21 @@ func (m *Mock[E]) Scan() error {
 				size = m.total - i
 			}
 
-			_, items := m.mocker.scan(m.idName, &m.id, size)
-			m.itemChan <- items
+			_, items := m.generator.scan(m.idName, &m.id, size)
+			m.itemsChan <- items
 
 			atomic.AddInt64(&m.page, 1)
 			atomic.AddInt64(&m.amount, int64(len(items)))
 		}
 
-		close(m.itemChan)
+		close(m.itemsChan)
 	}()
 
 	return nil
 }
 
 func (m *Mock[E]) ReceiveChan() <-chan []E {
-	return m.itemChan
+	return m.itemsChan
 }
 
 func (m *Mock[E]) Summary() []string {
@@ -89,7 +89,7 @@ func (m *Mock[E]) State() []string {
 }
 
 func (m *Mock[E]) Copy(items []E) []E {
-	return m.mocker.duplicate(items)
+	return m.generator.duplicate(items)
 }
 
 func (m *Mock[E]) Title() string {
