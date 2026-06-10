@@ -5,7 +5,7 @@ import "github.com/auho/go-toolkit-flow/task"
 var _ task.Singleton[map[string]any] = (*singleton)(nil)
 
 type singleton struct {
-	task.Task
+	task.BaseTask
 }
 
 func (s *singleton) Blink() {}

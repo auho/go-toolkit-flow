@@ -3,7 +3,7 @@ package task
 import "github.com/auho/go-toolkit-flow/storage"
 
 type Singleton[E storage.Entry] interface {
-	Tasker[E]
+	Task[E]
 
 	// Do need to be implemented
 	Do(E) ([]E, bool)

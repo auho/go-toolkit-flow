@@ -9,7 +9,7 @@ import (
 	"github.com/auho/go-toolkit/time/timing"
 )
 
-type Tasker[E storage.Entry] interface {
+type Task[E storage.Entry] interface {
 	// Title need to be implemented
 	Title() string
 
@@ -35,15 +35,15 @@ type Tasker[E storage.Entry] interface {
 	Output() []string
 }
 
-type Option func(*Task)
+type Option func(*BaseTask)
 
 func WithConcurrency(c int) Option {
-	return func(t *Task) {
+	return func(t *BaseTask) {
 		t.concurrency = c
 	}
 }
 
-type Task struct {
+type BaseTask struct {
 	hasBeenInit bool
 	concurrency int
 
@@ -53,7 +53,7 @@ type Task struct {
 	log      *output.MultilineText
 }
 
-func (t *Task) Init(opts ...Option) {
+func (t *BaseTask) Init(opts ...Option) {
 	for _, o := range opts {
 		o(t)
 	}
@@ -72,48 +72,48 @@ func (t *Task) Init(opts ...Option) {
 	t.hasBeenInit = true
 }
 
-func (t *Task) HasBeenInit() bool {
+func (t *BaseTask) HasBeenInit() bool {
 	return t.hasBeenInit
 }
 
-func (t *Task) Concurrency() int {
+func (t *BaseTask) Concurrency() int {
 	return t.concurrency
 }
 
 // AddState
 // int 当前行行数 从 1 开始
-func (t *Task) AddState(s string) int {
+func (t *BaseTask) AddState(s string) int {
 	return t.state.PrintNext(s)
 }
 
-func (t *Task) SetState(line int, s string) {
+func (t *BaseTask) SetState(line int, s string) {
 	t.state.Print(line, s)
 }
 
-func (t *Task) State() []string {
+func (t *BaseTask) State() []string {
 	return t.state.Content()
 }
 
-func (t *Task) Output() []string {
+func (t *BaseTask) Output() []string {
 	return t.output.Content()
 }
 
-func (t *Task) Log() []string {
+func (t *BaseTask) Log() []string {
 	return t.log.Content()
 }
 
-func (t *Task) Printf(format string, a ...any) {
+func (t *BaseTask) Printf(format string, a ...any) {
 	t.output.PrintNext(fmt.Sprintf(format, a...))
 }
 
-func (t *Task) Println(a ...any) {
+func (t *BaseTask) Println(a ...any) {
 	t.output.PrintNext(fmt.Sprint(a...))
 }
 
-func (t *Task) Logf(format string, a ...any) {
+func (t *BaseTask) Logf(format string, a ...any) {
 	t.log.PrintNext(fmt.Sprintf(format, a...))
 }
 
-func (t *Task) Logln(a ...any) {
+func (t *BaseTask) Logln(a ...any) {
 	t.log.PrintNext(fmt.Sprint(a...))
 }

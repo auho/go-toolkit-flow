@@ -7,7 +7,7 @@ import (
 var _ task.Work[map[string]any] = (*work)(nil)
 
 type work struct {
-	task.Task
+	task.BaseTask
 }
 
 func (w *work) Blink() {}
