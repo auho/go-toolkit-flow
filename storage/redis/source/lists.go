@@ -2,6 +2,8 @@ package source
 
 import (
 	"context"
+	"fmt"
+	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis"
@@ -41,7 +43,7 @@ func (l *listsKey) scan(entriesChan chan<- []string, c *client.Redis, key string
 			break
 		}
 
-		l.amount += int64(len(items))
+		l.amount = atomic.AddInt64(&l.amount, int64(len(items)))
 		entriesChan <- items
 
 		start = stop + 1
@@ -61,5 +63,5 @@ func (l *listsKey) duplicate(items []string) []string {
 }
 
 func (l *listsKey) stateAmount() int64 {
-	return l.amount
+	return atomic.LoadInt64(&l.amount)
 }
