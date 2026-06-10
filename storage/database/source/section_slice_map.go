@@ -23,7 +23,7 @@ func (ssm *sectionSliceMap) Query(se *Section[storage.MapEntry], startID, endID 
 }
 
 func (ssm *sectionSliceMap) Copy(items storage.MapEntries) storage.MapEntries {
-	return tool.CopySliceMap[tool.AnyEntry](items)
+	return tool.CopySliceMap[any](items)
 }
 
 func NewSectionSliceMap(config *QueryConfig, newDb database.BuildDb) (*Section[storage.MapEntry], error) {

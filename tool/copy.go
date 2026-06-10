@@ -1,13 +1,10 @@
 package tool
 
-type StringEntry = string
-type AnyEntry = any
-
-type Entry interface {
-	StringEntry | AnyEntry
+type Copyable interface {
+	string | any
 }
 
-func CopySliceMap[E Entry](items []map[string]E) []map[string]E {
+func CopySliceMap[E Copyable](items []map[string]E) []map[string]E {
 	newItems := make([]map[string]E, 0, len(items))
 	for _, v := range items {
 		newItem := make(map[string]E, len(v))
@@ -21,7 +18,7 @@ func CopySliceMap[E Entry](items []map[string]E) []map[string]E {
 	return newItems
 }
 
-func CopySliceSlice[E Entry](items [][]E) [][]E {
+func CopySliceSlice[E Copyable](items [][]E) [][]E {
 	newItems := make([][]E, 0, len(items))
 	for _, v := range items {
 		newItem := make([]E, len(v), len(v))

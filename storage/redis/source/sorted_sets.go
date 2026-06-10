@@ -9,7 +9,7 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-var _ keyer[storage.MapOfStringsEntry] = (*sortedSetsKey)(nil)
+var _ keyScanner[storage.MapOfStringsEntry] = (*sortedSetsKey)(nil)
 
 type sortedSetsKey struct {
 	storage.Storage
@@ -58,7 +58,7 @@ func (s *sortedSetsKey) scan(entriesChan chan<- storage.MapOfStringsEntries, c *
 }
 
 func (s *sortedSetsKey) duplicate(items storage.MapOfStringsEntries) storage.MapOfStringsEntries {
-	return tool.CopySliceMap[tool.StringEntry](items)
+	return tool.CopySliceMap[string](items)
 }
 
 func (s *sortedSetsKey) stateAmount() int64 {

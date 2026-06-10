@@ -9,7 +9,7 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-var _ keyer[storage.MapOfStringsEntry] = (*hashesKey)(nil)
+var _ keyScanner[storage.MapOfStringsEntry] = (*hashesKey)(nil)
 
 type hashesKey struct {
 	storage.Storage
@@ -59,7 +59,7 @@ func (h *hashesKey) scan(entriesChan chan<- storage.MapOfStringsEntries, c *clie
 }
 
 func (h *hashesKey) duplicate(items storage.MapOfStringsEntries) storage.MapOfStringsEntries {
-	return tool.CopySliceMap[tool.StringEntry](items)
+	return tool.CopySliceMap[string](items)
 }
 
 func (h *hashesKey) stateAmount() int64 {
