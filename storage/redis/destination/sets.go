@@ -2,8 +2,6 @@ package destination
 
 import (
 	"context"
-	"fmt"
-	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage/redis"
 	"github.com/auho/go-toolkit/redis/client"
@@ -25,30 +23,8 @@ func NewSets(config Config) (*key[string], error) {
 }
 
 func (h *sets) accept(itemsChan <-chan []string, c *client.Redis, key string, pageSize int64) error {
-	ctx := context.Background()
-	for items := range itemsChan {
-		l := len(items)
-		for i := 0; i < l; i += int(pageSize) {
-			end := i + int(pageSize)
-			if end > l {
-				end = l
-			}
-
-			entries := items[i:end]
-
-			entriesAny := make([]any, 0, end-i)
-			for _, entry := range entries {
-				entriesAny = append(entriesAny, entry)
-			}
-
-			_, err := c.SAdd(ctx, key, entriesAny...).Result()
-			if err != nil {
-				return fmt.Errorf("sets accept sadd error; %w", err)
-			}
-		}
-
-		atomic.AddInt64(&h.amount, int64(l))
-	}
-
-	return nil
+	return acceptStringItems(itemsChan, key, pageSize, &h.amount, func(ctx context.Context, key string, entries []any) error {
+		_, err := c.SAdd(ctx, key, entries...).Result()
+		return err
+	}, "sets accept sadd error")
 }
