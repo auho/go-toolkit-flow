@@ -32,8 +32,9 @@ func (d *Destination[E]) Accept() error {
 	return nil
 }
 
-func (d *Destination[E]) Receive(items []E) {
+func (d *Destination[E]) Receive(items []E) error {
 	d.itemsChan <- items
+	return nil
 }
 
 func (d *Destination[E]) Done() {
@@ -45,8 +46,10 @@ func (d *Destination[E]) Done() {
 	close(d.itemsChan)
 }
 
-func (d *Destination[E]) Finish() {
+func (d *Destination[E]) Finish() error {
 	d.chanWg.Wait()
+
+	return nil
 }
 
 func (d *Destination[E]) Summary() []string {

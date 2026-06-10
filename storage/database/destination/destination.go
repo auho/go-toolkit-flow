@@ -32,6 +32,8 @@ type Destination[E storage.Entry] struct {
 	doWg      sync.WaitGroup
 	dst       Destinationer[E]
 	itemsChan chan []E
+	errChan   chan error
+	firstErr  error
 }
 
 func NewDestination[E storage.Entry](config *Config, dst Destinationer[E], b database.BuildDb) (*Destination[E], error) {
@@ -103,6 +105,7 @@ func (d *Destination[E]) Accept() (err error) {
 	}
 
 	d.itemsChan = make(chan []E, d.concurrency)
+	d.errChan = make(chan error, d.concurrency)
 
 	for i := 0; i < d.concurrency; i++ {
 		d.doWg.Add(1)
@@ -116,8 +119,9 @@ func (d *Destination[E]) Accept() (err error) {
 	return nil
 }
 
-func (d *Destination[E]) Receive(items []E) {
+func (d *Destination[E]) Receive(items []E) error {
 	d.itemsChan <- items
+	return nil
 }
 
 func (d *Destination[E]) Done() {
@@ -132,11 +136,23 @@ func (d *Destination[E]) Done() {
 	close(d.itemsChan)
 }
 
-func (d *Destination[E]) Finish() {
+func (d *Destination[E]) Finish() error {
 	d.doWg.Wait()
+	close(d.errChan)
+	for err := range d.errChan {
+		if d.firstErr == nil {
+			d.firstErr = err
+		}
+	}
 
 	d.state.StatusFinish()
 	d.state.DurationStop()
+
+	return d.firstErr
+}
+
+func (d *Destination[E]) Err() error {
+	return d.firstErr
 }
 
 func (d *Destination[E]) do() {
@@ -161,7 +177,8 @@ func (d *Destination[E]) do() {
 			if _end <= _len {
 				err := d.dst.Exec(d, descItems[_start:_end])
 				if err != nil {
-					panic(err)
+					d.errChan <- fmt.Errorf("database destination exec error; %w", err)
+					return
 				}
 
 				d.state.AddAmount(int64(_size))
@@ -179,7 +196,8 @@ func (d *Destination[E]) do() {
 	if len(descItems) > 0 {
 		err := d.dst.Exec(d, descItems)
 		if err != nil {
-			panic(err)
+			d.errChan <- fmt.Errorf("database destination exec error; %w", err)
+			return
 		}
 
 		d.state.AddAmount(int64(len(descItems)))

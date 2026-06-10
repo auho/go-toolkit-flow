@@ -2,9 +2,9 @@ package storage
 
 type Destinationer[E Entry] interface {
 	Accept() error
-	Receive([]E)
+	Receive([]E) error
 	Done()
-	Finish()
+	Finish() error
 	Close() error
 	Summary() []string
 	State() []string

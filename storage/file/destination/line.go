@@ -45,19 +45,21 @@ func (l *Line) Accept() error {
 	return nil
 }
 
-func (l *Line) Receive(items []string) {
+func (l *Line) Receive(items []string) error {
 	for k := range items {
 		l.state.AddAmount(1)
 		_, err := l.b.WriteString(items[k] + "\n")
 		if err != nil {
-			panic(err)
+			return fmt.Errorf("file destination receive error; %w", err)
 		}
 	}
 
 	err := l.b.Flush()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("file destination receive error; %w", err)
 	}
+
+	return nil
 }
 
 func (l *Line) Done() {
@@ -71,11 +73,13 @@ func (l *Line) Done() {
 	l.sw.Done()
 }
 
-func (l *Line) Finish() {
+func (l *Line) Finish() error {
 	l.sw.Wait()
 
 	l.state.DurationStop()
 	l.state.StatusFinish()
+
+	return nil
 }
 
 func (l *Line) Close() error {
