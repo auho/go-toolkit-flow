@@ -21,19 +21,19 @@ type keyWriter[E storage.Entry] interface {
 
 type key[E storage.Entry] struct {
 	storage.Storage
-	concurrency int
-	isTruncate  bool
-	pageSize    int64
-	keyName     string
-	isDone      bool
-	itemsChan   chan []E
-	workerWg    sync.WaitGroup
-	client      *client.Redis
-	handler     keyWriter[E]
-	state       *storage.State
-	errChan     chan error
-	firstErr    error
-	workerErr   error
+	concurrency  int
+	isTruncate   bool
+	pageSize     int64
+	keyName      string
+	isDone       bool
+	itemsChan    chan []E
+	workerWg     sync.WaitGroup
+	client       *client.Redis
+	handler      keyWriter[E]
+	state        *storage.State
+	errChan      chan error
+	firstErr     error
+	workerErr    error
 	workerFailed atomic.Bool
 }
 

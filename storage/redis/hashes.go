@@ -13,7 +13,7 @@ type Hashes struct {
 }
 
 func (h Hashes) Type() KeyType {
-	return KeyTypeHash
+	return KeyTypeHashes
 }
 
 func (h Hashes) Len(ctx context.Context, c *client.Redis, key string) (int64, error) {

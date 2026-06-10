@@ -13,7 +13,7 @@ type Lists struct {
 }
 
 func (l *Lists) Type() KeyType {
-	return KeyTypeList
+	return KeyTypeLists
 }
 
 func (l *Lists) Len(ctx context.Context, c *client.Redis, key string) (int64, error) {
