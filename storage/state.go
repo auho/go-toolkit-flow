@@ -36,7 +36,7 @@ func (s *baseState) Amount() int64 {
 }
 
 func (s *baseState) SetAmount(n int64) {
-	s.amount = n
+	atomic.StoreInt64(&s.amount, n)
 }
 
 func (s *baseState) AddAmount(n int64) {
@@ -103,7 +103,7 @@ func NewTotalState() *TotalState {
 }
 
 func (t *TotalState) Overview() string {
-	return fmt.Sprintf("Status: %s, Concurrentcy:%d, Amount: %d/%d, Duration: %s",
+	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Duration: %s",
 		t.status,
 		t.Concurrency,
 		t.amount,
