@@ -6,7 +6,7 @@ import (
 	"github.com/auho/go-toolkit/redis/client"
 )
 
-var _ Keyer = (*SortedSets)(nil)
+var _ KeyOperator = (*SortedSets)(nil)
 
 type SortedSets struct {
 	key
