@@ -130,8 +130,6 @@ func (s *Section[E]) scanRows() {
 		s.scanWg.Add(1)
 		go func() {
 			for idRange := range s.idRangeChan {
-				atomic.AddInt64(&s.state.Page, 1)
-
 				leftID := idRange[0]
 				rightID := idRange[1]
 
@@ -144,6 +142,7 @@ func (s *Section[E]) scanRows() {
 					continue
 				}
 
+				atomic.AddInt64(&s.state.Page, 1)
 				s.state.AddAmount(int64(len(rows)))
 
 				s.rowsChan <- rows
