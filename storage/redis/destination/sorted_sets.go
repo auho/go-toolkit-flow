@@ -2,6 +2,7 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
@@ -25,7 +26,7 @@ func NewSortedSets(config Config) (*key[storage.ScoreMap], error) {
 	return newKey[storage.ScoreMap](config, &sortedSets{})
 }
 
-func (h *sortedSets) accept(itemsChan <-chan []storage.ScoreMap, c *client.Redis, key string, pageSize int64) {
+func (h *sortedSets) accept(itemsChan <-chan []storage.ScoreMap, c *client.Redis, key string, pageSize int64) error {
 	ctx := context.Background()
 	pipe := c.Pipeline()
 
@@ -49,7 +50,7 @@ func (h *sortedSets) accept(itemsChan <-chan []storage.ScoreMap, c *client.Redis
 
 			_, err := pipe.Exec(ctx)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("sorted sets accept exec error; %w", err)
 			}
 		}
 
@@ -57,4 +58,6 @@ func (h *sortedSets) accept(itemsChan <-chan []storage.ScoreMap, c *client.Redis
 	}
 
 	_ = pipe.Close()
+
+	return nil
 }

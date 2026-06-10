@@ -2,6 +2,7 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
@@ -24,7 +25,7 @@ func NewHashes(config Config) (*key[storage.MapEntry], error) {
 	return newKey[storage.MapEntry](config, &hashes{})
 }
 
-func (h *hashes) accept(itemsChan <-chan []storage.MapEntry, c *client.Redis, key string, pageSize int64) {
+func (h *hashes) accept(itemsChan <-chan []storage.MapEntry, c *client.Redis, key string, pageSize int64) error {
 	ctx := context.Background()
 	pipe := c.Pipeline()
 
@@ -45,7 +46,7 @@ func (h *hashes) accept(itemsChan <-chan []storage.MapEntry, c *client.Redis, ke
 
 			_, err := pipe.Exec(ctx)
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("hashes accept exec error; %w", err)
 			}
 		}
 
@@ -53,4 +54,6 @@ func (h *hashes) accept(itemsChan <-chan []storage.MapEntry, c *client.Redis, ke
 	}
 
 	_ = pipe.Close()
+
+	return nil
 }

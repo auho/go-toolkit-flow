@@ -2,6 +2,7 @@ package destination
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage/redis"
@@ -23,7 +24,7 @@ func NewLists(config Config) (*key[string], error) {
 	return newKey[string](config, &lists{})
 }
 
-func (h *lists) accept(itemsChan <-chan []string, c *client.Redis, key string, pageSize int64) {
+func (h *lists) accept(itemsChan <-chan []string, c *client.Redis, key string, pageSize int64) error {
 	ctx := context.Background()
 	for items := range itemsChan {
 		l := len(items)
@@ -42,10 +43,12 @@ func (h *lists) accept(itemsChan <-chan []string, c *client.Redis, key string, p
 
 			_, err := c.LPush(ctx, key, entriesAny...).Result()
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("lists accept lpush error; %w", err)
 			}
 		}
 
 		atomic.AddInt64(&h.amount, int64(l))
 	}
+
+	return nil
 }
