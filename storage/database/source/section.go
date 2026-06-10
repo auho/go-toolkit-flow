@@ -31,7 +31,6 @@ type Section[E storage.Entry] struct {
 	startID       int64 // 闭区间
 	endID         int64 // 闭区间
 
-	failureLastID []int
 	idRangeChan   chan []int64 // []in64{left id, right id} 包含两端
 	rowsChan      chan []E
 	state         *storage.PageState
