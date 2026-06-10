@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis"
@@ -29,33 +30,13 @@ func (h *hashesKey) len(c *client.Redis, key string) (int64, error) {
 }
 
 func (h *hashesKey) scan(entriesChan chan<- storage.MapOfStringsEntries, c *client.Redis, key string, amount int64, count int64) {
-	var err error
-	var items []string
-	cursor := uint64(0)
-
-	for {
-		items, cursor, err = c.HScan(context.Background(), key, cursor, "", count).Result()
-		if err != nil {
-			panic(fmt.Sprintf("hscan: %v", err))
-		}
-
-		entries := make(storage.MapOfStringsEntries, 0, len(items)/2)
-
-		for i := 0; i < len(items)-1; i += 2 {
-			entries = append(entries, storage.MapOfStringsEntry{items[i]: items[i+1]})
-		}
-
-		h.amount += int64(len(entries))
-		entriesChan <- entries
-
-		if cursor == 0 {
-			break
-		}
-
-		if h.amount >= amount {
-			break
-		}
-	}
+	scanKeyValues(amount, count, &h.amount, entriesChan,
+		func(cursor uint64) ([]string, uint64, error) {
+			return c.HScan(context.Background(), key, cursor, "", count).Result()
+		},
+		"hscan",
+		parseMapOfStringsEntries,
+	)
 }
 
 func (h *hashesKey) duplicate(items storage.MapOfStringsEntries) storage.MapOfStringsEntries {
@@ -63,5 +44,5 @@ func (h *hashesKey) duplicate(items storage.MapOfStringsEntries) storage.MapOfSt
 }
 
 func (h *hashesKey) stateAmount() int64 {
-	return h.amount
+	return atomic.LoadInt64(&h.amount)
 }
