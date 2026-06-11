@@ -22,7 +22,7 @@ func NewHashes(config Config) (*key[storage.MapOfStringsEntry], error) {
 }
 
 func (h *hashesKey) keyType() redis.KeyType {
-	return redis.KeyTypeHash
+	return redis.KeyTypeHashes
 }
 
 func (h *hashesKey) len(c *client.Redis, key string) (int64, error) {

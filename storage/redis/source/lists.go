@@ -22,7 +22,7 @@ func NewLists(config Config) (*key[string], error) {
 }
 
 func (l *listsKey) keyType() redis.KeyType {
-	return redis.KeyTypeList
+	return redis.KeyTypeLists
 }
 
 func (l *listsKey) len(c *client.Redis, key string) (int64, error) {
@@ -43,7 +43,7 @@ func (l *listsKey) scan(entriesChan chan<- []string, c *client.Redis, key string
 			break
 		}
 
-		l.amount = atomic.AddInt64(&l.amount, int64(len(items)))
+		atomic.AddInt64(&l.amount, int64(len(items)))
 		entriesChan <- items
 
 		start = stop + 1

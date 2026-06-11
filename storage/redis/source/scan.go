@@ -87,7 +87,7 @@ func (s *scanKey) Scan() error {
 			}
 
 			if len(keys) > 0 {
-				s.amount = atomic.AddInt64(&s.amount, int64(len(keys)))
+				atomic.AddInt64(&s.amount, int64(len(keys)))
 				s.itemsChan <- keys
 			}
 

@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
@@ -21,7 +22,7 @@ func NewSets(config Config) (*key[string], error) {
 }
 
 func (s *setsKey) keyType() redis.KeyType {
-	return redis.KeyTypeSet
+	return redis.KeyTypeSets
 }
 
 func (s *setsKey) len(c *client.Redis, key string) (int64, error) {
@@ -40,7 +41,7 @@ func (s *setsKey) scan(entriesChan chan<- []string, c *client.Redis, key string,
 		}
 
 		if len(items) > 0 {
-			s.amount = atomic.AddInt64(&s.amount, int64(len(items)))
+			atomic.AddInt64(&s.amount, int64(len(items)))
 			entriesChan <- items
 		}
 
