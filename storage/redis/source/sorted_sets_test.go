@@ -5,21 +5,20 @@ import (
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit/redis/client"
-	"github.com/go-redis/redis/v8"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 var _sortedSetsKey = "test:source:sortedSets"
 
 func _buildSortedSetsData(t *testing.T) {
 	ctx := context.Background()
-	c := redis.NewClient(&_redisOptions)
+	c := goredis.NewClient(&_redisOptions)
 	c.Del(ctx, _sortedSetsKey)
 
 	amount := _randAmount()
 	pipe := c.Pipeline()
 	for i := 0; i < amount; i++ {
-		pipe.ZAdd(ctx, _sortedSetsKey, &redis.Z{
+		pipe.ZAdd(ctx, _sortedSetsKey, &goredis.Z{
 			Score:  float64(i),
 			Member: i,
 		})
@@ -37,11 +36,14 @@ func _buildSortedSetsData(t *testing.T) {
 func TestNewSortedSets(t *testing.T) {
 	_buildSortedSetsData(t)
 
+	c := _newRedisClient()
 	_testKey[storage.MapOfStringsEntry](
 		t,
 		_sortedSetsKey,
-		NewSortedSets,
-		func(ctx context.Context, c *client.Redis) (int64, error) {
+		NewSortedSetsWithGoRedisV8,
+		c,
+		func(ctx context.Context, c *goredis.Client) (int64, error) {
 			return c.ZCard(ctx, _sortedSetsKey).Result()
-		})
+		},
+	)
 }

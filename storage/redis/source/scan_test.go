@@ -6,20 +6,16 @@ import (
 )
 
 func TestNewScan(t *testing.T) {
-	s, err := NewScan(Config{
+	c := _newRedisClient()
+	s, err := NewScanWithGoRedisV8(Config{
 		Concurrency: 1,
 		Amount:      0,
 		PageSize:    0,
 		Key:         "",
-		Options:     &_redisOptions,
-	})
+	}, c)
 
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if err != nil {
-		t.Fatal("new", err)
 	}
 
 	err = s.Scan()

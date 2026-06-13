@@ -4,15 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/auho/go-toolkit/redis/client"
-	"github.com/go-redis/redis/v8"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 var _listsKey = "test:source:lists"
 
 func _buildListsData(t *testing.T) {
 	ctx := context.Background()
-	c := redis.NewClient(&_redisOptions)
+	c := goredis.NewClient(&_redisOptions)
 	c.Del(ctx, _listsKey)
 
 	amount := _randAmount()
@@ -33,11 +32,14 @@ func _buildListsData(t *testing.T) {
 func TestNewLists(t *testing.T) {
 	_buildListsData(t)
 
+	c := _newRedisClient()
 	_testKey[string](
 		t,
 		_listsKey,
-		NewLists,
-		func(ctx context.Context, c *client.Redis) (int64, error) {
+		NewListsWithGoRedisV8,
+		c,
+		func(ctx context.Context, c *goredis.Client) (int64, error) {
 			return c.LLen(ctx, _listsKey).Result()
-		})
+		},
+	)
 }

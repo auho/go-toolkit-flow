@@ -1,32 +1,34 @@
 package source
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/redis"
-	"github.com/auho/go-toolkit/redis/client"
+	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
+	"github.com/auho/go-toolkit-flow/storage/redis/source/format"
 )
 
 var _ storage.Source[string] = (*scanKey)(nil)
-var _ redis.ClientProvider = (*scanKey)(nil)
 
 type scanKey struct {
 	storage.Storage
+	dialect     dialect.Dialect
+	format      format.Format[string]
 	concurrency int
 	pageSize    int64
 	total       int64
 	amount      int64
 	keyPattern  string
 	state       *storage.State
-	client      *client.Redis
 	itemsChan   chan []string
+	scanned     int64
 }
 
-func NewScan(config Config) (*scanKey, error) {
+func newScanKey(config Config, d dialect.Dialect, f format.Format[string]) (*scanKey, error) {
 	s := &scanKey{}
+	s.dialect = d
+	s.format = f
 	err := s.config(config)
 	if err != nil {
 		return nil, err
@@ -49,26 +51,12 @@ func (s *scanKey) config(config Config) error {
 		s.pageSize = 100
 	}
 
-	if config.Options == nil {
-		panic("config options is nil")
-	}
-
 	s.state = storage.NewState()
 	s.state.MarkAsConfigured()
 	s.state.Concurrency = s.concurrency
 	s.state.Title = s.Title()
 
-	var err error
-	s.client, err = client.NewRedisClient(config.Options)
-	if err != nil {
-		return err
-	}
-
 	return nil
-}
-
-func (s *scanKey) GetClient() *client.Redis {
-	return s.client
 }
 
 func (s *scanKey) Scan() error {
@@ -77,27 +65,27 @@ func (s *scanKey) Scan() error {
 	s.itemsChan = make(chan []string, s.concurrency)
 
 	go func() {
-		var err error
-		var cursor uint64 = 0
-		var keys []string
+		var cursor int64 = 0
 		for {
-			keys, cursor, err = s.client.Scan(context.Background(), cursor, s.keyPattern, s.pageSize).Result()
+			keys, newCursor, err := s.format.ScanByRange(s.dialect, s.keyPattern, cursor, s.pageSize)
 			if err != nil {
 				panic(fmt.Sprintf("scan keys: %v", err))
 			}
 
 			if len(keys) > 0 {
-				atomic.AddInt64(&s.amount, int64(len(keys)))
+				atomic.AddInt64(&s.scanned, int64(len(keys)))
 				s.itemsChan <- keys
 			}
 
-			if cursor == 0 {
+			if newCursor == 0 {
 				break
 			}
 
-			if s.total > 0 && atomic.LoadInt64(&s.amount) >= s.total {
+			if s.total > 0 && atomic.LoadInt64(&s.scanned) >= s.total {
 				break
 			}
+
+			cursor = newCursor
 		}
 
 		close(s.itemsChan)
@@ -114,7 +102,7 @@ func (s *scanKey) ReceiveChan() <-chan []string {
 }
 
 func (s *scanKey) Close() error {
-	return s.client.Close()
+	return s.dialect.Close()
 }
 
 func (s *scanKey) Summary() []string {
@@ -122,15 +110,12 @@ func (s *scanKey) Summary() []string {
 }
 
 func (s *scanKey) State() []string {
-	s.state.SetAmount(atomic.LoadInt64(&s.amount))
+	s.state.SetAmount(atomic.LoadInt64(&s.scanned))
 	return []string{s.state.Overview()}
 }
 
 func (s *scanKey) Copy(items []string) []string {
-	newItems := make([]string, len(items), len(items))
-	_ = copy(newItems, items)
-
-	return newItems
+	return s.format.Copy(items)
 }
 
 func (s *scanKey) Title() string {

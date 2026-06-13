@@ -6,15 +6,14 @@ import (
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit/redis/client"
-	"github.com/go-redis/redis/v8"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 var _hashesKey = "test:source:hashes"
 
 func _buildHashesData(t *testing.T) {
 	ctx := context.Background()
-	c := redis.NewClient(&_redisOptions)
+	c := goredis.NewClient(&_redisOptions)
 	c.Del(ctx, _hashesKey)
 
 	amount := _randAmount()
@@ -35,11 +34,14 @@ func _buildHashesData(t *testing.T) {
 func TestNewHashes(t *testing.T) {
 	_buildHashesData(t)
 
+	c := _newRedisClient()
 	_testKey[storage.MapOfStringsEntry](
 		t,
 		_hashesKey,
-		NewHashes,
-		func(ctx context.Context, c *client.Redis) (int64, error) {
+		NewHashesWithGoRedisV8,
+		c,
+		func(ctx context.Context, c *goredis.Client) (int64, error) {
 			return c.HLen(ctx, _hashesKey).Result()
-		})
+		},
+	)
 }

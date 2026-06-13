@@ -11,7 +11,7 @@ import (
 
 	"github.com/auho/go-toolkit-flow/storage"
 	redis2 "github.com/auho/go-toolkit-flow/tests/redis"
-	"github.com/auho/go-toolkit/redis/client"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 var _redisOptions = redis2.Options
@@ -35,8 +35,9 @@ func tearDown() {
 func _testKey[E storage.Entry](
 	t *testing.T,
 	key string,
-	bFunc func(config Config) (*key[E], error),
-	lFunc func(ctx context.Context, c *client.Redis) (int64, error),
+	bFunc func(config Config, client *goredis.Client) (*key[E], error),
+	c *goredis.Client,
+	lFunc func(ctx context.Context, c *goredis.Client) (int64, error),
 ) {
 	ctx := context.Background()
 
@@ -45,8 +46,7 @@ func _testKey[E storage.Entry](
 		Amount:      0,
 		PageSize:    0,
 		Key:         key,
-		Options:     &_redisOptions,
-	})
+	}, c)
 
 	if err != nil {
 		t.Fatal("new", err)
@@ -70,7 +70,7 @@ func _testKey[E storage.Entry](
 		t.Error(fmt.Sprintf("total != statusAmount != actual %d != %d != %d", k.total, k.state.Amount(), amount))
 	}
 
-	dbAmount, err := lFunc(ctx, k.GetClient())
+	dbAmount, err := lFunc(ctx, c)
 	if err != nil {
 		t.Error("db statusAmount ", err)
 	}
@@ -89,4 +89,8 @@ func _randAmount() int {
 	i := int(10e3)
 	i += rand.Intn(1000)
 	return i
+}
+
+func _newRedisClient() *goredis.Client {
+	return goredis.NewClient(&_redisOptions)
 }
