@@ -1,8 +1,6 @@
 package destination
 
-type Config struct {
+type DestinationConfig struct {
 	IsTruncate  bool
 	Concurrency int
-	PageSize    int64
-	TableName   string
 }

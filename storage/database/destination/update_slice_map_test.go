@@ -18,14 +18,13 @@ var uss *Destination[storage.MapEntry]
 
 func TestUpdateSliceMap(t *testing.T) {
 	var err error
-	uss, err = NewUpdateSliceMap(&Config{
+	uss, err = NewUpdateSliceMapWithGorm(DestinationConfig{
 		IsTruncate:  true,
 		Concurrency: 4,
-		PageSize:    7,
-		TableName:   tableName,
-	}, idName, func() (*database.DB, error) {
-		return mysql.DB, nil
-	})
+	}, WriteConfig{
+		TableName: tableName,
+		PageSize:  7,
+	}, idName, mysql.DB.GormDB())
 
 	if err != nil {
 		log.Fatal(err)
@@ -58,7 +57,7 @@ func TestUpdateSliceMap(t *testing.T) {
 	}
 
 	var dbAmount int64
-	err = uss.DB().Table(uss.table).Count(&dbAmount).Error
+	err = uss.DB().Table(tableName).Count(&dbAmount).Error
 	if err != nil {
 		t.Error(err)
 	}

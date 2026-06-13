@@ -1,0 +1,26 @@
+package format
+
+import (
+	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/storage/database/destination/dialect"
+	"github.com/auho/go-toolkit-flow/tool"
+)
+
+var _ Format[storage.MapEntry] = (*insertMapFormat)(nil)
+
+type insertMapFormat struct {
+	batchSize int
+}
+
+// NewInsertMapFormat 创建 MapEntry 插入格式处理器
+func NewInsertMapFormat(batchSize int) Format[storage.MapEntry] {
+	return &insertMapFormat{batchSize: batchSize}
+}
+
+func (f *insertMapFormat) Write(d dialect.Dialect, items storage.MapEntries) error {
+	return d.BulkInsertMap(items, f.batchSize)
+}
+
+func (f *insertMapFormat) Copy(items storage.MapEntries) storage.MapEntries {
+	return tool.CopySliceMap[any](items)
+}

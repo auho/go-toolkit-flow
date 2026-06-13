@@ -9,108 +9,85 @@ import (
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database"
+	"github.com/auho/go-toolkit-flow/storage/database/destination/dialect"
+	"github.com/auho/go-toolkit-flow/storage/database/destination/format"
 	"github.com/auho/go-toolkit/time/timing"
 )
+
+// WriteConfig 类型别名重导出，用户无需导入 dialect 包
+type WriteConfig = dialect.WriteConfig
 
 var _ storage.Destination[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
 var _ database.Driver = (*Destination[storage.MapEntry])(nil)
 
-type Executor[E storage.Entry] interface {
-	Exec(d *Destination[E], items []E) error
-}
-
 type Destination[E storage.Entry] struct {
 	storage.Storage
-	db     *database.DB
-	isDone bool
-
-	isTruncate  bool
-	concurrency int
-	table       string
-	pageSize    int64
+	dialect     dialect.Dialect
+	format      format.Format[E]
+	config      DestinationConfig
+	writeConfig dialect.WriteConfig
 
 	state        *storage.State
 	workerWg     sync.WaitGroup
-	dst          Executor[E]
 	itemsChan    chan []E
 	errChan      chan error
 	firstErr     error
 	workerErr    error
 	workerFailed atomic.Bool
+	isDone       bool
 }
 
-func NewDestination[E storage.Entry](config *Config, dst Executor[E], b database.GenDB) (*Destination[E], error) {
-	d := &Destination[E]{}
-	err := d.config(config, b)
-	if err != nil {
-		return nil, err
+func newDestination[E storage.Entry](config DestinationConfig, writeConfig dialect.WriteConfig, d dialect.Dialect, f format.Format[E]) (*Destination[E], error) {
+	if writeConfig.PageSize <= 0 {
+		return nil, fmt.Errorf("page size[%d] is error", writeConfig.PageSize)
 	}
 
-	d.dst = dst
+	dest := &Destination[E]{
+		dialect:     d,
+		format:      f,
+		config:      config,
+		writeConfig: writeConfig,
+	}
 
-	return d, nil
+	dest.initConfig()
+
+	return dest, nil
 }
 
 func (d *Destination[E]) DB() *database.DB {
-	return d.db
-}
-
-func (d *Destination[E]) TableName() string {
-	return d.table
-}
-
-func (d *Destination[E]) PageSize() int64 {
-	return d.pageSize
-}
-
-func (d *Destination[E]) config(config *Config, b database.GenDB) (err error) {
-	d.isTruncate = config.IsTruncate
-	d.concurrency = config.Concurrency
-	d.pageSize = config.PageSize
-	d.table = config.TableName
-
-	d.db, err = b()
-	if err != nil {
-		return
+	if driver, ok := d.dialect.(database.Driver); ok {
+		return driver.DB()
 	}
 
-	err = d.db.Ping()
-	if err != nil {
-		return
-	}
+	return nil
+}
 
-	if d.concurrency <= 0 {
-		d.concurrency = runtime.NumCPU()
-	}
-
-	if d.pageSize <= 0 {
-		err = fmt.Errorf("page size[%d] is error", d.pageSize)
-		return
+func (d *Destination[E]) initConfig() {
+	if d.config.Concurrency <= 0 {
+		d.config.Concurrency = runtime.NumCPU()
 	}
 
 	d.state = storage.NewState()
-	d.state.Concurrency = d.concurrency
+	d.state.Concurrency = d.config.Concurrency
 	d.state.Title = d.Title()
 	d.state.MarkAsConfigured()
-
-	return
 }
 
 func (d *Destination[E]) Accept() (err error) {
 	d.state.MarkAsAccepted()
 	d.state.DurationStart()
 
-	if d.isTruncate {
-		err = d.db.Truncate(d.table)
+	if d.config.IsTruncate {
+		err = d.dialect.Truncate()
 		if err != nil {
 			return
 		}
 	}
 
-	d.itemsChan = make(chan []E, d.concurrency)
-	d.errChan = make(chan error, d.concurrency)
+	d.itemsChan = make(chan []E, d.config.Concurrency)
+	d.errChan = make(chan error, d.config.Concurrency)
 
-	for i := 0; i < d.concurrency; i++ {
+	for i := 0; i < d.config.Concurrency; i++ {
 		d.workerWg.Add(1)
 		go func() {
 			d.do()
@@ -178,11 +155,11 @@ func (d *Destination[E]) do() {
 		length := len(descItems)
 		start := 0
 		end := 0
-		batchSize := int(d.pageSize)
+		batchSize := int(d.writeConfig.PageSize)
 		for {
 			end = start + batchSize
 			if end <= length {
-				err := d.dst.Exec(d, descItems[start:end])
+				err := d.format.Write(d.dialect, descItems[start:end])
 				if err != nil {
 					d.workerErr = err
 					d.workerFailed.Store(true)
@@ -203,7 +180,7 @@ func (d *Destination[E]) do() {
 	}
 
 	if len(descItems) > 0 {
-		err := d.dst.Exec(d, descItems)
+		err := d.format.Write(d.dialect, descItems)
 		if err != nil {
 			d.workerErr = err
 			d.workerFailed.Store(true)
@@ -219,11 +196,11 @@ func (d *Destination[E]) do() {
 }
 
 func (d *Destination[E]) Title() string {
-	return fmt.Sprintf("Destination driver[%s]", d.db.Name())
+	return fmt.Sprintf("Destination driver[%s]", d.dialect.DBName())
 }
 
 func (d *Destination[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s Concurrency:%d", d.Title(), d.concurrency)}
+	return []string{fmt.Sprintf("%s Concurrency:%d", d.Title(), d.config.Concurrency)}
 }
 
 func (d *Destination[E]) State() []string {
@@ -231,5 +208,5 @@ func (d *Destination[E]) State() []string {
 }
 
 func (d *Destination[E]) Close() error {
-	return d.db.Close()
+	return d.dialect.Close()
 }

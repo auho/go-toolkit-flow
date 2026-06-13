@@ -7,19 +7,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auho/go-toolkit-flow/storage/database"
 	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
 
 func TestInsertSliceMap(t *testing.T) {
-	iss, err := NewInsertSliceMap(&Config{
+	iss, err := NewInsertSliceMapWithGorm(DestinationConfig{
 		IsTruncate:  true,
 		Concurrency: 4,
-		PageSize:    337,
-		TableName:   tableName,
-	}, func() (*database.DB, error) {
-		return mysql.DB, nil
-	})
+	}, WriteConfig{
+		TableName: tableName,
+		PageSize:  337,
+	}, mysql.DB.GormDB())
 
 	if err != nil {
 		log.Fatal(err)
@@ -60,7 +58,7 @@ func TestInsertSliceMap(t *testing.T) {
 	}
 
 	var dbAmount int64
-	err = iss.db.Table(tableName).Count(&dbAmount).Error
+	err = iss.DB().Table(tableName).Count(&dbAmount).Error
 	if err != nil {
 		t.Error("db amount ", err)
 	}
