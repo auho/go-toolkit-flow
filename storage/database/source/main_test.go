@@ -50,7 +50,12 @@ func _testSection[E storage.Entry](
 		t.Error(fmt.Sprintf("total != amount != actual %d != %d != %d", s.total, s.state.Amount(), amount))
 	}
 	var dbAmount int64
-	err = s.db.Table(tableName).Count(&dbAmount).Error
+	db := s.DB()
+	if db == nil {
+		t.Error("db is nil")
+		return
+	}
+	err = db.Table(tableName).Count(&dbAmount).Error
 	if err != nil {
 		t.Error("db amount ", err)
 	}

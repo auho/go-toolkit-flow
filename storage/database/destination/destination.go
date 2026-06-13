@@ -29,17 +29,17 @@ type Destination[E storage.Entry] struct {
 	table       string
 	pageSize    int64
 
-	state     *storage.State
-	workerWg  sync.WaitGroup
-	dst       Executor[E]
-	itemsChan   chan []E
-	errChan     chan error
-	firstErr    error
-	workerErr   error
+	state        *storage.State
+	workerWg     sync.WaitGroup
+	dst          Executor[E]
+	itemsChan    chan []E
+	errChan      chan error
+	firstErr     error
+	workerErr    error
 	workerFailed atomic.Bool
 }
 
-func NewDestination[E storage.Entry](config *Config, dst Executor[E], b database.BuildDb) (*Destination[E], error) {
+func NewDestination[E storage.Entry](config *Config, dst Executor[E], b database.GenDB) (*Destination[E], error) {
 	d := &Destination[E]{}
 	err := d.config(config, b)
 	if err != nil {
@@ -63,7 +63,7 @@ func (d *Destination[E]) PageSize() int64 {
 	return d.pageSize
 }
 
-func (d *Destination[E]) config(config *Config, b database.BuildDb) (err error) {
+func (d *Destination[E]) config(config *Config, b database.GenDB) (err error) {
 	d.isTruncate = config.IsTruncate
 	d.concurrency = config.Concurrency
 	d.pageSize = config.PageSize

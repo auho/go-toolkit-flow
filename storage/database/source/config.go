@@ -1,53 +1,10 @@
 package source
 
-import (
-	"fmt"
-	"strings"
-
-	"github.com/auho/go-toolkit-flow/storage/database"
-	"gorm.io/gorm"
-)
-
-type Config struct {
+// SectionConfig 分段扫描基础配置
+type SectionConfig struct {
 	Concurrency int
-	Maximum     int64
-	StartID     int64
-	EndID       int64
-	PageSize    int64
-	TableName   string
-	IDName      string
-}
-
-type QueryConfig struct {
-	Config
-	Fields    []string
-	Where     string // "field1 = ? and field2 = ?"
-	WhereArgs []any  // parameters for Where clause
-	Order     string // "field1 desc"
-}
-
-func (q *QueryConfig) buildQuery(db *database.DB) *gorm.DB {
-	tx := db.Table(q.TableName)
-	if len(q.Fields) > 0 {
-		var quotedFields []string
-		for _, field := range q.Fields {
-			quotedFields = append(quotedFields, fmt.Sprintf("`%s`", field))
-		}
-
-		tx = tx.Select(strings.Join(quotedFields, ","))
-	}
-
-	if q.Where != "" {
-		if len(q.WhereArgs) > 0 {
-			tx = tx.Where(q.Where, q.WhereArgs...)
-		} else {
-			tx = tx.Where(q.Where)
-		}
-	}
-
-	if q.Order != "" {
-		tx = tx.Order(q.Order)
-	}
-
-	return tx
+	MaxItems    int64 // 最多读取的记录数，0 表示不限制
+	StartID     int64 // 起始 ID（闭区间）
+	EndID       int64 // 结束 ID（闭区间），0 表示自动检测
+	PageSize    int64 // 每页大小
 }

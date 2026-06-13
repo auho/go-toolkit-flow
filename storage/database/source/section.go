@@ -1,92 +1,100 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"runtime"
-	"sync"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database"
+	"github.com/auho/go-toolkit-flow/storage/database/source/dialect"
+	"github.com/auho/go-toolkit-flow/storage/database/source/format"
+	"golang.org/x/sync/errgroup"
 )
 
+// ScanConfig 类型别名重导出，用户无需导入 dialect 包
+type ScanConfig = dialect.ScanConfig
+
 var _ storage.Source[storage.MapEntry] = (*Section[storage.MapEntry])(nil)
-var _ database.Driver = (*Section[storage.MapEntry])(nil)
 
-type sectionQuery[E storage.Entry] interface {
-	Query(se *Section[E], startID, endID int64) ([]E, error)
-	Copy([]E) []E
-}
-
-// Section 分段查询
+// Section 分段查询编排器
 type Section[E storage.Entry] struct {
 	storage.Storage
-	db     *database.DB
-	scanWg sync.WaitGroup
-	config *QueryConfig
+	dialect dialect.Dialect
+	format  format.Format[E]
+	config  SectionConfig
 
-	total         int64
-	totalPage     int64
-	startID       int64 // 闭区间
-	endID         int64 // 闭区间
+	total     int64
+	totalPage int64
+	startID   int64
+	endID     int64
 
-	idRangeChan   chan []int64 // []in64{left id, right id} 包含两端
-	rowsChan      chan []E
-	state         *storage.PageState
-	query         sectionQuery[E]
+	rowsChan    chan []E
+	segmentChan chan []int64
+	state       *storage.PageState
+
+	// 并发与错误处理
+	segmentCtx    context.Context
+	segmentCancel context.CancelFunc
+	scanGroup     *errgroup.Group
+	scanCtx       context.Context
+	scanCancel    context.CancelFunc
+	scanError     error
 }
 
-func newSection[E storage.Entry](config *QueryConfig, sq sectionQuery[E], b database.BuildDb) (*Section[E], error) {
-	s := &Section[E]{}
-	err := s.initConfig(config, b)
-	if err != nil {
-		return nil, err
+func newSection[E storage.Entry](config SectionConfig, dialect dialect.Dialect, format format.Format[E]) *Section[E] {
+	s := &Section[E]{
+		dialect: dialect,
+		format:  format,
+		config:  config,
 	}
 
-	s.query = sq
+	s.initConfig(config)
 
-	return s, nil
+	return s
 }
 
 func (s *Section[E]) DB() *database.DB {
-	return s.db
-}
+	if driver, ok := s.dialect.(database.Driver); ok {
+		return driver.DB()
+	}
 
-func (s *Section[E]) State() []string {
-	return []string{s.state.Overview()}
-}
-
-func (s *Section[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s: total: %d, total page: %d, page size: %d, start id: %d, end id: %d ",
-		s.Title(),
-		s.total,
-		s.totalPage,
-		s.config.PageSize,
-		s.startID,
-		s.endID)}
+	return nil
 }
 
 func (s *Section[E]) Copy(items []E) []E {
-	return s.query.Copy(items)
+	return s.format.Copy(items)
 }
 
 func (s *Section[E]) Scan() error {
 	s.state.MarkAsScanning()
 	s.state.DurationStart()
-	s.idRangeChan = make(chan []int64, s.config.Concurrency)
+
 	s.rowsChan = make(chan []E, s.config.Concurrency)
+	s.segmentChan = make(chan []int64, s.config.Concurrency)
+
+	s.segmentCtx, s.segmentCancel = context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	s.scanGroup, s.scanCtx = errgroup.WithContext(ctx)
+	s.scanCancel = cancel
+	s.scanGroup.SetLimit(s.config.Concurrency)
 
 	err := s.idRange()
 	if err != nil {
 		return err
 	}
 
-	go s.idSection()
+	go s.dispatchSegments()
 	s.scanRows()
 
 	go func() {
-		s.scanWg.Wait()
+		s.scanError = s.scanGroup.Wait()
+
+		s.segmentCancel()
+		s.scanCancel()
+
 		close(s.rowsChan)
 
 		s.state.DurationStop()
@@ -100,120 +108,106 @@ func (s *Section[E]) ReceiveChan() <-chan []E {
 	return s.rowsChan
 }
 
-// 根据 start id， end id，分段（left id， right id）并分发 id section
-func (s *Section[E]) idSection() {
-	stopped := false
+func (s *Section[E]) Err() error {
+	return s.scanError
+}
+
+// dispatchSegments 根据 start id, end id 分段并分发
+func (s *Section[E]) dispatchSegments() {
+	defer close(s.segmentChan)
+
 	startID := s.startID
-	rightID := int64(0)
+
 	for {
-		rightID = startID + s.config.PageSize - 1
+		rightID := startID + s.config.PageSize - 1
 		if rightID >= s.endID {
 			rightID = s.endID
-			stopped = true
 		}
 
-		s.idRangeChan <- []int64{startID, rightID}
+		select {
+		case <-s.segmentCtx.Done():
+			return
+		case s.segmentChan <- []int64{startID, rightID}:
+		}
 
-		if stopped {
+		if rightID >= s.endID {
 			break
 		}
 
 		startID += s.config.PageSize
 	}
-
-	close(s.idRangeChan)
 }
 
-// 根据 id section（left id，right id） 查询 rows
+// scanRows 从 segmentChan 读取分段信息并查询数据
 func (s *Section[E]) scanRows() {
 	for i := 0; i < s.config.Concurrency; i++ {
-		s.scanWg.Add(1)
-		go func() {
-			for idRange := range s.idRangeChan {
-				leftID := idRange[0]
-				rightID := idRange[1]
+		s.scanGroup.Go(func() error {
+			select {
+			case <-s.scanCtx.Done():
+				return nil
+			case segment, ok := <-s.segmentChan:
+				if !ok {
+					return nil
+				}
 
-				rows, err := s.query.Query(s, leftID, rightID)
+				rows, err := s.format.QueryByRange(s.dialect, segment[0], segment[1])
 				if err != nil {
-						panic(fmt.Sprintf("left id[%d] - right id[%d]: %v", leftID, rightID, err))
+					s.scanCancel()
+
+					return fmt.Errorf("query range [%d-%d]: %w", segment[0], segment[1], err)
 				}
 
-				if len(rows) == 0 {
-					continue
+				if len(rows) > 0 {
+					atomic.AddInt64(&s.state.Page, 1)
+					s.state.AddAmount(int64(len(rows)))
+
+					s.rowsChan <- rows
 				}
-
-				atomic.AddInt64(&s.state.Page, 1)
-				s.state.AddAmount(int64(len(rows)))
-
-				s.rowsChan <- rows
 			}
 
-			s.scanWg.Done()
-		}()
+			return nil
+		})
 	}
 }
 
-func (s *Section[E]) initConfig(config *QueryConfig, b database.BuildDb) (err error) {
+func (s *Section[E]) initConfig(config SectionConfig) {
 	s.config = config
 
-	s.total = config.Maximum
+	s.total = config.MaxItems
 	s.startID = config.StartID
 	s.endID = config.EndID
 
-	s.db, err = b()
-	if err != nil {
-		return
-	}
-
-	err = s.db.Ping()
-	if err != nil {
-		return
-	}
-
 	if s.config.Concurrency <= 0 {
 		s.config.Concurrency = runtime.NumCPU()
-	}
-
-	if s.config.PageSize <= 0 {
-		err = fmt.Errorf("page size[%d] is error", s.config.PageSize)
-		return
-	}
-
-	if s.total > 0 && s.config.PageSize > s.total {
-		s.config.PageSize = s.total
 	}
 
 	s.state = storage.NewPageState()
 	s.state.Concurrency = s.config.Concurrency
 	s.state.Title = s.Title()
 	s.state.MarkAsConfigured()
-
-	return
 }
 
-// id range
+// idRange 查询 ID 边界并计算分页信息
 func (s *Section[E]) idRange() error {
-	var row struct {
-		Max int64
-		Min int64
+	if s.config.PageSize <= 0 {
+		return fmt.Errorf("page size[%d] is error", s.config.PageSize)
 	}
 
-	query := fmt.Sprintf("MAX(%s) AS max, MIN(%s) AS min", s.config.IDName, s.config.IDName)
-	err := s.db.Table(s.config.TableName).Select(query).Scan(&row).Error
+	minID, maxID, err := s.dialect.FetchIDBounds()
 	if err != nil {
-		return fmt.Errorf("id range %w", err)
+		return err
 	}
 
-	if row.Min > s.startID {
-		s.startID = row.Min
+	if minID > s.startID {
+		s.startID = minID
 	}
 
-	if s.endID <= 0 || s.endID > row.Max {
-		s.endID = row.Max
+	if s.endID <= 0 || s.endID > maxID {
+		s.endID = maxID
 	}
 
 	if s.endID < s.startID {
-		return fmt.Errorf("mysql max id %d < start id %d", s.endID, s.startID)
+		return fmt.Errorf("max id %d < start id %d", s.endID, s.startID)
 	}
 
 	total := s.endID - s.startID + 1
@@ -241,9 +235,23 @@ func (s *Section[E]) idRange() error {
 }
 
 func (s *Section[E]) Title() string {
-	return fmt.Sprintf("Source db[%s]", s.db.Name())
+	return fmt.Sprintf("Source db[%s]", s.dialect.DBName())
+}
+
+func (s *Section[E]) Summary() []string {
+	return []string{fmt.Sprintf("%s: total: %d, total page: %d, page size: %d, start id: %d, end id: %d ",
+		s.Title(),
+		s.total,
+		s.totalPage,
+		s.config.PageSize,
+		s.startID,
+		s.endID)}
+}
+
+func (s *Section[E]) State() []string {
+	return []string{s.state.Overview()}
 }
 
 func (s *Section[E]) Close() error {
-	return s.db.Close()
+	return s.dialect.Close()
 }

@@ -1,28 +1,28 @@
 package database
 
 import (
-	goSimpleDb "github.com/auho/go-simple-db/v2"
+	simpledb "github.com/auho/go-simple-db/v2"
 )
 
-type BuildDb func() (*DB, error)
-
-type DB struct {
-	*goSimpleDb.SimpleDB
+type Driver interface {
+	DB() *DB
 }
 
-func NewDB(fn func() (*goSimpleDb.SimpleDB, error)) (*DB, error) {
-	sd, err := fn()
+type GenDB func() (*DB, error)
+
+type DB struct {
+	*simpledb.SimpleDB
+}
+
+func NewDB(sdb *simpledb.SimpleDB) *DB {
+	return &DB{SimpleDB: sdb}
+}
+
+func BuildDB(fn func() (*simpledb.SimpleDB, error)) (*DB, error) {
+	sdb, err := fn()
 	if err != nil {
 		return nil, err
 	}
 
-	return NewFromSimpleDb(sd), nil
-}
-
-func NewFromSimpleDb(sd *goSimpleDb.SimpleDB) *DB {
-	return &DB{SimpleDB: sd}
-}
-
-type Driver interface {
-	DB() *DB
+	return NewDB(sdb), nil
 }

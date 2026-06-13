@@ -15,7 +15,7 @@ func (u *UpdateSliceMap) Exec(d *Destination[storage.MapEntry], items storage.Ma
 	return d.db.BulkUpdateFromSliceMapById(d.table, u.idName, items)
 }
 
-func NewUpdateSliceMap(config *Config, idName string, b database.BuildDb) (*Destination[storage.MapEntry], error) {
+func NewUpdateSliceMap(config *Config, idName string, b database.GenDB) (*Destination[storage.MapEntry], error) {
 	usm := &UpdateSliceMap{}
 	usm.idName = idName
 

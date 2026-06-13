@@ -17,7 +17,7 @@ func (i *InsertSliceSlice) Exec(d *Destination[storage.SliceEntry], items storag
 	return d.db.BulkInsertFromSliceSlice(d.table, i.fields, items, int(d.pageSize))
 }
 
-func NewInsertSliceSlice(config *Config, fields []string, b database.BuildDb) (*Destination[storage.SliceEntry], error) {
+func NewInsertSliceSlice(config *Config, fields []string, b database.GenDB) (*Destination[storage.SliceEntry], error) {
 	if len(fields) <= 0 {
 		return nil, errors.New("fields is error")
 	}

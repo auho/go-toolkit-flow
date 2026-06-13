@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/database"
 	"github.com/auho/go-toolkit-flow/storage/database/source"
 	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
@@ -23,19 +22,19 @@ func TestMain(m *testing.M) {
 
 func setUp() {
 	var err error
-	dataSource, err = source.NewSectionSliceMap(&source.QueryConfig{
-		Config: source.Config{
+
+	dataSource, err = source.NewSectionMapWithGorm(
+		source.SectionConfig{
 			Concurrency: 0,
 			PageSize:    rand.Int63n(177) + 93,
-			TableName:   mysql.SourceTable,
-			IDName:      mysql.IDName,
 		},
-		Fields: []string{mysql.NameName, mysql.ValueName},
-		Where:  "",
-		Order:  "",
-	}, func() (*database.DB, error) {
-		return mysql.DB, nil
-	})
+		source.ScanConfig{
+			TableName:     mysql.SourceTable,
+			SegmentIDName: mysql.IDName,
+			SelectFields:  []string{mysql.NameName, mysql.ValueName},
+		},
+		mysql.DB.GormDB(),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

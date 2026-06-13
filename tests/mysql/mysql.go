@@ -38,7 +38,7 @@ func init() {
 		),
 	}
 
-	DB, err = database.NewDB(func() (*goSimpleDb.SimpleDB, error) {
+	DB, err = database.BuildDB(func() (*goSimpleDb.SimpleDB, error) {
 		return goSimpleDb.NewMysql(Dsn, dbc)
 	})
 	if err != nil {

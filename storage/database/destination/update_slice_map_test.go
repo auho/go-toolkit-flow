@@ -69,7 +69,7 @@ func TestUpdateSliceMap(t *testing.T) {
 }
 
 func _buildDataForUpdateSliceMap(t *testing.T, page, pageSize int64) {
-	d, err := database.NewDB(func() (*goSimpleDb.SimpleDB, error) {
+	d, err := database.BuildDB(func() (*goSimpleDb.SimpleDB, error) {
 		return goSimpleDb.NewMysql(mysqlDsn)
 	})
 	if err != nil {
