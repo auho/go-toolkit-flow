@@ -79,7 +79,6 @@ func (s *Section[E]) Scan() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.scanGroup, s.scanCtx = errgroup.WithContext(ctx)
 	s.scanCancel = cancel
-	s.scanGroup.SetLimit(s.config.Concurrency)
 
 	err := s.idRange()
 	if err != nil {
@@ -142,30 +141,30 @@ func (s *Section[E]) dispatchSegments() {
 func (s *Section[E]) scanRows() {
 	for i := 0; i < s.config.Concurrency; i++ {
 		s.scanGroup.Go(func() error {
-			select {
-			case <-s.scanCtx.Done():
-				return nil
-			case segment, ok := <-s.segmentChan:
-				if !ok {
+			for {
+				select {
+				case <-s.scanCtx.Done():
 					return nil
-				}
+				case segment, ok := <-s.segmentChan:
+					if !ok {
+						return nil
+					}
 
-				rows, err := s.format.QueryByRange(s.dialect, segment[0], segment[1])
-				if err != nil {
-					s.scanCancel()
+					rows, err := s.format.QueryByRange(s.dialect, segment[0], segment[1])
+					if err != nil {
+						s.scanCancel()
 
-					return fmt.Errorf("query range [%d-%d]: %w", segment[0], segment[1], err)
-				}
+						return fmt.Errorf("query range [%d-%d]: %w", segment[0], segment[1], err)
+					}
 
-				if len(rows) > 0 {
-					atomic.AddInt64(&s.state.Page, 1)
-					s.state.AddAmount(int64(len(rows)))
+					if len(rows) > 0 {
+						atomic.AddInt64(&s.state.Page, 1)
+						s.state.AddAmount(int64(len(rows)))
 
-					s.rowsChan <- rows
+						s.rowsChan <- rows
+					}
 				}
 			}
-
-			return nil
 		})
 	}
 }
