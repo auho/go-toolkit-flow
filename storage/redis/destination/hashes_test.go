@@ -33,5 +33,5 @@ func _buildHashesData(k *key[storage.MapEntry]) int64 {
 }
 
 func TestHashes(t *testing.T) {
-	_testKey[storage.MapEntry](t, _hashesKey, NewHashes, _buildHashesData)
+	_testKey[storage.MapEntry](t, _hashesKey, NewHashesWithGoRedisV8, _buildHashesData)
 }

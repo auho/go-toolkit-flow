@@ -31,5 +31,5 @@ func _buildSetsData(k *key[string]) int64 {
 }
 
 func TestSets(t *testing.T) {
-	_testKey[string](t, _setsKey, NewSets, _buildSetsData)
+	_testKey[string](t, _setsKey, NewSetsWithGoRedisV8, _buildSetsData)
 }

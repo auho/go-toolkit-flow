@@ -13,6 +13,7 @@ type SliceEntries = []SliceEntry
 type SliceOfStringsEntries = []SliceOfStringsEntry
 type MapEntries = []MapEntry
 type MapOfStringsEntries = []MapOfStringsEntry
+type ScoreMapEntries = []ScoreMapEntry
 
 type Entry interface {
 	SliceEntry | SliceOfStringsEntry | MapEntry | MapOfStringsEntry | ScoreMapEntry | string

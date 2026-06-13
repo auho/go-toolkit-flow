@@ -1,7 +1,6 @@
 package destination
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/auho/go-toolkit-flow/storage"
 	redis2 "github.com/auho/go-toolkit-flow/tests/redis"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 var _redisOptions = redis2.Options
@@ -34,22 +34,17 @@ func tearDown() {
 func _testKey[E storage.Entry](
 	t *testing.T,
 	key string,
-	bFunc func(config Config) (*key[E], error),
+	bFunc func(config Config, client *goredis.Client) (*key[E], error),
 	buildData func(k *key[E]) int64,
 ) {
-	ctx := context.Background()
+	goredisClient := goredis.NewClient(&_redisOptions)
 
 	k, err := bFunc(Config{
 		IsTruncate:  true,
 		Concurrency: 1,
 		PageSize:    0,
 		Key:         key,
-		Options:     &_redisOptions,
-	})
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	}, goredisClient)
 
 	if err != nil {
 		t.Fatal("new", err)
@@ -76,7 +71,7 @@ func _testKey[E storage.Entry](
 		t.Error(fmt.Sprintf("actual != expected %d != %d", k.state.Amount(), amount))
 	}
 
-	dbAmount, err := k.handler.Len(ctx, k.client, k.keyName)
+	dbAmount, err := k.FetchLen()
 	if err != nil {
 		t.Error("db amount ", err)
 	}

@@ -33,5 +33,5 @@ func _buildSortedSetsData(k *key[storage.ScoreMapEntry]) int64 {
 }
 
 func TestSortedSets(t *testing.T) {
-	_testKey[storage.ScoreMapEntry](t, _sortedSetsKey, NewSortedSets, _buildSortedSetsData)
+	_testKey[storage.ScoreMapEntry](t, _sortedSetsKey, NewSortedSetsWithGoRedisV8, _buildSortedSetsData)
 }

@@ -31,5 +31,5 @@ func _buildListsData(k *key[string]) int64 {
 }
 
 func TestLists(t *testing.T) {
-	_testKey[string](t, _listsKey, NewLists, _buildListsData)
+	_testKey[string](t, _listsKey, NewListsWithGoRedisV8, _buildListsData)
 }
