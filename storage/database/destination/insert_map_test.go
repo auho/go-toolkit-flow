@@ -10,13 +10,13 @@ import (
 	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
 
-func TestInsertSliceMap(t *testing.T) {
-	iss, err := NewInsertSliceMapWithGorm(DestinationConfig{
+func TestBulkInsertSliceMapGorm(t *testing.T) {
+	iss, err := NewBulkInsertMapWithGorm(BulkConfig{
 		IsTruncate:  true,
 		Concurrency: 4,
+		PageSize:    337,
 	}, WriteConfig{
 		TableName: tableName,
-		PageSize:  337,
 	}, mysql.DB.GormDB())
 
 	if err != nil {

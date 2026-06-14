@@ -17,15 +17,14 @@ import (
 // WriteConfig 类型别名重导出，用户无需导入 dialect 包
 type WriteConfig = dialect.WriteConfig
 
-var _ storage.Destination[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
-var _ database.Driver = (*Destination[storage.MapEntry])(nil)
+var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
+var _ database.Driver = (*Bulk[storage.MapEntry])(nil)
 
-type Destination[E storage.Entry] struct {
+type Bulk[E storage.Entry] struct {
 	storage.Storage
-	dialect     dialect.Dialect
-	format      format.Format[E]
-	config      DestinationConfig
-	writeConfig dialect.WriteConfig
+	dialect dialect.Dialect
+	format  format.Format[E]
+	config  BulkConfig
 
 	state        *storage.State
 	workerWg     sync.WaitGroup
@@ -37,16 +36,15 @@ type Destination[E storage.Entry] struct {
 	isDone       bool
 }
 
-func newDestination[E storage.Entry](config DestinationConfig, writeConfig dialect.WriteConfig, d dialect.Dialect, f format.Format[E]) (*Destination[E], error) {
-	if writeConfig.PageSize <= 0 {
-		return nil, fmt.Errorf("page size[%d] is error", writeConfig.PageSize)
+func newDestination[E storage.Entry](config BulkConfig, d dialect.Dialect, f format.Format[E]) (*Bulk[E], error) {
+	if config.PageSize <= 0 {
+		return nil, fmt.Errorf("page size[%d] is error", config.PageSize)
 	}
 
-	dest := &Destination[E]{
-		dialect:     d,
-		format:      f,
-		config:      config,
-		writeConfig: writeConfig,
+	dest := &Bulk[E]{
+		dialect: d,
+		format:  f,
+		config:  config,
 	}
 
 	dest.initConfig()
@@ -54,7 +52,7 @@ func newDestination[E storage.Entry](config DestinationConfig, writeConfig diale
 	return dest, nil
 }
 
-func (d *Destination[E]) DB() *database.DB {
+func (d *Bulk[E]) DB() *database.DB {
 	if driver, ok := d.dialect.(database.Driver); ok {
 		return driver.DB()
 	}
@@ -62,7 +60,7 @@ func (d *Destination[E]) DB() *database.DB {
 	return nil
 }
 
-func (d *Destination[E]) initConfig() {
+func (d *Bulk[E]) initConfig() {
 	if d.config.Concurrency <= 0 {
 		d.config.Concurrency = runtime.NumCPU()
 	}
@@ -73,7 +71,7 @@ func (d *Destination[E]) initConfig() {
 	d.state.MarkAsConfigured()
 }
 
-func (d *Destination[E]) Accept() (err error) {
+func (d *Bulk[E]) Accept() (err error) {
 	d.state.MarkAsAccepted()
 	d.state.DurationStart()
 
@@ -99,7 +97,7 @@ func (d *Destination[E]) Accept() (err error) {
 	return nil
 }
 
-func (d *Destination[E]) Receive(items []E) error {
+func (d *Bulk[E]) Receive(items []E) error {
 	if d.workerFailed.Load() {
 		return d.workerErr
 	}
@@ -108,7 +106,7 @@ func (d *Destination[E]) Receive(items []E) error {
 	return nil
 }
 
-func (d *Destination[E]) Done() {
+func (d *Bulk[E]) Done() {
 	d.state.MarkAsDone()
 
 	if d.isDone {
@@ -120,7 +118,7 @@ func (d *Destination[E]) Done() {
 	close(d.itemsChan)
 }
 
-func (d *Destination[E]) Finish() error {
+func (d *Bulk[E]) Finish() error {
 	d.workerWg.Wait()
 	close(d.errChan)
 	for err := range d.errChan {
@@ -135,11 +133,11 @@ func (d *Destination[E]) Finish() error {
 	return d.firstErr
 }
 
-func (d *Destination[E]) Err() error {
+func (d *Bulk[E]) Err() error {
 	return d.firstErr
 }
 
-func (d *Destination[E]) do() {
+func (d *Bulk[E]) do() {
 	duration := timing.NewDuration()
 	duration.Start()
 	var descItems []E
@@ -153,12 +151,12 @@ func (d *Destination[E]) do() {
 		descItems = append(descItems, items...)
 
 		length := len(descItems)
-		start := 0
-		end := 0
-		batchSize := int(d.writeConfig.PageSize)
+		var start, end int64
+
+		batchSize := d.config.PageSize
 		for {
 			end = start + batchSize
-			if end <= length {
+			if end <= int64(length) {
 				err := d.format.Write(d.dialect, descItems[start:end])
 				if err != nil {
 					d.workerErr = err
@@ -167,7 +165,7 @@ func (d *Destination[E]) do() {
 					return
 				}
 
-				d.state.AddAmount(int64(batchSize))
+				d.state.AddAmount(batchSize)
 
 				start += batchSize
 			} else {
@@ -195,18 +193,18 @@ func (d *Destination[E]) do() {
 	duration.Stop()
 }
 
-func (d *Destination[E]) Title() string {
+func (d *Bulk[E]) Title() string {
 	return fmt.Sprintf("Destination driver[%s]", d.dialect.DBName())
 }
 
-func (d *Destination[E]) Summary() []string {
+func (d *Bulk[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s Concurrency:%d", d.Title(), d.config.Concurrency)}
 }
 
-func (d *Destination[E]) State() []string {
+func (d *Bulk[E]) State() []string {
 	return []string{d.state.Overview()}
 }
 
-func (d *Destination[E]) Close() error {
+func (d *Bulk[E]) Close() error {
 	return d.dialect.Close()
 }

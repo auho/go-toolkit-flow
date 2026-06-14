@@ -9,18 +9,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// NewInsertSliceMapWithGorm 创建基于 gorm 的 MapEntry 插入 Destination
-func NewInsertSliceMapWithGorm(config DestinationConfig, writeConfig WriteConfig, db *gorm.DB) (*Destination[storage.MapEntry], error) {
+// NewBulkInsertMapWithGorm 创建基于 gorm 的 MapEntry 插入 Bulk
+func NewBulkInsertMapWithGorm(config BulkConfig, writeConfig WriteConfig, db *gorm.DB) (*Bulk[storage.MapEntry], error) {
 	d, err := dialectMysql.NewDialectGorm(writeConfig, db)
 	if err != nil {
 		return nil, err
 	}
 
-	return newDestination[storage.MapEntry](config, writeConfig, d, format.NewInsertMapFormat(int(writeConfig.PageSize)))
+	return newDestination[storage.MapEntry](config, d, format.NewInsertMapFormat(int(config.PageSize)))
 }
 
-// NewInsertSliceSliceWithGorm 创建基于 gorm 的 SliceEntry 插入 Destination
-func NewInsertSliceSliceWithGorm(config DestinationConfig, writeConfig WriteConfig, fields []string, db *gorm.DB) (*Destination[storage.SliceEntry], error) {
+// NewBulkInsertSliceWithGorm 创建基于 gorm 的 SliceEntry 插入 Bulk
+func NewBulkInsertSliceWithGorm(config BulkConfig, writeConfig WriteConfig, fields []string, db *gorm.DB) (*Bulk[storage.SliceEntry], error) {
 	if len(fields) <= 0 {
 		return nil, errors.New("fields is error")
 	}
@@ -30,15 +30,15 @@ func NewInsertSliceSliceWithGorm(config DestinationConfig, writeConfig WriteConf
 		return nil, err
 	}
 
-	return newDestination[storage.SliceEntry](config, writeConfig, d, format.NewInsertSliceFormat(fields, int(writeConfig.PageSize)))
+	return newDestination[storage.SliceEntry](config, d, format.NewInsertSliceFormat(fields, int(config.PageSize)))
 }
 
-// NewUpdateSliceMapWithGorm 创建基于 gorm 的 MapEntry 更新 Destination
-func NewUpdateSliceMapWithGorm(config DestinationConfig, writeConfig WriteConfig, idName string, db *gorm.DB) (*Destination[storage.MapEntry], error) {
+// NewBulkUpdateMapWithGorm 创建基于 gorm 的 MapEntry 更新 Bulk
+func NewBulkUpdateMapWithGorm(config BulkConfig, writeConfig WriteConfig, idName string, db *gorm.DB) (*Bulk[storage.MapEntry], error) {
 	d, err := dialectMysql.NewDialectGorm(writeConfig, db)
 	if err != nil {
 		return nil, err
 	}
 
-	return newDestination[storage.MapEntry](config, writeConfig, d, format.NewUpdateMapFormat(idName))
+	return newDestination[storage.MapEntry](config, d, format.NewUpdateMapFormat(idName))
 }

@@ -14,16 +14,16 @@ import (
 )
 
 var ussItemsChan = make(chan storage.MapEntries)
-var uss *Destination[storage.MapEntry]
+var uss *Bulk[storage.MapEntry]
 
-func TestUpdateSliceMap(t *testing.T) {
+func TestBilkUpdateMapFormatGorm(t *testing.T) {
 	var err error
-	uss, err = NewUpdateSliceMapWithGorm(DestinationConfig{
+	uss, err = NewBulkUpdateMapWithGorm(BulkConfig{
 		IsTruncate:  true,
 		Concurrency: 4,
+		PageSize:    7,
 	}, WriteConfig{
 		TableName: tableName,
-		PageSize:  7,
 	}, idName, mysql.DB.GormDB())
 
 	if err != nil {
@@ -34,7 +34,7 @@ func TestUpdateSliceMap(t *testing.T) {
 	page := int64(rand.Intn(10)) + 10
 	pageSize := int64((rand.Intn(4) + 1) * 10)
 
-	go _buildDataForUpdateSliceMap(t, page, pageSize)
+	go _buildDataForUpdateMap(t, page, pageSize)
 
 	err = uss.Accept()
 	if err != nil {
@@ -67,7 +67,7 @@ func TestUpdateSliceMap(t *testing.T) {
 	}
 }
 
-func _buildDataForUpdateSliceMap(t *testing.T, page, pageSize int64) {
+func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
 	d, err := database.BuildDB(func() (*goSimpleDb.SimpleDB, error) {
 		return goSimpleDb.NewMysql(mysqlDsn)
 	})

@@ -10,15 +10,15 @@ import (
 	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
 
-func TestInsertSliceSlice(t *testing.T) {
-	iss, err := NewInsertSliceSliceWithGorm(
-		DestinationConfig{
+func TestBulkInsertSliceGorm(t *testing.T) {
+	iss, err := NewBulkInsertSliceWithGorm(
+		BulkConfig{
 			IsTruncate:  true,
 			Concurrency: 4,
+			PageSize:    337,
 		},
 		WriteConfig{
 			TableName: tableName,
-			PageSize:  337,
 		},
 		[]string{nameName, valueName},
 		mysql.DB.GormDB(),

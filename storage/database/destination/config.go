@@ -1,6 +1,7 @@
 package destination
 
-type DestinationConfig struct {
+type BulkConfig struct {
 	IsTruncate  bool
 	Concurrency int
+	PageSize    int64
 }

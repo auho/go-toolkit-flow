@@ -7,7 +7,7 @@ import (
 	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
 
-func TestSectionSliceMapFromTable(t *testing.T) {
+func TestSectionMapFormatGorm(t *testing.T) {
 	s, err := NewSectionMapWithGorm(
 		SectionConfig{
 			Concurrency: 4,
