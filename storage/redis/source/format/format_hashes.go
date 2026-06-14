@@ -1,8 +1,9 @@
 package format
 
 import (
+	"context"
+
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/redis"
 	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
 	"github.com/auho/go-toolkit-flow/tool"
 )
@@ -15,13 +16,12 @@ func NewHashesFormat() Format[storage.MapOfStringsEntry] {
 	return &hashesFormat{}
 }
 
-func (f *hashesFormat) ScanByRange(d dialect.Dialect, keyName string, cursor int64, count int64) (storage.MapOfStringsEntries, int64, error) {
-	entries, newCursor, err := d.HashScan(keyName, uint64(cursor), count)
-	return entries, int64(newCursor), err
+func (f *hashesFormat) ScanByRange(ctx context.Context, d dialect.Dialect, keyName string, cursor uint64, count int64) (storage.MapOfStringsEntries, uint64, error) {
+	return d.HashScan(ctx, keyName, cursor, count)
 }
 
-func (f *hashesFormat) FetchLen(d dialect.Dialect, keyName string) (int64, error) {
-	return d.KeyLen(keyName, redis.KeyTypeHashes)
+func (f *hashesFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
+	return d.HashLen(ctx, keyName)
 }
 
 func (f *hashesFormat) Copy(items storage.MapOfStringsEntries) storage.MapOfStringsEntries {

@@ -1,8 +1,9 @@
 package format
 
 import (
+	"context"
+
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/redis"
 	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
 	"github.com/auho/go-toolkit-flow/tool"
 )
@@ -15,12 +16,12 @@ func NewHashesFormat() Format[storage.MapEntry] {
 	return &hashesFormat{}
 }
 
-func (f *hashesFormat) Write(d dialect.Dialect, keyName string, items storage.MapEntries) error {
-	return d.HashSet(keyName, items)
+func (f *hashesFormat) Write(ctx context.Context, d dialect.Dialect, keyName string, items storage.MapEntries) error {
+	return d.HashMSet(ctx, keyName, items)
 }
 
-func (f *hashesFormat) FetchLen(d dialect.Dialect, keyName string) (int64, error) {
-	return d.KeyLen(keyName, redis.KeyTypeHashes)
+func (f *hashesFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
+	return d.HashLen(ctx, keyName)
 }
 
 func (f *hashesFormat) Copy(items storage.MapEntries) storage.MapEntries {

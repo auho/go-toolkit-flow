@@ -1,7 +1,8 @@
 package format
 
 import (
-	"github.com/auho/go-toolkit-flow/storage/redis"
+	"context"
+
 	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
 )
 
@@ -13,16 +14,17 @@ func NewListsFormat() Format[string] {
 	return &listsFormat{}
 }
 
-func (f *listsFormat) Write(d dialect.Dialect, keyName string, items []string) error {
-	return d.ListPush(keyName, items)
+func (f *listsFormat) Write(ctx context.Context, d dialect.Dialect, keyName string, items []string) error {
+	return d.ListPush(ctx, keyName, items)
 }
 
-func (f *listsFormat) FetchLen(d dialect.Dialect, keyName string) (int64, error) {
-	return d.KeyLen(keyName, redis.KeyTypeLists)
+func (f *listsFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
+	return d.ListLen(ctx, keyName)
 }
 
 func (f *listsFormat) Copy(items []string) []string {
 	newItems := make([]string, len(items))
 	copy(newItems, items)
+
 	return newItems
 }

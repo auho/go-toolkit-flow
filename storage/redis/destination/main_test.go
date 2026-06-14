@@ -34,16 +34,16 @@ func tearDown() {
 func _testKey[E storage.Entry](
 	t *testing.T,
 	key string,
-	bFunc func(config Config, client *goredis.Client) (*key[E], error),
-	buildData func(k *key[E]) int64,
+	bFunc func(config BulkConfig, client *goredis.Client) (*Bulk[E], error),
+	buildData func(k *Bulk[E]) int64,
 ) {
 	goredisClient := goredis.NewClient(&_redisOptions)
 
-	k, err := bFunc(Config{
+	k, err := bFunc(BulkConfig{
 		IsTruncate:  true,
 		Concurrency: 1,
 		PageSize:    0,
-		Key:         key,
+		KeyName:     key,
 	}, goredisClient)
 
 	if err != nil {

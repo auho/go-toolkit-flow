@@ -9,7 +9,7 @@ import (
 
 var _sortedSetsKey = "test:destination:sortedSets"
 
-func _buildSortedSetsData(k *key[storage.ScoreMapEntry]) int64 {
+func _buildSortedSetsData(k *Bulk[storage.ScoreMapEntry]) int64 {
 	amount := _randAmount()
 	size := 100
 

@@ -7,7 +7,7 @@ import (
 
 var _listsKey = "test:destination:lists"
 
-func _buildListsData(k *key[string]) int64 {
+func _buildListsData(k *Bulk[string]) int64 {
 	amount := _randAmount()
 	size := 100
 

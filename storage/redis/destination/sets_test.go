@@ -7,7 +7,7 @@ import (
 
 var _setsKey = "test:destination:sets"
 
-func _buildSetsData(k *key[string]) int64 {
+func _buildSetsData(k *Bulk[string]) int64 {
 	amount := _randAmount()
 	size := 100
 

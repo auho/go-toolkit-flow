@@ -9,7 +9,7 @@ import (
 
 var _hashesKey = "test:destination:hashes"
 
-func _buildHashesData(k *key[storage.MapEntry]) int64 {
+func _buildHashesData(k *Bulk[storage.MapEntry]) int64 {
 	amount := _randAmount()
 	size := 100
 

@@ -1,12 +1,14 @@
 package format
 
 import (
+	"context"
+
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
 )
 
 type Format[E storage.Entry] interface {
-	Write(dialect dialect.Dialect, keyName string, items []E) error
-	FetchLen(dialect dialect.Dialect, keyName string) (int64, error)
+	FetchLen(ctx context.Context, dialect dialect.Dialect, keyName string) (int64, error)
+	Write(ctx context.Context, dialect dialect.Dialect, keyName string, items []E) error
 	Copy(items []E) []E
 }

@@ -1,8 +1,9 @@
 package format
 
 import (
+	"context"
+
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/redis"
 	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
 	"github.com/auho/go-toolkit-flow/tool"
 )
@@ -15,13 +16,12 @@ func NewSortedSetsFormat() Format[storage.MapOfStringsEntry] {
 	return &sortedSetsFormat{}
 }
 
-func (f *sortedSetsFormat) ScanByRange(d dialect.Dialect, keyName string, cursor int64, count int64) (storage.MapOfStringsEntries, int64, error) {
-	entries, newCursor, err := d.SortedSetScan(keyName, uint64(cursor), count)
-	return entries, int64(newCursor), err
+func (f *sortedSetsFormat) ScanByRange(ctx context.Context, d dialect.Dialect, keyName string, cursor uint64, count int64) (storage.MapOfStringsEntries, uint64, error) {
+	return d.SortedSetScan(ctx, keyName, cursor, count)
 }
 
-func (f *sortedSetsFormat) FetchLen(d dialect.Dialect, keyName string) (int64, error) {
-	return d.KeyLen(keyName, redis.KeyTypeSortedSets)
+func (f *sortedSetsFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
+	return d.SortedSetLen(ctx, keyName)
 }
 
 func (f *sortedSetsFormat) Copy(items storage.MapOfStringsEntries) storage.MapOfStringsEntries {

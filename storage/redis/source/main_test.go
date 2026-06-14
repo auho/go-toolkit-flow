@@ -35,17 +35,17 @@ func tearDown() {
 func _testKey[E storage.Entry](
 	t *testing.T,
 	key string,
-	bFunc func(config Config, client *goredis.Client) (*key[E], error),
+	bFunc func(config KeyConfig, client *goredis.Client) (*Key[E], error),
 	c *goredis.Client,
 	lFunc func(ctx context.Context, c *goredis.Client) (int64, error),
 ) {
 	ctx := context.Background()
 
-	k, err := bFunc(Config{
+	k, err := bFunc(KeyConfig{
 		Concurrency: 1,
 		Amount:      0,
 		PageSize:    0,
-		Key:         key,
+		KeyName:     key,
 	}, c)
 
 	if err != nil {

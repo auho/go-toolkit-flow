@@ -36,15 +36,15 @@ type Bulk[E storage.Entry] struct {
 	isDone       bool
 }
 
-func newDestination[E storage.Entry](config BulkConfig, d dialect.Dialect, f format.Format[E]) (*Bulk[E], error) {
-	if config.PageSize <= 0 {
-		return nil, fmt.Errorf("page size[%d] is error", config.PageSize)
+func newDestination[E storage.Entry](c BulkConfig, d dialect.Dialect, f format.Format[E]) (*Bulk[E], error) {
+	if c.PageSize <= 0 {
+		return nil, fmt.Errorf("page size[%d] is error", c.PageSize)
 	}
 
 	dest := &Bulk[E]{
 		dialect: d,
 		format:  f,
-		config:  config,
+		config:  c,
 	}
 
 	dest.initConfig()
@@ -52,98 +52,98 @@ func newDestination[E storage.Entry](config BulkConfig, d dialect.Dialect, f for
 	return dest, nil
 }
 
-func (d *Bulk[E]) DB() *database.DB {
-	if driver, ok := d.dialect.(database.Driver); ok {
+func (b *Bulk[E]) DB() *database.DB {
+	if driver, ok := b.dialect.(database.Driver); ok {
 		return driver.DB()
 	}
 
 	return nil
 }
 
-func (d *Bulk[E]) initConfig() {
-	if d.config.Concurrency <= 0 {
-		d.config.Concurrency = runtime.NumCPU()
+func (b *Bulk[E]) initConfig() {
+	if b.config.Concurrency <= 0 {
+		b.config.Concurrency = runtime.NumCPU()
 	}
 
-	d.state = storage.NewState()
-	d.state.Concurrency = d.config.Concurrency
-	d.state.Title = d.Title()
-	d.state.MarkAsConfigured()
+	b.state = storage.NewState()
+	b.state.Concurrency = b.config.Concurrency
+	b.state.Title = b.Title()
+	b.state.MarkAsConfigured()
 }
 
-func (d *Bulk[E]) Accept() (err error) {
-	d.state.MarkAsAccepted()
-	d.state.DurationStart()
+func (b *Bulk[E]) Accept() (err error) {
+	b.state.MarkAsAccepted()
+	b.state.DurationStart()
 
-	if d.config.IsTruncate {
-		err = d.dialect.Truncate()
+	if b.config.IsTruncate {
+		err = b.dialect.Truncate()
 		if err != nil {
 			return
 		}
 	}
 
-	d.itemsChan = make(chan []E, d.config.Concurrency)
-	d.errChan = make(chan error, d.config.Concurrency)
+	b.itemsChan = make(chan []E, b.config.Concurrency)
+	b.errChan = make(chan error, b.config.Concurrency)
 
-	for i := 0; i < d.config.Concurrency; i++ {
-		d.workerWg.Add(1)
+	for i := 0; i < b.config.Concurrency; i++ {
+		b.workerWg.Add(1)
 		go func() {
-			d.do()
+			b.do()
 
-			d.workerWg.Done()
+			b.workerWg.Done()
 		}()
 	}
 
 	return nil
 }
 
-func (d *Bulk[E]) Receive(items []E) error {
-	if d.workerFailed.Load() {
-		return d.workerErr
+func (b *Bulk[E]) Receive(items []E) error {
+	if b.workerFailed.Load() {
+		return b.workerErr
 	}
 
-	d.itemsChan <- items
+	b.itemsChan <- items
 	return nil
 }
 
-func (d *Bulk[E]) Done() {
-	d.state.MarkAsDone()
+func (b *Bulk[E]) Done() {
+	b.state.MarkAsDone()
 
-	if d.isDone {
+	if b.isDone {
 		return
 	}
 
-	d.isDone = true
+	b.isDone = true
 
-	close(d.itemsChan)
+	close(b.itemsChan)
 }
 
-func (d *Bulk[E]) Finish() error {
-	d.workerWg.Wait()
-	close(d.errChan)
-	for err := range d.errChan {
-		if d.firstErr == nil {
-			d.firstErr = err
+func (b *Bulk[E]) Finish() error {
+	b.workerWg.Wait()
+	close(b.errChan)
+	for err := range b.errChan {
+		if b.firstErr == nil {
+			b.firstErr = err
 		}
 	}
 
-	d.state.MarkAsFinished()
-	d.state.DurationStop()
+	b.state.MarkAsFinished()
+	b.state.DurationStop()
 
-	return d.firstErr
+	return b.firstErr
 }
 
-func (d *Bulk[E]) Err() error {
-	return d.firstErr
+func (b *Bulk[E]) Err() error {
+	return b.firstErr
 }
 
-func (d *Bulk[E]) do() {
+func (b *Bulk[E]) do() {
 	duration := timing.NewDuration()
 	duration.Start()
 	var descItems []E
 
 	duration.Begin()
-	for items := range d.itemsChan {
+	for items := range b.itemsChan {
 		if len(items) <= 0 {
 			continue
 		}
@@ -153,19 +153,19 @@ func (d *Bulk[E]) do() {
 		length := len(descItems)
 		var start, end int64
 
-		batchSize := d.config.PageSize
+		batchSize := b.config.PageSize
 		for {
 			end = start + batchSize
 			if end <= int64(length) {
-				err := d.format.Write(d.dialect, descItems[start:end])
+				err := b.format.Write(b.dialect, descItems[start:end])
 				if err != nil {
-					d.workerErr = err
-					d.workerFailed.Store(true)
-					d.errChan <- fmt.Errorf("database destination exec error; %w", err)
+					b.workerErr = err
+					b.workerFailed.Store(true)
+					b.errChan <- fmt.Errorf("database destination exec error; %w", err)
 					return
 				}
 
-				d.state.AddAmount(batchSize)
+				b.state.AddAmount(batchSize)
 
 				start += batchSize
 			} else {
@@ -178,33 +178,33 @@ func (d *Bulk[E]) do() {
 	}
 
 	if len(descItems) > 0 {
-		err := d.format.Write(d.dialect, descItems)
+		err := b.format.Write(b.dialect, descItems)
 		if err != nil {
-			d.workerErr = err
-			d.workerFailed.Store(true)
-			d.errChan <- fmt.Errorf("database destination exec error; %w", err)
+			b.workerErr = err
+			b.workerFailed.Store(true)
+			b.errChan <- fmt.Errorf("database destination exec error; %w", err)
 			return
 		}
 
-		d.state.AddAmount(int64(len(descItems)))
+		b.state.AddAmount(int64(len(descItems)))
 	}
 
 	duration.End()
 	duration.Stop()
 }
 
-func (d *Bulk[E]) Title() string {
-	return fmt.Sprintf("Destination driver[%s]", d.dialect.DBName())
+func (b *Bulk[E]) Title() string {
+	return fmt.Sprintf("Destination driver[%s]", b.dialect.DBName())
 }
 
-func (d *Bulk[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s Concurrency:%d", d.Title(), d.config.Concurrency)}
+func (b *Bulk[E]) Summary() []string {
+	return []string{fmt.Sprintf("%s Concurrency:%d", b.Title(), b.config.Concurrency)}
 }
 
-func (d *Bulk[E]) State() []string {
-	return []string{d.state.Overview()}
+func (b *Bulk[E]) State() []string {
+	return []string{b.state.Overview()}
 }
 
-func (d *Bulk[E]) Close() error {
-	return d.dialect.Close()
+func (b *Bulk[E]) Close() error {
+	return b.dialect.Close()
 }

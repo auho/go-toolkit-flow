@@ -1,32 +1,37 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
 	"github.com/auho/go-toolkit-flow/storage/redis/source/format"
 )
 
-var _ storage.Source[string] = (*scanKey)(nil)
+var _ storage.Source[string] = (*ScanKey)(nil)
 
-type scanKey struct {
+type ScanKey struct {
 	storage.Storage
-	dialect     dialect.Dialect
-	format      format.Format[string]
-	concurrency int
-	pageSize    int64
-	total       int64
-	amount      int64
-	keyPattern  string
-	state       *storage.State
-	itemsChan   chan []string
-	scanned     int64
+	dialect dialect.Dialect
+	format  format.Format[string]
+
+	concurrency     int
+	pageSize        int64
+	total           int64
+	amount          int64
+	timeOutDuration time.Duration
+	keyPattern      string
+
+	state     *storage.State
+	itemsChan chan []string
+	scanned   int64
 }
 
-func newScanKey(config Config, d dialect.Dialect, f format.Format[string]) (*scanKey, error) {
-	s := &scanKey{}
+func newScanKey(config KeyConfig, d dialect.Dialect, f format.Format[string]) (*ScanKey, error) {
+	s := &ScanKey{}
 	s.dialect = d
 	s.format = f
 	err := s.config(config)
@@ -37,11 +42,12 @@ func newScanKey(config Config, d dialect.Dialect, f format.Format[string]) (*sca
 	return s, nil
 }
 
-func (s *scanKey) config(config Config) error {
-	s.concurrency = config.Concurrency
-	s.pageSize = config.PageSize
-	s.keyPattern = config.Key
-	s.total = config.Amount
+func (s *ScanKey) config(c KeyConfig) error {
+	s.concurrency = c.Concurrency
+	s.pageSize = c.PageSize
+	s.timeOutDuration = c.GetTimeOutDuration()
+	s.keyPattern = c.KeyName
+	s.total = c.Amount
 
 	if s.concurrency <= 0 {
 		s.concurrency = 1
@@ -59,15 +65,25 @@ func (s *scanKey) config(config Config) error {
 	return nil
 }
 
-func (s *scanKey) Scan() error {
+func (s *ScanKey) Scan() error {
 	s.state.MarkAsScanning()
 	s.state.DurationStart()
 	s.itemsChan = make(chan []string, s.concurrency)
 
 	go func() {
-		var cursor int64 = 0
+		cancels := make([]context.CancelFunc, 0)
+		defer func() {
+			for _, cancel := range cancels {
+				cancel()
+			}
+		}()
+
+		var cursor uint64 = 0
 		for {
-			keys, newCursor, err := s.format.ScanByRange(s.dialect, s.keyPattern, cursor, s.pageSize)
+			ctx, cancel := context.WithTimeout(context.Background(), s.timeOutDuration)
+			cancels = append(cancels, cancel)
+
+			keys, newCursor, err := s.format.ScanByRange(ctx, s.dialect, s.keyPattern, cursor, s.pageSize)
 			if err != nil {
 				panic(fmt.Sprintf("scan keys: %v", err))
 			}
@@ -97,27 +113,27 @@ func (s *scanKey) Scan() error {
 	return nil
 }
 
-func (s *scanKey) ReceiveChan() <-chan []string {
+func (s *ScanKey) ReceiveChan() <-chan []string {
 	return s.itemsChan
 }
 
-func (s *scanKey) Close() error {
+func (s *ScanKey) Close() error {
 	return s.dialect.Close()
 }
 
-func (s *scanKey) Summary() []string {
+func (s *ScanKey) Summary() []string {
 	return []string{fmt.Sprintf("%s:", s.Title())}
 }
 
-func (s *scanKey) State() []string {
+func (s *ScanKey) State() []string {
 	s.state.SetAmount(atomic.LoadInt64(&s.scanned))
 	return []string{s.state.Overview()}
 }
 
-func (s *scanKey) Copy(items []string) []string {
+func (s *ScanKey) Copy(items []string) []string {
 	return s.format.Copy(items)
 }
 
-func (s *scanKey) Title() string {
+func (s *ScanKey) Title() string {
 	return fmt.Sprintf("Source redis[scan keys]:[%s]", s.keyPattern)
 }

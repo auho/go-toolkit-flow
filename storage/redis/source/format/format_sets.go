@@ -1,7 +1,8 @@
 package format
 
 import (
-	"github.com/auho/go-toolkit-flow/storage/redis"
+	"context"
+
 	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
 )
 
@@ -13,13 +14,12 @@ func NewSetsFormat() Format[string] {
 	return &setsFormat{}
 }
 
-func (f *setsFormat) ScanByRange(d dialect.Dialect, keyName string, cursor int64, count int64) ([]string, int64, error) {
-	items, newCursor, err := d.SetScan(keyName, uint64(cursor), count)
-	return items, int64(newCursor), err
+func (f *setsFormat) ScanByRange(ctx context.Context, d dialect.Dialect, keyName string, cursor uint64, count int64) ([]string, uint64, error) {
+	return d.SetScan(ctx, keyName, cursor, count)
 }
 
-func (f *setsFormat) FetchLen(d dialect.Dialect, keyName string) (int64, error) {
-	return d.KeyLen(keyName, redis.KeyTypeSets)
+func (f *setsFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
+	return d.SetLen(ctx, keyName)
 }
 
 func (f *setsFormat) Copy(items []string) []string {
