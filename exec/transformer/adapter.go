@@ -34,11 +34,7 @@ func NewAdapter[E storage.Entry](opts ...Option[E]) exec.Runner[E] {
 	return exec.NewRunner[E](a)
 }
 
-func (a *Adapter[E]) Concurrency() int {
-	return a.transformer.Concurrency()
-}
-
-func (a *Adapter[E]) Task() operator.Operator[E] {
+func (a *Adapter[E]) Operator() operator.Operator[E] {
 	return a.transformer
 }
 

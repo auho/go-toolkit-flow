@@ -13,8 +13,7 @@ var _ Runner[string] = (*runner[string])(nil)
 
 // Processor unifies Transformer and Batch processing strategies.
 type Processor[E storage.Entry] interface {
-	Concurrency() int
-	Task() operator.Operator[E]
+	Operator() operator.Operator[E]
 
 	// Run
 	// amount: input amount
@@ -35,27 +34,29 @@ type Runner[E storage.Entry] interface {
 }
 
 type runner[E storage.Entry] struct {
-	total      int64
-	amount     int64
-	effected   int64
-	itemsChan  chan []E
-	processor  Processor[E]
-	operator_  operator.Operator[E]
-	taskWg     sync.WaitGroup
-	firstErr   error
-	errOnce    sync.Once
+	total     int64
+	amount    int64
+	effected  int64
+	itemsChan chan []E
+	processor Processor[E]
+	operator_ operator.Operator[E]
+	taskWg    sync.WaitGroup
+	firstErr  error
+	errOnce   sync.Once
 }
 
 func NewRunner[E storage.Entry](processor Processor[E]) Runner[E] {
 	r := &runner[E]{}
 	r.processor = processor
-	r.operator_ = r.processor.Task()
-	r.itemsChan = make(chan []E, r.processor.Concurrency())
+	r.operator_ = r.processor.Operator()
+	r.itemsChan = make(chan []E, r.operator_.Concurrency())
 
 	return r
 }
 
 func (r *runner[E]) Prepare() error {
+	r.operator_.Init()
+
 	err := r.operator_.Prepare()
 	if err != nil {
 		return err
@@ -127,7 +128,7 @@ func (r *runner[E]) Summary() string {
 
 func (r *runner[E]) State() []string {
 	r.operator_.RefreshState()
-	return append([]string{fmt.Sprintf("Total: %d, Amount %d, effected %d", r.total, r.amount, r.effected)}, r.operator_.State()...)
+	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Effected %d", r.total, r.amount, r.effected)}, r.operator_.State()...)
 }
 
 func (r *runner[E]) Output() []string {
