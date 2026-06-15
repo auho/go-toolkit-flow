@@ -36,12 +36,10 @@ type Section[E storage.Entry] struct {
 	state       *storage.PageState
 
 	// 并发与错误处理
-	segmentCtx    context.Context
-	segmentCancel context.CancelFunc
-	scanGroup     *errgroup.Group
-	scanCtx       context.Context
-	scanCancel    context.CancelFunc
-	scanError     error
+	scanGroup  *errgroup.Group
+	scanCtx    context.Context
+	scanCancel context.CancelFunc
+	scanError  error
 }
 
 func newSection[E storage.Entry](c SectionConfig, d dialect.Dialect, f format.Format[E]) *Section[E] {
@@ -72,18 +70,17 @@ func (s *Section[E]) Scan() error {
 	s.state.MarkAsScanning()
 	s.state.DurationStart()
 
-	s.rowsChan = make(chan []E, s.config.Concurrency)
-	s.segmentChan = make(chan []int64, s.config.Concurrency)
-
-	s.segmentCtx, s.segmentCancel = context.WithCancel(context.Background())
-	ctx, cancel := context.WithCancel(context.Background())
-	s.scanGroup, s.scanCtx = errgroup.WithContext(ctx)
-	s.scanCancel = cancel
-
 	err := s.idRange()
 	if err != nil {
 		return err
 	}
+
+	s.rowsChan = make(chan []E, s.config.Concurrency)
+	s.segmentChan = make(chan []int64, s.config.Concurrency)
+
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+	s.scanGroup, s.scanCtx = errgroup.WithContext(rootCtx)
+	s.scanCancel = rootCancel
 
 	go s.dispatchSegments()
 	s.scanRows()
@@ -91,7 +88,6 @@ func (s *Section[E]) Scan() error {
 	go func() {
 		s.scanError = s.scanGroup.Wait()
 
-		s.segmentCancel()
 		s.scanCancel()
 
 		close(s.rowsChan)
@@ -124,7 +120,7 @@ func (s *Section[E]) dispatchSegments() {
 		}
 
 		select {
-		case <-s.segmentCtx.Done():
+		case <-s.scanCtx.Done():
 			return
 		case s.segmentChan <- []int64{startID, rightID}:
 		}
@@ -152,8 +148,6 @@ func (s *Section[E]) scanRows() {
 
 					rows, err := s.format.QueryByRange(s.dialect, segment[0], segment[1])
 					if err != nil {
-						s.scanCancel()
-
 						return fmt.Errorf("query range [%d-%d]: %w", segment[0], segment[1], err)
 					}
 
