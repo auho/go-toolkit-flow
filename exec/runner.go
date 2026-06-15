@@ -24,11 +24,11 @@ type Processor[E storage.Entry] interface {
 
 // Runner defines the lifecycle interface for an executable task.
 type Runner[E storage.Entry] interface {
-	Prepare() error  // preparation before processing data
-	Send([]E) error   // send data asynchronously
-	Run() error      // Process data
-	Done()           // triggered after upstream data processing
-	Finish() error   // data processing completed
+	Prepare() error // preparation before processing data
+	Send([]E) error // send data asynchronously
+	Run() error     // Process data
+	Done()          // triggered after upstream data processing
+	Finish() error  // data processing completed
 	Summary() string
 	State() []string
 	Output() []string
@@ -56,10 +56,6 @@ func NewRunner[E storage.Entry](processor Processor[E]) Runner[E] {
 }
 
 func (r *runner[E]) Prepare() error {
-	if !r.task.HasBeenInit() {
-		r.task.Init()
-	}
-
 	err := r.task.Prepare()
 	if err != nil {
 		return err
