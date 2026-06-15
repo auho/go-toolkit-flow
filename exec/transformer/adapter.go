@@ -8,39 +8,21 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-var _ exec.Processor[string] = (*Adapter[string])(nil)
+var _ exec.Processor[string] = (*adapter[string])(nil)
 
-type Option[E storage.Entry] func(adapter *Adapter[E])
-
-func WithTransformer[E storage.Entry](t operator.Transformer[E]) Option[E] {
-	return func(a *Adapter[E]) {
-		a.transformer = t
-	}
-}
-
-type Adapter[E storage.Entry] struct {
+type adapter[E storage.Entry] struct {
 	transformer operator.Transformer[E]
 }
 
 func NewRunner[E storage.Entry](t operator.Transformer[E]) exec.Runner[E] {
-	return NewAdapter(WithTransformer(t))
-}
-
-func NewAdapter[E storage.Entry](opts ...Option[E]) exec.Runner[E] {
-	a := &Adapter[E]{}
-
-	for _, o := range opts {
-		o(a)
+	a := &adapter[E]{
+		transformer: t,
 	}
 
-	return exec.NewRunner[E](a)
+	return exec.NewRunner[E](a, a.transformer)
 }
 
-func (a *Adapter[E]) Operator() operator.Operator[E] {
-	return a.transformer
-}
-
-func (a *Adapter[E]) Run(items []E) (amount, effected int64, err error) {
+func (a *adapter[E]) Run(items []E) (amount, effected int64, err error) {
 	newItems := make([]E, 0, len(items))
 	for k := range items {
 		v, ok, err1 := a.transformer.Do(items[k])

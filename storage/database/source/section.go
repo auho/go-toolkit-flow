@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"runtime"
-	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database"
@@ -152,7 +151,7 @@ func (s *Section[E]) scanRows() {
 					}
 
 					if len(rows) > 0 {
-						atomic.AddInt64(&s.state.Page, 1)
+						s.state.AddPage(1)
 						s.state.AddAmount(int64(len(rows)))
 
 						s.rowsChan <- rows

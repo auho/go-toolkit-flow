@@ -3,8 +3,6 @@ package flow
 import (
 	"errors"
 	"fmt"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/exec"
@@ -13,52 +11,50 @@ import (
 	"github.com/auho/go-toolkit/time/timing"
 )
 
-type Option[E storage.Entry] func(*Flow[E])
+type Option[E storage.Entry] func(*flow[E])
 
 func WithSource[E storage.Entry](se storage.Source[E]) Option[E] {
-	return func(s *Flow[E]) {
+	return func(s *flow[E]) {
 		s.source = se
 	}
 }
 
 func WithRunner[E storage.Entry](runner exec.Runner[E]) Option[E] {
-	return func(s *Flow[E]) {
+	return func(s *flow[E]) {
 		s.runners = append(s.runners, runner)
 	}
 }
 
 func WithStateInterval[E storage.Entry](d time.Duration) Option[E] {
-	return func(f *Flow[E]) {
+	return func(f *flow[E]) {
 		f.stateInterval = d
 	}
 }
 
-type Flow[E storage.Entry] struct {
+type flow[E storage.Entry] struct {
 	source        storage.Source[E]
 	refreshOutput *output.Refresh
 	runners       []exec.Runner[E]
 	stateInterval time.Duration
-	firstErr      atomic.Value
-	errOnce       sync.Once
 }
 
 func RunFlow[E storage.Entry](opts ...Option[E]) error {
 	d := timing.NewDuration()
 	d.Start()
 
-	f := &Flow[E]{}
+	f := &flow[E]{}
 	for _, o := range opts {
 		o(f)
 	}
 
 	err := f.check()
 	if err != nil {
-		return err
+		return fmt.Errorf("check: %w", err)
 	}
 
 	err = f.run()
 	if err != nil {
-		return err
+		return fmt.Errorf("run: %w", err)
 	}
 
 	d.StringStartToStop()
@@ -66,7 +62,7 @@ func RunFlow[E storage.Entry](opts ...Option[E]) error {
 	return nil
 }
 
-func (f *Flow[E]) check() error {
+func (f *flow[E]) check() error {
 	if f.source == nil {
 		return errors.New("source not found")
 	}
@@ -78,7 +74,7 @@ func (f *Flow[E]) check() error {
 	return nil
 }
 
-func (f *Flow[E]) run() error {
+func (f *flow[E]) run() error {
 	f.refreshOutput = output.NewRefresh(
 		output.WithInterval(f.stateInterval),
 		output.WithContent(func() ([]string, error) {
@@ -88,19 +84,19 @@ func (f *Flow[E]) run() error {
 
 	err := f.source.Scan()
 	if err != nil {
-		return err
+		return fmt.Errorf("source.scan: %w", err)
 	}
 
 	err = f.runnersPrepare()
 	if err != nil {
-		return fmt.Errorf("runners prepare error; %w", err)
+		return fmt.Errorf("runnersPrepare; %w", err)
 	}
 
 	f.summary()
 
 	err = f.runnersRun()
 	if err != nil {
-		return fmt.Errorf("actions run error; %w", err)
+		return fmt.Errorf("runnersRun; %w", err)
 	}
 
 	f.refreshOutput.Start()
@@ -110,44 +106,26 @@ func (f *Flow[E]) run() error {
 	return f.finish()
 }
 
-func (f *Flow[E]) transport() {
+func (f *flow[E]) transport() {
 	needCopy := false
 	if len(f.runners) > 1 {
 		needCopy = true
 	}
 
 	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				f.errOnce.Do(func() {
-					f.firstErr.Store(fmt.Errorf("transport panic: %v", r))
-				})
-			}
-		}()
-
 		for {
 			items, ok := <-f.source.ReceiveChan()
 			if !ok {
 				break
 			}
 
-			for _, a := range f.runners {
+			for _, r := range f.runners {
 				if needCopy {
 					newItems := f.source.Copy(items)
-					if err := a.Send(newItems); err != nil {
-						f.errOnce.Do(func() { f.firstErr.Store(err) })
-						break
-					}
+					r.Receive(newItems)
 				} else {
-					if err := a.Send(items); err != nil {
-						f.errOnce.Do(func() { f.firstErr.Store(err) })
-						break
-					}
+					r.Receive(items)
 				}
-			}
-
-			if v := f.firstErr.Load(); v != nil {
-				break
 			}
 		}
 
@@ -155,34 +133,23 @@ func (f *Flow[E]) transport() {
 	}()
 }
 
-func (f *Flow[E]) finish() error {
-	var firstErr error
-	if v := f.firstErr.Load(); v != nil {
-		firstErr = v.(error)
-	}
-
-	if firstErr != nil {
-		_ = f.runnersFinish()
+func (f *flow[E]) finish() error {
+	defer func() {
 		f.refreshOutput.Stop()
 		f.runnersOutput()
-
-		return fmt.Errorf("receive error; %w", firstErr)
-	}
+	}()
 
 	err := f.runnersFinish()
-	f.refreshOutput.Stop()
-	f.runnersOutput()
-
 	if err != nil {
-		return fmt.Errorf("actions finish error; %w", err)
+		return fmt.Errorf("runners finish error; %w", err)
 	}
 
 	return nil
 }
 
-func (f *Flow[E]) summary() {
+func (f *flow[E]) summary() {
 	lines := f.source.Summary()
-	lines = append(lines, "Tasks: ")
+	lines = append(lines, "Runners: ")
 	for _, a := range f.runners {
 		lines = append(lines, "  "+a.Summary())
 	}
@@ -194,7 +161,7 @@ func (f *Flow[E]) summary() {
 	fmt.Println("")
 }
 
-func (f *Flow[E]) state() []string {
+func (f *flow[E]) state() []string {
 	sourceLines := f.source.State()
 	lines := make([]string, len(sourceLines))
 	copy(lines, sourceLines)
@@ -209,7 +176,7 @@ func (f *Flow[E]) state() []string {
 	return lines
 }
 
-func (f *Flow[E]) runnersOutput() {
+func (f *flow[E]) runnersOutput() {
 	fmt.Println("\nOutput: ")
 
 	for _, a := range f.runners {
@@ -221,7 +188,7 @@ func (f *Flow[E]) runnersOutput() {
 	}
 }
 
-func (f *Flow[E]) runnersRun() error {
+func (f *flow[E]) runnersRun() error {
 	for _, a := range f.runners {
 		if err := a.Run(); err != nil {
 			return fmt.Errorf("run error; %w", err)
@@ -231,7 +198,7 @@ func (f *Flow[E]) runnersRun() error {
 	return nil
 }
 
-func (f *Flow[E]) runnersPrepare() error {
+func (f *flow[E]) runnersPrepare() error {
 	for _, a := range f.runners {
 		if err := a.Prepare(); err != nil {
 			return fmt.Errorf("prepare error; %w", err)
@@ -241,7 +208,7 @@ func (f *Flow[E]) runnersPrepare() error {
 	return nil
 }
 
-func (f *Flow[E]) runnersFinish() error {
+func (f *flow[E]) runnersFinish() error {
 	for _, a := range f.runners {
 		if err := a.Finish(); err != nil {
 			return fmt.Errorf("finish error; %w", err)
@@ -251,7 +218,7 @@ func (f *Flow[E]) runnersFinish() error {
 	return nil
 }
 
-func (f *Flow[E]) runnersDone() {
+func (f *flow[E]) runnersDone() {
 	for _, a := range f.runners {
 		a.Done()
 	}

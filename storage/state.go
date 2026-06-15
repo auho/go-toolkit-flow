@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	StatusConfig  = "config"
-	StatusAccept  = "accept"
-	StatusScan    = "scan"
-	StatusDone    = "done"
-	StatusFinish  = "finish"
+	StatusConfig = "config"
+	StatusAccept = "accept"
+	StatusScan   = "scan"
+	StatusDone   = "done"
+	StatusFinish = "finish"
 )
 
 type StateProvider interface {
@@ -38,7 +38,7 @@ func (s *baseState) Status() string {
 }
 
 func (s *baseState) Amount() int64 {
-	return s.amount
+	return atomic.LoadInt64(&s.amount)
 }
 
 func (s *baseState) SetAmount(n int64) {
@@ -130,13 +130,21 @@ func NewPageState() *PageState {
 	return &PageState{}
 }
 
+func (p *PageState) GetPage() int64 {
+	return atomic.LoadInt64(&p.Page)
+}
+
+func (p *PageState) AddPage(n int64) {
+	atomic.AddInt64(&p.Page, n)
+}
+
 func (p *PageState) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Page: %d/%d(%d), Duration: %s",
 		p.Status(),
 		p.Concurrency,
-		p.amount,
+		p.Amount(),
 		p.Total,
-		p.Page,
+		p.GetPage(),
 		p.TotalPage,
 		p.PageSize,
 		p.duration.StringStartToStop())

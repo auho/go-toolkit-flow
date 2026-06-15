@@ -8,39 +8,21 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-var _ exec.Processor[string] = (*Adapter[string])(nil)
+var _ exec.Processor[string] = (*adapter[string])(nil)
 
-type Option[E storage.Entry] func(*Adapter[E])
-
-func WithBatch[E storage.Entry](b operator.Batch[E]) Option[E] {
-	return func(a *Adapter[E]) {
-		a.batch = b
-	}
-}
-
-type Adapter[E storage.Entry] struct {
+type adapter[E storage.Entry] struct {
 	batch operator.Batch[E]
 }
 
 func NewRunner[E storage.Entry](b operator.Batch[E]) exec.Runner[E] {
-	return NewAdapter(WithBatch(b))
-}
-
-func NewAdapter[E storage.Entry](opts ...Option[E]) exec.Runner[E] {
-	a := &Adapter[E]{}
-
-	for _, o := range opts {
-		o(a)
+	a := &adapter[E]{
+		batch: b,
 	}
 
-	return exec.NewRunner[E](a)
+	return exec.NewRunner[E](a, a.batch)
 }
 
-func (a *Adapter[E]) Operator() operator.Operator[E] {
-	return a.batch
-}
-
-func (a *Adapter[E]) Run(items []E) (amount, effected int64, err error) {
+func (a *adapter[E]) Run(items []E) (amount, effected int64, err error) {
 	n, err := a.batch.Do(items)
 	if err != nil {
 		return 0, 0, fmt.Errorf("do: %w", err)

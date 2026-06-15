@@ -6,7 +6,7 @@ import (
 	batches "github.com/auho/go-toolkit-flow/exec/batch"
 )
 
-func TestActionWork(t *testing.T) {
+func TestExecBatch(t *testing.T) {
 	opts := []Option[map[string]any]{
 		WithSource[map[string]any](dataSource),
 		WithRunner[map[string]any](

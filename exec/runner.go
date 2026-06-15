@@ -14,8 +14,6 @@ var _ Runner[string] = (*runner[string])(nil)
 
 // Processor unifies Transformer and Batch processing strategies.
 type Processor[E storage.Entry] interface {
-	Operator() operator.Operator[E]
-
 	// Run
 	// amount: input amount
 	// effected: output effected amount
@@ -25,7 +23,7 @@ type Processor[E storage.Entry] interface {
 // Runner defines the lifecycle interface for an executable task.
 type Runner[E storage.Entry] interface {
 	Prepare() error // preparation before processing data
-	Send([]E) error // send data asynchronously
+	Receive([]E)    // receive data asynchronously
 	Run() error     // Process data
 	Done()          // triggered after upstream data processing
 	Finish() error  // data processing completed
@@ -41,18 +39,18 @@ type runner[E storage.Entry] struct {
 
 	itemsChan chan []E
 	processor Processor[E]
-	operator_ operator.Operator[E]
+	operator  operator.Operator[E]
 
 	runGroup  *errgroup.Group
 	runCtx    context.Context
 	runCancel context.CancelFunc
 }
 
-func NewRunner[E storage.Entry](processor Processor[E]) Runner[E] {
+func NewRunner[E storage.Entry](p Processor[E], o operator.Operator[E]) Runner[E] {
 	r := &runner[E]{}
-	r.processor = processor
-	r.operator_ = r.processor.Operator()
-	r.itemsChan = make(chan []E, r.operator_.Concurrency())
+	r.processor = p
+	r.operator = o
+	r.itemsChan = make(chan []E, r.operator.Concurrency())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	r.runGroup, r.runCtx = errgroup.WithContext(ctx)
@@ -62,9 +60,9 @@ func NewRunner[E storage.Entry](processor Processor[E]) Runner[E] {
 }
 
 func (r *runner[E]) Prepare() error {
-	r.operator_.Init()
+	r.operator.Init()
 
-	err := r.operator_.Prepare()
+	err := r.operator.Prepare()
 	if err != nil {
 		return err
 	}
@@ -72,21 +70,21 @@ func (r *runner[E]) Prepare() error {
 	return nil
 }
 
-func (r *runner[E]) Send(items []E) error {
+func (r *runner[E]) Receive(items []E) {
 	select {
 	case <-r.runCtx.Done():
 	case r.itemsChan <- items:
 	}
-	return nil
+	return
 }
 
 func (r *runner[E]) Run() error {
-	err := r.operator_.BeforeRun()
+	err := r.operator.BeforeRun()
 	if err != nil {
 		return fmt.Errorf("BeforeRun error; %w", err)
 	}
 
-	for i := 0; i < r.operator_.Concurrency(); i++ {
+	for i := 0; i < r.operator.Concurrency(); i++ {
 		r.runGroup.Go(func() error {
 			select {
 			case <-r.runCtx.Done():
@@ -124,12 +122,12 @@ func (r *runner[E]) Finish() error {
 		return fmt.Errorf("run error; %w", err)
 	}
 
-	err = r.operator_.AfterRun()
+	err = r.operator.AfterRun()
 	if err != nil {
 		return fmt.Errorf("AfterRun error; %w", err)
 	}
 
-	err = r.operator_.Close()
+	err = r.operator.Close()
 	if err != nil {
 		return fmt.Errorf("close error; %w", err)
 	}
@@ -138,14 +136,14 @@ func (r *runner[E]) Finish() error {
 }
 
 func (r *runner[E]) Summary() string {
-	return r.operator_.Title()
+	return r.operator.Title()
 }
 
 func (r *runner[E]) State() []string {
-	r.operator_.RefreshState()
-	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Effected %d", r.total, r.amount, r.effected)}, r.operator_.State()...)
+	r.operator.RefreshState()
+	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Effected %d", r.total, r.amount, r.effected)}, r.operator.State()...)
 }
 
 func (r *runner[E]) Output() []string {
-	return r.operator_.Output()
+	return r.operator.Output()
 }
