@@ -3,14 +3,14 @@ package flow
 import (
 	"testing"
 
-	work2 "github.com/auho/go-toolkit-flow/action/work"
+	batches "github.com/auho/go-toolkit-flow/exec/batch"
 )
 
 func TestActionWork(t *testing.T) {
 	opts := []Option[map[string]any]{
 		WithSource[map[string]any](dataSource),
-		WithActor[map[string]any](
-			work2.NewActor[map[string]any](&work{}),
+		WithRunner[map[string]any](
+			batches.NewRunner[map[string]any](&batch{}),
 		),
 	}
 	err := RunFlow(opts...)

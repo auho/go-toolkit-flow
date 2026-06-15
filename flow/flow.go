@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/auho/go-toolkit-flow/action"
+	"github.com/auho/go-toolkit-flow/exec"
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit/console/output"
 	"github.com/auho/go-toolkit/time/timing"
@@ -21,9 +21,9 @@ func WithSource[E storage.Entry](se storage.Source[E]) Option[E] {
 	}
 }
 
-func WithActor[E storage.Entry](actor action.Actor[E]) Option[E] {
+func WithRunner[E storage.Entry](runner exec.Runner[E]) Option[E] {
 	return func(s *Flow[E]) {
-		s.actions = append(s.actions, actor)
+		s.runners = append(s.runners, runner)
 	}
 }
 
@@ -36,7 +36,7 @@ func WithStateInterval[E storage.Entry](d time.Duration) Option[E] {
 type Flow[E storage.Entry] struct {
 	source        storage.Source[E]
 	refreshOutput *output.Refresh
-	actions       []action.Actor[E]
+	runners       []exec.Runner[E]
 	stateInterval time.Duration
 	firstErr      atomic.Value
 	errOnce       sync.Once
@@ -71,8 +71,8 @@ func (f *Flow[E]) check() error {
 		return errors.New("source not found")
 	}
 
-	if len(f.actions) <= 0 {
-		return errors.New("action not found")
+	if len(f.runners) <= 0 {
+		return errors.New("runner not found")
 	}
 
 	return nil
@@ -91,14 +91,14 @@ func (f *Flow[E]) run() error {
 		return err
 	}
 
-	err = f.actionsPrepare()
+	err = f.runnersPrepare()
 	if err != nil {
-		return fmt.Errorf("actions prepare error; %w", err)
+		return fmt.Errorf("runners prepare error; %w", err)
 	}
 
 	f.summary()
 
-	err = f.actionsRun()
+	err = f.runnersRun()
 	if err != nil {
 		return fmt.Errorf("actions run error; %w", err)
 	}
@@ -112,7 +112,7 @@ func (f *Flow[E]) run() error {
 
 func (f *Flow[E]) transport() {
 	needCopy := false
-	if len(f.actions) > 1 {
+	if len(f.runners) > 1 {
 		needCopy = true
 	}
 
@@ -131,7 +131,7 @@ func (f *Flow[E]) transport() {
 				break
 			}
 
-			for _, a := range f.actions {
+			for _, a := range f.runners {
 				if needCopy {
 					newItems := f.source.Copy(items)
 					if err := a.Send(newItems); err != nil {
@@ -151,7 +151,7 @@ func (f *Flow[E]) transport() {
 			}
 		}
 
-		f.actionsDone()
+		f.runnersDone()
 	}()
 }
 
@@ -162,16 +162,16 @@ func (f *Flow[E]) finish() error {
 	}
 
 	if firstErr != nil {
-		_ = f.actionsFinish()
+		_ = f.runnersFinish()
 		f.refreshOutput.Stop()
-		f.actionsOutput()
+		f.runnersOutput()
 
 		return fmt.Errorf("receive error; %w", firstErr)
 	}
 
-	err := f.actionsFinish()
+	err := f.runnersFinish()
 	f.refreshOutput.Stop()
-	f.actionsOutput()
+	f.runnersOutput()
 
 	if err != nil {
 		return fmt.Errorf("actions finish error; %w", err)
@@ -183,7 +183,7 @@ func (f *Flow[E]) finish() error {
 func (f *Flow[E]) summary() {
 	lines := f.source.Summary()
 	lines = append(lines, "Tasks: ")
-	for _, a := range f.actions {
+	for _, a := range f.runners {
 		lines = append(lines, "  "+a.Summary())
 	}
 
@@ -199,7 +199,7 @@ func (f *Flow[E]) state() []string {
 	lines := make([]string, len(sourceLines))
 	copy(lines, sourceLines)
 
-	for _, a := range f.actions {
+	for _, a := range f.runners {
 		lines = append(lines, a.Summary())
 		for _, _s := range a.State() {
 			lines = append(lines, "  "+_s)
@@ -209,10 +209,10 @@ func (f *Flow[E]) state() []string {
 	return lines
 }
 
-func (f *Flow[E]) actionsOutput() {
+func (f *Flow[E]) runnersOutput() {
 	fmt.Println("\nOutput: ")
 
-	for _, a := range f.actions {
+	for _, a := range f.runners {
 		for _, s := range a.Output() {
 			fmt.Println(s)
 		}
@@ -221,8 +221,8 @@ func (f *Flow[E]) actionsOutput() {
 	}
 }
 
-func (f *Flow[E]) actionsRun() error {
-	for _, a := range f.actions {
+func (f *Flow[E]) runnersRun() error {
+	for _, a := range f.runners {
 		if err := a.Run(); err != nil {
 			return fmt.Errorf("run error; %w", err)
 		}
@@ -231,8 +231,8 @@ func (f *Flow[E]) actionsRun() error {
 	return nil
 }
 
-func (f *Flow[E]) actionsPrepare() error {
-	for _, a := range f.actions {
+func (f *Flow[E]) runnersPrepare() error {
+	for _, a := range f.runners {
 		if err := a.Prepare(); err != nil {
 			return fmt.Errorf("prepare error; %w", err)
 		}
@@ -241,8 +241,8 @@ func (f *Flow[E]) actionsPrepare() error {
 	return nil
 }
 
-func (f *Flow[E]) actionsFinish() error {
-	for _, a := range f.actions {
+func (f *Flow[E]) runnersFinish() error {
+	for _, a := range f.runners {
 		if err := a.Finish(); err != nil {
 			return fmt.Errorf("finish error; %w", err)
 		}
@@ -251,8 +251,8 @@ func (f *Flow[E]) actionsFinish() error {
 	return nil
 }
 
-func (f *Flow[E]) actionsDone() {
-	for _, a := range f.actions {
+func (f *Flow[E]) runnersDone() {
+	for _, a := range f.runners {
 		a.Done()
 	}
 }

@@ -3,14 +3,14 @@ package flow
 import (
 	"testing"
 
-	singleton2 "github.com/auho/go-toolkit-flow/action/singleton"
+	transformers "github.com/auho/go-toolkit-flow/exec/transformer"
 )
 
 func TestActionSingleton(t *testing.T) {
 	opts := []Option[map[string]any]{
 		WithSource[map[string]any](dataSource),
-		WithActor[map[string]any](
-			singleton2.NewActor[map[string]any](&singleton{}),
+		WithRunner[map[string]any](
+			transformers.NewRunner[map[string]any](&transformer{}),
 		),
 	}
 	err := RunFlow(opts...)

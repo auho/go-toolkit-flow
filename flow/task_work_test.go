@@ -4,24 +4,24 @@ import (
 	"github.com/auho/go-toolkit-flow/task"
 )
 
-var _ task.Work[map[string]any] = (*work)(nil)
+var _ task.Batch[map[string]any] = (*batch)(nil)
 
-type work struct {
+type batch struct {
 	task.BaseTask
 }
 
-func (w *work) RefreshState() {}
+func (w *batch) RefreshState() {}
 
-func (w *work) Title() string {
+func (w *batch) Title() string {
 	return "test work"
 }
 
-func (w *work) Prepare() error {
+func (w *batch) Prepare() error {
 	w.SetState(0, "prepare")
 	return nil
 }
 
-func (w *work) Do(items []map[string]any) (int, error) {
+func (w *batch) Do(items []map[string]any) (int, error) {
 	for _, item := range items {
 		_ = item
 	}
@@ -29,18 +29,18 @@ func (w *work) Do(items []map[string]any) (int, error) {
 	return len(items), nil
 }
 
-func (w *work) BeforeRun() error {
+func (w *batch) BeforeRun() error {
 	w.SetState(0, "pre do")
 	w.Println("pre do")
 
 	return nil
 }
 
-func (w *work) AfterRun() error {
+func (w *batch) AfterRun() error {
 	w.SetState(0, "post do")
 	w.Println("post do")
 
 	return nil
 }
 
-func (w *work) Close() error { return nil }
+func (w *batch) Close() error { return nil }

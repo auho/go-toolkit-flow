@@ -2,28 +2,28 @@ package flow
 
 import "github.com/auho/go-toolkit-flow/task"
 
-var _ task.Singleton[map[string]any] = (*singleton)(nil)
+var _ task.Transformer[map[string]any] = (*transformer)(nil)
 
-type singleton struct {
+type transformer struct {
 	task.BaseTask
 }
 
-func (s *singleton) RefreshState() {}
+func (s *transformer) RefreshState() {}
 
-func (s *singleton) Title() string {
+func (s *transformer) Title() string {
 	return "test singleton"
 }
 
-func (s *singleton) Prepare() error {
+func (s *transformer) Prepare() error {
 	s.SetState(0, "prepare")
 	return nil
 }
 
-func (s *singleton) Do(item map[string]any) ([]map[string]any, bool) {
+func (s *transformer) Do(item map[string]any) ([]map[string]any, bool) {
 	return []map[string]any{item}, true
 }
 
-func (s *singleton) PostBatchDo(items []map[string]any) error {
+func (s *transformer) PostBatchDo(items []map[string]any) error {
 	for _, item := range items {
 		_ = item
 	}
@@ -31,18 +31,18 @@ func (s *singleton) PostBatchDo(items []map[string]any) error {
 	return nil
 }
 
-func (s *singleton) BeforeRun() error {
+func (s *transformer) BeforeRun() error {
 	s.SetState(0, "pre do")
 	s.Println("pre do")
 
 	return nil
 }
 
-func (s *singleton) AfterRun() error {
+func (s *transformer) AfterRun() error {
 	s.SetState(0, "post do")
 	s.Println("post do")
 
 	return nil
 }
 
-func (s *singleton) Close() error { return nil }
+func (s *transformer) Close() error { return nil }
