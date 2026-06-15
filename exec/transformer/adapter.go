@@ -2,25 +2,25 @@ package transformer
 
 import (
 	"github.com/auho/go-toolkit-flow/exec"
+	"github.com/auho/go-toolkit-flow/operator"
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/task"
 )
 
 var _ exec.Processor[string] = (*Adapter[string])(nil)
 
 type Option[E storage.Entry] func(adapter *Adapter[E])
 
-func WithTransformer[E storage.Entry](t task.Transformer[E]) Option[E] {
+func WithTransformer[E storage.Entry](t operator.Transformer[E]) Option[E] {
 	return func(a *Adapter[E]) {
 		a.transformer = t
 	}
 }
 
 type Adapter[E storage.Entry] struct {
-	transformer task.Transformer[E]
+	transformer operator.Transformer[E]
 }
 
-func NewRunner[E storage.Entry](t task.Transformer[E]) exec.Runner[E] {
+func NewRunner[E storage.Entry](t operator.Transformer[E]) exec.Runner[E] {
 	return NewAdapter(WithTransformer(t))
 }
 
@@ -38,7 +38,7 @@ func (a *Adapter[E]) Concurrency() int {
 	return a.transformer.Concurrency()
 }
 
-func (a *Adapter[E]) Task() task.Task[E] {
+func (a *Adapter[E]) Task() operator.Operator[E] {
 	return a.transformer
 }
 

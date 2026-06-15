@@ -5,8 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/auho/go-toolkit-flow/operator"
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/task"
 )
 
 var _ Runner[string] = (*runner[string])(nil)
@@ -14,7 +14,7 @@ var _ Runner[string] = (*runner[string])(nil)
 // Processor unifies Transformer and Batch processing strategies.
 type Processor[E storage.Entry] interface {
 	Concurrency() int
-	Task() task.Task[E]
+	Task() operator.Operator[E]
 
 	// Run
 	// amount: input amount
@@ -35,28 +35,28 @@ type Runner[E storage.Entry] interface {
 }
 
 type runner[E storage.Entry] struct {
-	total     int64
-	amount    int64
-	effected  int64
-	itemsChan chan []E
-	processor Processor[E]
-	task      task.Task[E]
-	taskWg    sync.WaitGroup
-	firstErr  error
-	errOnce   sync.Once
+	total      int64
+	amount     int64
+	effected   int64
+	itemsChan  chan []E
+	processor  Processor[E]
+	operator_  operator.Operator[E]
+	taskWg     sync.WaitGroup
+	firstErr   error
+	errOnce    sync.Once
 }
 
 func NewRunner[E storage.Entry](processor Processor[E]) Runner[E] {
 	r := &runner[E]{}
 	r.processor = processor
-	r.task = r.processor.Task()
+	r.operator_ = r.processor.Task()
 	r.itemsChan = make(chan []E, r.processor.Concurrency())
 
 	return r
 }
 
 func (r *runner[E]) Prepare() error {
-	err := r.task.Prepare()
+	err := r.operator_.Prepare()
 	if err != nil {
 		return err
 	}
@@ -70,12 +70,12 @@ func (r *runner[E]) Send(items []E) error {
 }
 
 func (r *runner[E]) Run() error {
-	err := r.task.BeforeRun()
+	err := r.operator_.BeforeRun()
 	if err != nil {
 		return fmt.Errorf("BeforeRun error; %w", err)
 	}
 
-	for i := 0; i < r.task.Concurrency(); i++ {
+	for i := 0; i < r.operator_.Concurrency(); i++ {
 		r.taskWg.Add(1)
 
 		go func() {
@@ -108,12 +108,12 @@ func (r *runner[E]) Finish() error {
 		return fmt.Errorf("run error; %w", r.firstErr)
 	}
 
-	err := r.task.AfterRun()
+	err := r.operator_.AfterRun()
 	if err != nil {
 		return fmt.Errorf("AfterRun error; %w", err)
 	}
 
-	err = r.task.Close()
+	err = r.operator_.Close()
 	if err != nil {
 		return fmt.Errorf("close error; %w", err)
 	}
@@ -122,14 +122,14 @@ func (r *runner[E]) Finish() error {
 }
 
 func (r *runner[E]) Summary() string {
-	return r.task.Title()
+	return r.operator_.Title()
 }
 
 func (r *runner[E]) State() []string {
-	r.task.RefreshState()
-	return append([]string{fmt.Sprintf("Total: %d, Amount %d, effected %d", r.total, r.amount, r.effected)}, r.task.State()...)
+	r.operator_.RefreshState()
+	return append([]string{fmt.Sprintf("Total: %d, Amount %d, effected %d", r.total, r.amount, r.effected)}, r.operator_.State()...)
 }
 
 func (r *runner[E]) Output() []string {
-	return r.task.Output()
+	return r.operator_.Output()
 }

@@ -2,25 +2,25 @@ package batch
 
 import (
 	"github.com/auho/go-toolkit-flow/exec"
+	"github.com/auho/go-toolkit-flow/operator"
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/task"
 )
 
 var _ exec.Processor[string] = (*Adapter[string])(nil)
 
 type Option[E storage.Entry] func(*Adapter[E])
 
-func WithBatch[E storage.Entry](b task.Batch[E]) Option[E] {
+func WithBatch[E storage.Entry](b operator.Batch[E]) Option[E] {
 	return func(a *Adapter[E]) {
 		a.batch = b
 	}
 }
 
 type Adapter[E storage.Entry] struct {
-	batch task.Batch[E]
+	batch operator.Batch[E]
 }
 
-func NewRunner[E storage.Entry](b task.Batch[E]) exec.Runner[E] {
+func NewRunner[E storage.Entry](b operator.Batch[E]) exec.Runner[E] {
 	return NewAdapter(WithBatch(b))
 }
 
@@ -38,7 +38,7 @@ func (a *Adapter[E]) Concurrency() int {
 	return a.batch.Concurrency()
 }
 
-func (a *Adapter[E]) Task() task.Task[E] {
+func (a *Adapter[E]) Task() operator.Operator[E] {
 	return a.batch
 }
 

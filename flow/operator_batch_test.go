@@ -1,19 +1,17 @@
 package flow
 
-import (
-	"github.com/auho/go-toolkit-flow/task"
-)
+import "github.com/auho/go-toolkit-flow/operator"
 
-var _ task.Batch[map[string]any] = (*batch)(nil)
+var _ operator.Batch[map[string]any] = (*batch)(nil)
 
 type batch struct {
-	task.BaseTask
+	operator.BaseOperator
 }
 
 func (w *batch) RefreshState() {}
 
 func (w *batch) Title() string {
-	return "test work"
+	return "test batch"
 }
 
 func (w *batch) Prepare() error {

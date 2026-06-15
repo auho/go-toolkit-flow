@@ -1,9 +1,9 @@
-package task
+package operator
 
 import "github.com/auho/go-toolkit-flow/storage"
 
 type Transformer[E storage.Entry] interface {
-	Task[E]
+	Operator[E]
 
 	// Do need to be implemented
 	Do(E) ([]E, bool)

@@ -1,4 +1,4 @@
-package task
+package operator
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/auho/go-toolkit/time/timing"
 )
 
-type Task[E storage.Entry] interface {
+type Operator[E storage.Entry] interface {
 	// Title need to be implemented
 	Title() string
 
@@ -36,15 +36,15 @@ type Task[E storage.Entry] interface {
 	Output() []string
 }
 
-type Option func(*BaseTask)
+type Option func(*BaseOperator)
 
 func WithConcurrency(c int) Option {
-	return func(t *BaseTask) {
+	return func(t *BaseOperator) {
 		t.concurrency = c
 	}
 }
 
-type BaseTask struct {
+type BaseOperator struct {
 	initOnce    sync.Once
 	hasBeenInit bool
 	concurrency int
@@ -57,7 +57,7 @@ type BaseTask struct {
 
 // ensureInit guarantees all fields are initialized.
 // Called at the entry of every public method.
-func (t *BaseTask) ensureInit() {
+func (t *BaseOperator) ensureInit() {
 	t.initOnce.Do(func() {
 		if t.concurrency <= 0 {
 			t.concurrency = runtime.NumCPU()
@@ -71,8 +71,8 @@ func (t *BaseTask) ensureInit() {
 }
 
 // Init applies options and ensures initialization.
-// It is now optional — BaseTask is zero-value usable.
-func (t *BaseTask) Init(opts ...Option) {
+// It is now optional — BaseOperator is zero-value usable.
+func (t *BaseOperator) Init(opts ...Option) {
 	for _, o := range opts {
 		o(t)
 	}
@@ -80,58 +80,58 @@ func (t *BaseTask) Init(opts ...Option) {
 	t.ensureInit()
 }
 
-func (t *BaseTask) HasBeenInit() bool {
+func (t *BaseOperator) HasBeenInit() bool {
 	return t.hasBeenInit
 }
 
-func (t *BaseTask) Concurrency() int {
+func (t *BaseOperator) Concurrency() int {
 	t.ensureInit()
 	return t.concurrency
 }
 
 // AddState
 // int 当前行行数 从 1 开始
-func (t *BaseTask) AddState(s string) int {
+func (t *BaseOperator) AddState(s string) int {
 	t.ensureInit()
 	return t.state.PrintNext(s)
 }
 
-func (t *BaseTask) SetState(line int, s string) {
+func (t *BaseOperator) SetState(line int, s string) {
 	t.ensureInit()
 	t.state.Print(line, s)
 }
 
-func (t *BaseTask) State() []string {
+func (t *BaseOperator) State() []string {
 	t.ensureInit()
 	return t.state.Content()
 }
 
-func (t *BaseTask) Output() []string {
+func (t *BaseOperator) Output() []string {
 	t.ensureInit()
 	return t.output.Content()
 }
 
-func (t *BaseTask) Log() []string {
+func (t *BaseOperator) Log() []string {
 	t.ensureInit()
 	return t.log.Content()
 }
 
-func (t *BaseTask) Printf(format string, a ...any) {
+func (t *BaseOperator) Printf(format string, a ...any) {
 	t.ensureInit()
 	t.output.PrintNext(fmt.Sprintf(format, a...))
 }
 
-func (t *BaseTask) Println(a ...any) {
+func (t *BaseOperator) Println(a ...any) {
 	t.ensureInit()
 	t.output.PrintNext(fmt.Sprint(a...))
 }
 
-func (t *BaseTask) Logf(format string, a ...any) {
+func (t *BaseOperator) Logf(format string, a ...any) {
 	t.ensureInit()
 	t.log.PrintNext(fmt.Sprintf(format, a...))
 }
 
-func (t *BaseTask) Logln(a ...any) {
+func (t *BaseOperator) Logln(a ...any) {
 	t.ensureInit()
 	t.log.PrintNext(fmt.Sprint(a...))
 }

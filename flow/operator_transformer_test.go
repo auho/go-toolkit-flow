@@ -1,17 +1,17 @@
 package flow
 
-import "github.com/auho/go-toolkit-flow/task"
+import "github.com/auho/go-toolkit-flow/operator"
 
-var _ task.Transformer[map[string]any] = (*transformer)(nil)
+var _ operator.Transformer[map[string]any] = (*transformer)(nil)
 
 type transformer struct {
-	task.BaseTask
+	operator.BaseOperator
 }
 
 func (s *transformer) RefreshState() {}
 
 func (s *transformer) Title() string {
-	return "test singleton"
+	return "test transformer"
 }
 
 func (s *transformer) Prepare() error {
