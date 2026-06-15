@@ -6,7 +6,7 @@ type Transformer[E storage.Entry] interface {
 	Operator[E]
 
 	// Do need to be implemented
-	Do(E) ([]E, bool)
+	Do(E) ([]E, bool, error)
 
 	// PostBatchDo need to be implemented
 	PostBatchDo([]E) error

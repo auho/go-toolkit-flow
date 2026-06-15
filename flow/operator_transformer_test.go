@@ -27,8 +27,8 @@ func (t *transformer) Prepare() error {
 	return nil
 }
 
-func (t *transformer) Do(item map[string]any) ([]map[string]any, bool) {
-	return []map[string]any{item}, true
+func (t *transformer) Do(item map[string]any) ([]map[string]any, bool, error) {
+	return []map[string]any{item}, true, nil
 }
 
 func (t *transformer) PostBatchDo(items []map[string]any) error {

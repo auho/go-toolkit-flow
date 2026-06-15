@@ -1,12 +1,13 @@
 package exec
 
 import (
+	"context"
 	"fmt"
-	"sync"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/operator"
 	"github.com/auho/go-toolkit-flow/storage"
+	"golang.org/x/sync/errgroup"
 )
 
 var _ Runner[string] = (*runner[string])(nil)
@@ -17,8 +18,8 @@ type Processor[E storage.Entry] interface {
 
 	// Run
 	// amount: input amount
-	// affected: output affected amount
-	Run(items []E) (amount int, affected int, err error)
+	// effected: output effected amount
+	Run(items []E) (amount, effected int64, err error)
 }
 
 // Runner defines the lifecycle interface for an executable task.
@@ -34,15 +35,17 @@ type Runner[E storage.Entry] interface {
 }
 
 type runner[E storage.Entry] struct {
-	total     int64
-	amount    int64
-	effected  int64
+	total    int64
+	amount   int64
+	effected int64
+
 	itemsChan chan []E
 	processor Processor[E]
 	operator_ operator.Operator[E]
-	taskWg    sync.WaitGroup
-	firstErr  error
-	errOnce   sync.Once
+
+	runGroup  *errgroup.Group
+	runCtx    context.Context
+	runCancel context.CancelFunc
 }
 
 func NewRunner[E storage.Entry](processor Processor[E]) Runner[E] {
@@ -50,6 +53,10 @@ func NewRunner[E storage.Entry](processor Processor[E]) Runner[E] {
 	r.processor = processor
 	r.operator_ = r.processor.Operator()
 	r.itemsChan = make(chan []E, r.operator_.Concurrency())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	r.runGroup, r.runCtx = errgroup.WithContext(ctx)
+	r.runCancel = cancel
 
 	return r
 }
@@ -66,7 +73,10 @@ func (r *runner[E]) Prepare() error {
 }
 
 func (r *runner[E]) Send(items []E) error {
-	r.itemsChan <- items
+	select {
+	case <-r.runCtx.Done():
+	case r.itemsChan <- items:
+	}
 	return nil
 }
 
@@ -77,22 +87,26 @@ func (r *runner[E]) Run() error {
 	}
 
 	for i := 0; i < r.operator_.Concurrency(); i++ {
-		r.taskWg.Add(1)
-
-		go func() {
-			for items := range r.itemsChan {
-				atomic.AddInt64(&r.total, int64(len(items)))
-				amount, effected, err := r.processor.Run(items)
-				if err != nil {
-					r.errOnce.Do(func() { r.firstErr = err })
-					break
+		r.runGroup.Go(func() error {
+			select {
+			case <-r.runCtx.Done():
+			case items, ok := <-r.itemsChan:
+				if !ok {
+					return nil
 				}
-				atomic.AddInt64(&r.amount, int64(amount))
-				atomic.AddInt64(&r.effected, int64(effected))
+
+				atomic.AddInt64(&r.total, int64(len(items)))
+				amount, effected, err1 := r.processor.Run(items)
+				if err1 != nil {
+					return fmt.Errorf("run: %w", err1)
+				}
+
+				atomic.AddInt64(&r.amount, amount)
+				atomic.AddInt64(&r.effected, effected)
 			}
 
-			r.taskWg.Done()
-		}()
+			return nil
+		})
 	}
 
 	return nil
@@ -103,13 +117,14 @@ func (r *runner[E]) Done() {
 }
 
 func (r *runner[E]) Finish() error {
-	r.taskWg.Wait()
+	err := r.runGroup.Wait()
+	r.runCancel()
 
-	if r.firstErr != nil {
-		return fmt.Errorf("run error; %w", r.firstErr)
+	if err != nil {
+		return fmt.Errorf("run error; %w", err)
 	}
 
-	err := r.operator_.AfterRun()
+	err = r.operator_.AfterRun()
 	if err != nil {
 		return fmt.Errorf("AfterRun error; %w", err)
 	}

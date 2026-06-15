@@ -1,6 +1,8 @@
 package batch
 
 import (
+	"fmt"
+
 	"github.com/auho/go-toolkit-flow/exec"
 	"github.com/auho/go-toolkit-flow/operator"
 	"github.com/auho/go-toolkit-flow/storage"
@@ -38,11 +40,11 @@ func (a *Adapter[E]) Operator() operator.Operator[E] {
 	return a.batch
 }
 
-func (a *Adapter[E]) Run(items []E) (amount int, affected int, err error) {
+func (a *Adapter[E]) Run(items []E) (amount, effected int64, err error) {
 	n, err := a.batch.Do(items)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("do: %w", err)
 	}
 
-	return len(items), n, nil
+	return int64(len(items)), n, nil
 }

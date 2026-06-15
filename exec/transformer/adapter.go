@@ -1,6 +1,8 @@
 package transformer
 
 import (
+	"fmt"
+
 	"github.com/auho/go-toolkit-flow/exec"
 	"github.com/auho/go-toolkit-flow/operator"
 	"github.com/auho/go-toolkit-flow/storage"
@@ -38,11 +40,15 @@ func (a *Adapter[E]) Operator() operator.Operator[E] {
 	return a.transformer
 }
 
-func (a *Adapter[E]) Run(items []E) (amount int, affected int, err error) {
-	amount = 0
+func (a *Adapter[E]) Run(items []E) (amount, effected int64, err error) {
 	newItems := make([]E, 0, len(items))
 	for k := range items {
-		if v, ok := a.transformer.Do(items[k]); ok {
+		v, ok, err1 := a.transformer.Do(items[k])
+		if err1 != nil {
+			return 0, 0, fmt.Errorf("do: %w", err1)
+		}
+
+		if ok {
 			newItems = append(newItems, v...)
 			amount += 1
 		}
@@ -50,8 +56,8 @@ func (a *Adapter[E]) Run(items []E) (amount int, affected int, err error) {
 
 	err = a.transformer.PostBatchDo(newItems)
 	if err != nil {
-		return amount, len(newItems), err
+		return amount, int64(len(newItems)), fmt.Errorf("PostBatchDo: %w", err)
 	}
 
-	return amount, len(newItems), nil
+	return amount, int64(len(newItems)), nil
 }

@@ -27,12 +27,12 @@ func (b *batch) Prepare() error {
 	return nil
 }
 
-func (b *batch) Do(items []map[string]any) (int, error) {
+func (b *batch) Do(items []map[string]any) (int64, error) {
 	for _, item := range items {
 		_ = item
 	}
 
-	return len(items), nil
+	return int64(len(items)), nil
 }
 
 func (b *batch) BeforeRun() error {

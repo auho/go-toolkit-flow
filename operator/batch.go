@@ -7,5 +7,5 @@ type Batch[E storage.Entry] interface {
 
 	// Do need to be implemented
 	// effected
-	Do([]E) (int, error)
+	Do([]E) (int64, error)
 }
