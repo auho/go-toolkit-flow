@@ -19,7 +19,7 @@ func NewSliceMapOfString(config Config) *Mock[storage.MapOfStringsEntry] {
 }
 
 func (sms SliceMapOfString) scan(idName string, id *int64, amount int64) (*int64, storage.MapOfStringsEntries) {
-	items := make([]storage.MapOfStringsEntry, amount, amount)
+	items := make([]storage.MapOfStringsEntry, amount)
 
 	startString := time.Now().String()
 	for i := int64(0); i < amount; i++ {

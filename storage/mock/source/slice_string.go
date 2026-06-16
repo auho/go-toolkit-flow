@@ -16,7 +16,7 @@ func NewSliceString(config Config) *Mock[string] {
 }
 
 func (sm SliceString) scan(idName string, id *int64, amount int64) (*int64, []string) {
-	items := make([]string, amount, amount)
+	items := make([]string, amount)
 
 	startString := time.Now().String()
 	for i := int64(0); i < amount; i++ {
@@ -27,7 +27,7 @@ func (sm SliceString) scan(idName string, id *int64, amount int64) (*int64, []st
 }
 
 func (sm SliceString) duplicate(items []string) []string {
-	newItems := make([]string, len(items), len(items))
+	newItems := make([]string, len(items))
 	_ = copy(newItems, items)
 	return newItems
 }

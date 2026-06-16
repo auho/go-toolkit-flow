@@ -76,7 +76,7 @@ func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
 	}
 
 	for i := int64(0); i < page; i++ {
-		rows := make([][]any, pageSize, pageSize)
+		rows := make([][]any, pageSize)
 		for j := int64(0); j < pageSize; j++ {
 			rows[j] = []any{
 				fmt.Sprintf("name-%d-%d", i, j),

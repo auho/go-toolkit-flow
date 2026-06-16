@@ -63,12 +63,7 @@ func NewRunner[E storage.Entry](p Processor[E], o operator.Operator[E]) Runner[E
 func (r *runner[E]) Prepare() error {
 	r.operator.Init()
 
-	err := r.operator.Prepare()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.operator.Prepare()
 }
 
 func (r *runner[E]) Receive(items []E) {

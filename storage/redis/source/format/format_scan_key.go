@@ -38,7 +38,7 @@ func (f *scanKeyFormat) FetchLen(_ context.Context, _ dialect.Dialect) (int64, e
 }
 
 func (f *scanKeyFormat) Copy(items []string) []string {
-	newItems := make([]string, len(items), len(items))
+	newItems := make([]string, len(items))
 	_ = copy(newItems, items)
 	return newItems
 }

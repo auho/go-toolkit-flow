@@ -18,7 +18,7 @@ func NewSliceMap(config Config) *Mock[storage.MapEntry] {
 }
 
 func (sm SliceMap) scan(idName string, id *int64, amount int64) (*int64, storage.MapEntries) {
-	items := make([]storage.MapEntry, amount, amount)
+	items := make([]storage.MapEntry, amount)
 
 	startUnixNano := time.Now().UnixNano()
 	for i := int64(0); i < amount; i++ {

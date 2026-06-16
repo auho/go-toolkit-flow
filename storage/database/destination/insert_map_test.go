@@ -34,7 +34,7 @@ func TestBulkInsertSliceMapGorm(t *testing.T) {
 
 	go func() {
 		for i := int64(0); i < page; i++ {
-			data := make([]map[string]any, pageSize, pageSize)
+			data := make([]map[string]any, pageSize)
 			for j := int64(0); j < pageSize; j++ {
 				data[j] = map[string]any{
 					nameName:  fmt.Sprintf("name-%d-%d", i, j),

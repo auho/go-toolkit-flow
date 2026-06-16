@@ -39,7 +39,7 @@ func TestBulkInsertSliceGorm(t *testing.T) {
 
 	go func() {
 		for i := int64(0); i < page; i++ {
-			data := make([][]any, pageSize, pageSize)
+			data := make([][]any, pageSize)
 			for j := int64(0); j < pageSize; j++ {
 				data[j] = []any{
 					fmt.Sprintf("name-%d-%d", i, j),

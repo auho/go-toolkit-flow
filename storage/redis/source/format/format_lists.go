@@ -42,7 +42,7 @@ func (f *listsFormat) FetchLen(ctx context.Context, d dialect.Dialect) (int64, e
 }
 
 func (f *listsFormat) Copy(items []string) []string {
-	newItems := make([]string, len(items), len(items))
+	newItems := make([]string, len(items))
 	_ = copy(newItems, items)
 	return newItems
 }

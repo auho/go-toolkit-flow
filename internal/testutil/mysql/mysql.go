@@ -76,7 +76,7 @@ func BuildData(table string) {
 	pageSize := int64((rand.Intn(4) + 1) * 1000)
 
 	for i := int64(0); i < page; i++ {
-		data := make([]map[string]any, pageSize, pageSize)
+		data := make([]map[string]any, pageSize)
 		for j := int64(0); j < pageSize; j++ {
 			data[j] = map[string]any{
 				"name":  fmt.Sprintf("name-%d-%d", i, j),
