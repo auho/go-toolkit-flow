@@ -3,13 +3,13 @@ package destination
 import (
 	"context"
 	"fmt"
-	"sync"
-	"sync/atomic"
+	"slices"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
 	"github.com/auho/go-toolkit-flow/storage/redis/destination/format"
+	"golang.org/x/sync/errgroup"
 )
 
 var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
@@ -27,13 +27,13 @@ type Bulk[E storage.Entry] struct {
 
 	isDone    bool
 	itemsChan chan []E
-	workerWg  sync.WaitGroup
 	state     *storage.State
 
-	errChan      chan error
-	firstErr     error
-	workerErr    error
-	workerFailed atomic.Bool
+	// 并发与错误处理
+	writeGroup  *errgroup.Group
+	writeCtx    context.Context
+	writeCancel context.CancelFunc
+	writeError  error
 }
 
 func newBulk[E storage.Entry](config BulkConfig, d dialect.Dialect, f format.Format[E]) (*Bulk[E], error) {
@@ -64,26 +64,25 @@ func (b *Bulk[E]) Accept() error {
 	}
 
 	b.itemsChan = make(chan []E, b.concurrency)
-	b.errChan = make(chan error, b.concurrency)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	b.writeGroup, b.writeCtx = errgroup.WithContext(ctx)
+	b.writeCancel = cancel
 
 	for i := 0; i < b.concurrency; i++ {
-		b.workerWg.Add(1)
-		go func() {
-			b.do()
-
-			b.workerWg.Done()
-		}()
+		b.writeGroup.Go(func() error {
+			return b.write()
+		})
 	}
 
 	return nil
 }
 
 func (b *Bulk[E]) Receive(items []E) error {
-	if b.workerFailed.Load() {
-		return b.workerErr
+	select {
+	case <-b.writeCtx.Done():
+	case b.itemsChan <- items:
 	}
-
-	b.itemsChan <- items
 	return nil
 }
 
@@ -100,23 +99,14 @@ func (b *Bulk[E]) Done() {
 }
 
 func (b *Bulk[E]) Finish() error {
-	b.workerWg.Wait()
-	close(b.errChan)
+	b.writeError = b.writeGroup.Wait()
 
-	for err := range b.errChan {
-		if b.firstErr == nil {
-			b.firstErr = err
-		}
-	}
+	b.writeCancel()
 
 	b.state.MarkAsFinished()
 	b.state.DurationStop()
 
-	return b.firstErr
-}
-
-func (b *Bulk[E]) Err() error {
-	return b.firstErr
+	return b.writeError
 }
 
 func (b *Bulk[E]) Summary() []string {
@@ -162,43 +152,60 @@ func (b *Bulk[E]) config(config BulkConfig) error {
 	}
 
 	b.state = storage.NewState()
+	b.state.Concurrency = b.concurrency
 	b.state.Title = b.Title()
 	b.state.MarkAsConfigured()
 
 	return nil
 }
 
-func (b *Bulk[E]) do() {
-	cancels := make([]context.CancelFunc, 0)
+func (b *Bulk[E]) writeBatch(items []E) error {
+	ctx, cancel := context.WithTimeout(context.Background(), b.timeOutDuration)
+	defer cancel()
 
-	defer func() {
-		for _, cancel := range cancels {
-			cancel()
-		}
-	}()
-
-	for items := range b.itemsChan {
-		l := len(items)
-		for i := 0; i < l; i += int(b.pageSize) {
-			end := i + int(b.pageSize)
-			if end > l {
-				end = l
-			}
-
-			batch := items[i:end]
-
-			ctx, cancel := context.WithTimeout(context.Background(), b.timeOutDuration)
-			cancels = append(cancels, cancel)
-
-			err := b.format.Write(ctx, b.dialect, b.keyName, batch)
-			if err != nil {
-				b.workerErr = err
-				b.workerFailed.Store(true)
-				b.errChan <- fmt.Errorf("redis destination write error; %w", err)
-				return
-			}
-		}
-
-		b.state.AddAmount(int64(l))
+	if err := b.format.Write(ctx, b.dialect, b.keyName, items); err != nil {
+		return fmt.Errorf("redis destination write error; %w", err)
 	}
+
+	b.state.AddAmount(int64(len(items)))
+
+	return nil
+}
+
+func (b *Bulk[E]) write() error {
+	var buf []E
+
+loop:
+	for {
+		select {
+		case <-b.writeCtx.Done():
+			return nil
+		case items, ok := <-b.itemsChan:
+			if !ok {
+				break loop
+			}
+
+			if len(items) == 0 {
+				continue
+			}
+
+			buf = append(buf, items...)
+
+			for int64(len(buf)) >= b.pageSize {
+				if err := b.writeBatch(buf[:b.pageSize]); err != nil {
+					return err
+				}
+
+				buf = slices.Clone(buf[b.pageSize:])
+			}
+		}
+	}
+
+	if len(buf) > 0 {
+		if err := b.writeBatch(buf); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

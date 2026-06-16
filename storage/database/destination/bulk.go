@@ -102,10 +102,9 @@ func (b *Bulk[E]) Accept() (err error) {
 func (b *Bulk[E]) Receive(items []E) error {
 	select {
 	case <-b.writeCtx.Done():
-		return b.writeError
 	case b.itemsChan <- items:
-		return nil
 	}
+	return nil
 }
 
 func (b *Bulk[E]) Done() {
