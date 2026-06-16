@@ -6,9 +6,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database/source"
-	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
 
 var dataSource storage.Source[map[string]any]

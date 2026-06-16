@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	testredis "github.com/auho/go-toolkit-flow/internal/testutil/redis"
 	"github.com/auho/go-toolkit-flow/storage"
-	redis2 "github.com/auho/go-toolkit-flow/tests/redis"
-	goredis "github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v8"
 )
 
-var _redisOptions = redis2.Options
+var _redisOptions = testredis.Options
 
 func TestMain(m *testing.M) {
 	setUp()
@@ -34,10 +34,10 @@ func tearDown() {
 func _testKey[E storage.Entry](
 	t *testing.T,
 	key string,
-	bFunc func(client *goredis.Client, config BulkConfig) (*Bulk[E], error),
+	bFunc func(client *redis.Client, config BulkConfig) (*Bulk[E], error),
 	buildData func(k *Bulk[E]) int64,
 ) {
-	goredisClient := goredis.NewClient(&_redisOptions)
+	goredisClient := redis.NewClient(&_redisOptions)
 
 	k, err := bFunc(
 		goredisClient,
@@ -65,7 +65,10 @@ func _testKey[E storage.Entry](
 		k.Done()
 	}()
 
-	k.Finish()
+	err = k.Finish()
+	if err != nil {
+		t.Fatal("finish", err)
+	}
 
 	fmt.Println(k.Summary())
 	fmt.Println(k.State())

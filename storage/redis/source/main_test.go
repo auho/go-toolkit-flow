@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
+	testredis "github.com/auho/go-toolkit-flow/internal/testutil/redis"
 	"github.com/auho/go-toolkit-flow/storage"
-	redis2 "github.com/auho/go-toolkit-flow/tests/redis"
-	goredis "github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v8"
 )
 
-var _redisOptions = redis2.Options
+var _redisOptions = testredis.Options
 
 func TestMain(m *testing.M) {
 	setUp()
@@ -35,9 +35,9 @@ func tearDown() {
 func _testKey[E storage.Entry](
 	t *testing.T,
 	key string,
-	bFunc func(client *goredis.Client, config KeyConfig) (*Iterate[E], error),
-	c *goredis.Client,
-	lFunc func(ctx context.Context, c *goredis.Client) (int64, error),
+	bFunc func(client *redis.Client, config KeyConfig) (*Iterator[E], error),
+	c *redis.Client,
+	lFunc func(ctx context.Context, c *redis.Client) (int64, error),
 ) {
 	ctx := context.Background()
 
@@ -94,6 +94,6 @@ func _randAmount() int {
 	return i
 }
 
-func _newRedisClient() *goredis.Client {
-	return goredis.NewClient(&_redisOptions)
+func _newRedisClient() *redis.Client {
+	return redis.NewClient(&_redisOptions)
 }

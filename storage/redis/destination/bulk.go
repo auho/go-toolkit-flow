@@ -22,7 +22,7 @@ type Bulk[E storage.Entry] struct {
 	concurrency     int
 	isTruncate      bool
 	pageSize        int64
-	timeOutDuration time.Duration
+	timeoutDuration time.Duration
 
 	isDone    bool
 	itemsChan chan []E
@@ -58,7 +58,7 @@ func (b *Bulk[E]) Accept() error {
 	b.state.DurationStart()
 
 	if b.isTruncate {
-		ctx, cancel := context.WithTimeout(context.Background(), b.timeOutDuration)
+		ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDuration)
 		defer cancel()
 
 		_, err := b.dialect.Truncate(ctx, b.format.Key())
@@ -126,7 +126,7 @@ func (b *Bulk[E]) Title() string {
 }
 
 func (b *Bulk[E]) FetchLen() (int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), b.timeOutDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDuration)
 	defer cancel()
 
 	return b.format.FetchLen(ctx, b.dialect)
@@ -140,7 +140,7 @@ func (b *Bulk[E]) config(config BulkConfig) error {
 	b.isTruncate = config.IsTruncate
 	b.concurrency = config.Concurrency
 	b.pageSize = config.PageSize
-	b.timeOutDuration = config.getTimeOutDuration()
+	b.timeoutDuration = config.getTimeoutDuration()
 
 	if b.concurrency <= 0 {
 		b.concurrency = 1
@@ -159,7 +159,7 @@ func (b *Bulk[E]) config(config BulkConfig) error {
 }
 
 func (b *Bulk[E]) writeBatch(items []E) error {
-	ctx, cancel := context.WithTimeout(context.Background(), b.timeOutDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDuration)
 	defer cancel()
 
 	if err := b.format.Write(ctx, b.dialect, items); err != nil {

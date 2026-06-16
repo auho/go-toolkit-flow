@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/tests/mysql"
+	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 )
 
 var mysqlDsn = mysql.Dsn

@@ -5,14 +5,11 @@ import (
 	"math/rand"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/auho/go-toolkit-flow/tests/file"
+	"github.com/auho/go-toolkit-flow/internal/testutil/file"
 )
 
 func TestLine(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-
 	d, err := NewLine(Config{
 		file.DestinationFile,
 	})
@@ -31,14 +28,23 @@ func TestLine(t *testing.T) {
 		var items = []string{"1", "2", "3", "4", "5", "6"}
 
 		for i := 0; i < _rand; i++ {
-			d.Receive(items)
+			err = d.Receive(items)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
 			_max += len(items)
 		}
 
 		d.Done()
 	}()
 
-	d.Finish()
+	err = d.Finish()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	err = d.Close()
 	if err != nil {
 		t.Fatal(err)

@@ -89,7 +89,7 @@ func (m *Mock[E]) Summary() []string {
 }
 
 func (m *Mock[E]) State() []string {
-	return []string{fmt.Sprintf("amount: %d/%d, page: %d/%d(%d)", m.amount, m.total, m.page, m.totalPage, m.pageSize)}
+	return []string{fmt.Sprintf("amount: %d/%d, page: %d/%d(%d)", atomic.LoadInt64(&m.amount), m.total, atomic.LoadInt64(&m.page), m.totalPage, m.pageSize)}
 }
 
 func (m *Mock[E]) Copy(items []E) []E {

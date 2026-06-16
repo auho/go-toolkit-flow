@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	goSimpleDb "github.com/auho/go-simple-db/v2"
+	simpledb "github.com/auho/go-simple-db/v2"
 	"github.com/auho/go-toolkit-flow/storage/database"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -38,8 +38,8 @@ func init() {
 		),
 	}
 
-	DB, err = database.BuildDB(func() (*goSimpleDb.SimpleDB, error) {
-		return goSimpleDb.NewMysql(Dsn, dbc)
+	DB, err = database.BuildDB(func() (*simpledb.SimpleDB, error) {
+		return simpledb.NewMysql(Dsn, dbc)
 	})
 	if err != nil {
 		log.Fatal("new DB create table ", err)

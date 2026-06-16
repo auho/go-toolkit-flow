@@ -53,7 +53,7 @@ func (g *gormMySQL) QueryMapByRange(startID, endID int64) (storage.MapEntries, e
 	var rows storage.MapEntries
 
 	tx := g.buildSelectQuery()
-	err := tx.Where(fmt.Sprintf("%s >= ? and %s <= ?", g.config.SegmentIDName, g.config.SegmentIDName), startID, endID).
+	err := tx.Where(fmt.Sprintf("`%s` >= ? and `%s` <= ?", g.config.SegmentIDName, g.config.SegmentIDName), startID, endID).
 		Scan(&rows).Error
 
 	return rows, err

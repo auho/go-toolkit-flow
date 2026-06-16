@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	goSimpleDb "github.com/auho/go-simple-db/v2"
+	simpledb "github.com/auho/go-simple-db/v2"
+	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database"
-	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
 
 var ussItemsChan = make(chan storage.MapEntries)
@@ -68,8 +68,8 @@ func TestBilkUpdateMapFormatGorm(t *testing.T) {
 }
 
 func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
-	d, err := database.BuildDB(func() (*goSimpleDb.SimpleDB, error) {
-		return goSimpleDb.NewMysql(mysqlDsn)
+	d, err := database.BuildDB(func() (*simpledb.SimpleDB, error) {
+		return simpledb.NewMysql(mysqlDsn)
 	})
 	if err != nil {
 		t.Error(err)

@@ -30,7 +30,7 @@ type Section[E storage.Entry] struct {
 	startID   int64
 	endID     int64
 
-	rowsChan    chan []E
+	itemsChan   chan []E
 	segmentChan chan []int64
 	state       *storage.PageState
 
@@ -74,7 +74,7 @@ func (s *Section[E]) Scan() error {
 		return err
 	}
 
-	s.rowsChan = make(chan []E, s.config.Concurrency)
+	s.itemsChan = make(chan []E, s.config.Concurrency)
 	s.segmentChan = make(chan []int64, s.config.Concurrency)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -89,7 +89,7 @@ func (s *Section[E]) Scan() error {
 
 		s.scanCancel()
 
-		close(s.rowsChan)
+		close(s.itemsChan)
 
 		s.state.DurationStop()
 		s.state.MarkAsFinished()
@@ -99,7 +99,7 @@ func (s *Section[E]) Scan() error {
 }
 
 func (s *Section[E]) ReceiveChan() <-chan []E {
-	return s.rowsChan
+	return s.itemsChan
 }
 
 func (s *Section[E]) Error() error {
@@ -145,16 +145,16 @@ func (s *Section[E]) scanRows() {
 						return nil
 					}
 
-					rows, err := s.format.QueryByRange(s.dialect, segment[0], segment[1])
+					items, err := s.format.QueryByRange(s.dialect, segment[0], segment[1])
 					if err != nil {
-						return fmt.Errorf("query range [%d-%d]: %w", segment[0], segment[1], err)
+						return fmt.Errorf("format.QueryByRange [%d-%d]: %w", segment[0], segment[1], err)
 					}
 
-					if len(rows) > 0 {
+					if len(items) > 0 {
 						s.state.AddPage(1)
-						s.state.AddAmount(int64(len(rows)))
+						s.state.AddAmount(int64(len(items)))
 
-						s.rowsChan <- rows
+						s.itemsChan <- items
 					}
 				}
 			}

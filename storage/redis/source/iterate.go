@@ -11,9 +11,9 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/redis/source/format"
 )
 
-var _ storage.Source[storage.MapEntry] = (*Iterate[storage.MapEntry])(nil)
+var _ storage.Source[storage.MapEntry] = (*Iterator[storage.MapEntry])(nil)
 
-type Iterate[E storage.Entry] struct {
+type Iterator[E storage.Entry] struct {
 	storage.Storage
 	dialect dialect.Dialect
 	format  format.Format[E]
@@ -23,15 +23,15 @@ type Iterate[E storage.Entry] struct {
 	amount          int64
 	total           int64
 	scanned         int64
-	timeOutDuration time.Duration
+	timeoutDuration time.Duration
 
 	state     *storage.TotalState
 	itemsChan chan []E
 	scanErr   error
 }
 
-func newIterate[E storage.Entry](f format.Format[E], d dialect.Dialect, c KeyConfig) (*Iterate[E], error) {
-	i := &Iterate[E]{}
+func newIterator[E storage.Entry](f format.Format[E], d dialect.Dialect, c KeyConfig) (*Iterator[E], error) {
+	i := &Iterator[E]{}
 	i.dialect = d
 	i.format = f
 
@@ -48,11 +48,11 @@ func newIterate[E storage.Entry](f format.Format[E], d dialect.Dialect, c KeyCon
 	return i, nil
 }
 
-func (i *Iterate[E]) config(c KeyConfig) error {
+func (i *Iterator[E]) config(c KeyConfig) error {
 	i.concurrency = c.Concurrency
 	i.pageSize = c.PageSize
 	i.amount = c.Amount
-	i.timeOutDuration = c.getTimeOutDuration()
+	i.timeoutDuration = c.getTimeoutDuration()
 
 	if i.concurrency <= 0 {
 		i.concurrency = 1
@@ -70,14 +70,14 @@ func (i *Iterate[E]) config(c KeyConfig) error {
 	return nil
 }
 
-func (i *Iterate[E]) Scan() error {
+func (i *Iterator[E]) Scan() error {
 	i.state.MarkAsScanning()
 	i.state.DurationStart()
 	i.itemsChan = make(chan []E, i.concurrency)
 
 	var err error
 
-	ctx, cancel := context.WithTimeout(context.Background(), i.timeOutDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
 	i.total, err = i.format.FetchLen(ctx, i.dialect)
 	cancel()
 	if err != nil {
@@ -95,7 +95,7 @@ func (i *Iterate[E]) Scan() error {
 
 		var cursor uint64
 		for {
-			ctxScan, cancelScan := context.WithTimeout(context.Background(), i.timeOutDuration)
+			ctxScan, cancelScan := context.WithTimeout(context.Background(), i.timeoutDuration)
 			items, newCursor, scanErr := i.format.ScanByRange(ctxScan, i.dialect, cursor, i.pageSize)
 			cancelScan()
 
@@ -127,31 +127,31 @@ func (i *Iterate[E]) Scan() error {
 	return nil
 }
 
-func (i *Iterate[E]) ReceiveChan() <-chan []E {
+func (i *Iterator[E]) ReceiveChan() <-chan []E {
 	return i.itemsChan
 }
 
-func (i *Iterate[E]) Error() error {
+func (i *Iterator[E]) Error() error {
 	return i.scanErr
 }
 
-func (i *Iterate[E]) Summary() []string {
+func (i *Iterator[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s: total: %d", i.Title(), i.total)}
 }
 
-func (i *Iterate[E]) State() []string {
+func (i *Iterator[E]) State() []string {
 	i.state.SetAmount(atomic.LoadInt64(&i.scanned))
 	return []string{i.state.Overview()}
 }
 
-func (i *Iterate[E]) Copy(items []E) []E {
+func (i *Iterator[E]) Copy(items []E) []E {
 	return i.format.Copy(items)
 }
 
-func (i *Iterate[E]) Title() string {
+func (i *Iterator[E]) Title() string {
 	return fmt.Sprintf("Source redis[%s]:[%d:%s]:", i.format.Key(), i.dialect.DB(), i.format.Type())
 }
 
-func (i *Iterate[E]) Close() error {
+func (i *Iterator[E]) Close() error {
 	return i.dialect.Close()
 }

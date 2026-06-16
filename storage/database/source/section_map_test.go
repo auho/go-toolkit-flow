@@ -3,8 +3,8 @@ package source
 import (
 	"testing"
 
+	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/tests/mysql"
 )
 
 func TestSectionMapFormatGorm(t *testing.T) {

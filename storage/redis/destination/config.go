@@ -6,14 +6,14 @@ type BulkConfig struct {
 	IsTruncate      bool
 	Concurrency     int
 	PageSize        int64
-	TimeOutDuration time.Duration
+	TimeoutDuration time.Duration
 	Key             string
 }
 
-func (c *BulkConfig) getTimeOutDuration() time.Duration {
-	if c.TimeOutDuration <= 0 {
-		c.TimeOutDuration = time.Second * 3
+func (c *BulkConfig) getTimeoutDuration() time.Duration {
+	if c.TimeoutDuration <= 0 {
+		c.TimeoutDuration = time.Second * 3
 	}
 
-	return c.TimeOutDuration
+	return c.TimeoutDuration
 }

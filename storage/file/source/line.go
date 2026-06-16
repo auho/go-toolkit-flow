@@ -90,10 +90,6 @@ func (l *Line) Error() error {
 }
 
 func (l *Line) Close() error {
-	if l.scanErr != nil {
-		_ = l.file.Close()
-		return l.scanErr
-	}
 	return l.file.Close()
 }
 
@@ -112,5 +108,5 @@ func (l *Line) Copy(items []string) []string {
 }
 
 func (l *Line) Title() string {
-	return fmt.Sprintf("Source file[%s]\n", l.file.Name())
+	return fmt.Sprintf("Source file[%s]", l.file.Name())
 }

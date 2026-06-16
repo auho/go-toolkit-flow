@@ -141,6 +141,11 @@ func (f *flow[E]) finish() error {
 		return fmt.Errorf("runnersFinish: %w", err)
 	}
 
+	err = f.source.Error()
+	if err != nil {
+		return fmt.Errorf("source.Error: %w", err)
+	}
+
 	return nil
 }
 

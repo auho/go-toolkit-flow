@@ -142,7 +142,7 @@ func (r *runner[E]) Summary() string {
 
 func (r *runner[E]) State() []string {
 	r.operator.RefreshState()
-	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Effected %d", r.total, r.amount, r.effected)}, r.operator.State()...)
+	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Effected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.effected))}, r.operator.State()...)
 }
 
 func (r *runner[E]) Output() []string {
