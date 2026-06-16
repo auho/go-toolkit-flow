@@ -22,12 +22,13 @@ type Key[E storage.Entry] struct {
 	pageSize        int64
 	amount          int64
 	total           int64
+	scanned         int64
 	timeOutDuration time.Duration
 	keyName         string
 
 	state     *storage.TotalState
 	itemsChan chan []E
-	scanned   int64
+	scanErr   error
 }
 
 func newKey[E storage.Entry](config KeyConfig, d dialect.Dialect, f format.Format[E]) (*Key[E], error) {
@@ -46,7 +47,7 @@ func (k *Key[E]) config(c KeyConfig) error {
 	k.concurrency = c.Concurrency
 	k.pageSize = c.PageSize
 	k.amount = c.Amount
-	k.timeOutDuration = c.GetTimeOutDuration()
+	k.timeOutDuration = c.getTimeOutDuration()
 	k.keyName = c.KeyName
 
 	if k.concurrency <= 0 {
@@ -75,10 +76,10 @@ func (k *Key[E]) Scan() error {
 	k.itemsChan = make(chan []E, k.concurrency)
 
 	var err error
-	ctx, cancel := context.WithTimeout(context.Background(), k.timeOutDuration)
-	defer cancel()
 
+	ctx, cancel := context.WithTimeout(context.Background(), k.timeOutDuration)
 	k.total, err = k.format.FetchLen(ctx, k.dialect, k.keyName)
+	cancel()
 	if err != nil {
 		return err
 	}
@@ -90,21 +91,17 @@ func (k *Key[E]) Scan() error {
 	k.state.Total = k.total
 
 	go func() {
-		cancels := make([]context.CancelFunc, 0)
-		defer func() {
-			for _, cancel := range cancels {
-				cancel()
-			}
-		}()
+		defer close(k.itemsChan)
 
-		var cursor uint64 = 0
+		var cursor uint64
 		for {
-			ctx, cancel := context.WithTimeout(context.Background(), k.timeOutDuration)
-			cancels = append(cancels, cancel)
+			ctxScan, cancelScan := context.WithTimeout(context.Background(), k.timeOutDuration)
+			items, newCursor, scanErr := k.format.ScanByRange(ctxScan, k.dialect, k.keyName, cursor, k.pageSize)
+			cancelScan()
 
-			items, newCursor, scanErr := k.format.ScanByRange(ctx, k.dialect, k.keyName, cursor, k.pageSize)
 			if scanErr != nil {
-				panic(fmt.Sprintf("scan: %v", scanErr))
+				k.scanErr = fmt.Errorf("ScanByRange: %w", scanErr)
+				break
 			}
 
 			if len(items) > 0 {
@@ -123,8 +120,6 @@ func (k *Key[E]) Scan() error {
 			cursor = newCursor
 		}
 
-		close(k.itemsChan)
-
 		k.state.DurationStop()
 		k.state.MarkAsFinished()
 	}()
@@ -134,6 +129,10 @@ func (k *Key[E]) Scan() error {
 
 func (k *Key[E]) ReceiveChan() <-chan []E {
 	return k.itemsChan
+}
+
+func (k *Key[E]) Error() error {
+	return k.scanErr
 }
 
 func (k *Key[E]) Summary() []string {

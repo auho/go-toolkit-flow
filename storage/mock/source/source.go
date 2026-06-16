@@ -25,8 +25,8 @@ type Mock[E storage.Entry] struct {
 	totalPage int64
 	amount    int64
 	idName    string
-	itemsChan  chan []E
-	generator  generator[E]
+	itemsChan chan []E
+	generator generator[E]
 }
 
 func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
@@ -57,6 +57,8 @@ func (m *Mock[E]) Scan() error {
 	m.itemsChan = make(chan []E)
 
 	go func() {
+		defer close(m.itemsChan)
+
 		for i := int64(0); i < m.total; i += m.pageSize {
 			size := m.pageSize
 			if i+m.pageSize > m.total {
@@ -69,8 +71,6 @@ func (m *Mock[E]) Scan() error {
 			atomic.AddInt64(&m.page, 1)
 			atomic.AddInt64(&m.amount, int64(len(items)))
 		}
-
-		close(m.itemsChan)
 	}()
 
 	return nil
@@ -78,6 +78,10 @@ func (m *Mock[E]) Scan() error {
 
 func (m *Mock[E]) ReceiveChan() <-chan []E {
 	return m.itemsChan
+}
+
+func (m *Mock[E]) Error() error {
+	return nil
 }
 
 func (m *Mock[E]) Summary() []string {

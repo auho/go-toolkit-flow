@@ -38,7 +38,7 @@ type Section[E storage.Entry] struct {
 	scanGroup  *errgroup.Group
 	scanCtx    context.Context
 	scanCancel context.CancelFunc
-	scanError  error
+	scanErr    error
 }
 
 func newSection[E storage.Entry](c SectionConfig, d dialect.Dialect, f format.Format[E]) *Section[E] {
@@ -85,7 +85,7 @@ func (s *Section[E]) Scan() error {
 	s.scanRows()
 
 	go func() {
-		s.scanError = s.scanGroup.Wait()
+		s.scanErr = s.scanGroup.Wait()
 
 		s.scanCancel()
 
@@ -102,8 +102,8 @@ func (s *Section[E]) ReceiveChan() <-chan []E {
 	return s.rowsChan
 }
 
-func (s *Section[E]) Err() error {
-	return s.scanError
+func (s *Section[E]) Error() error {
+	return s.scanErr
 }
 
 // dispatchSegments 根据 start id, end id 分段并分发

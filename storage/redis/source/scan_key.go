@@ -20,14 +20,14 @@ type ScanKey struct {
 
 	concurrency     int
 	pageSize        int64
-	total           int64
 	amount          int64
+	scanned         int64
 	timeOutDuration time.Duration
 	keyPattern      string
 
 	state     *storage.State
 	itemsChan chan []string
-	scanned   int64
+	scanErr   error
 }
 
 func newScanKey(config KeyConfig, d dialect.Dialect, f format.Format[string]) (*ScanKey, error) {
@@ -45,9 +45,9 @@ func newScanKey(config KeyConfig, d dialect.Dialect, f format.Format[string]) (*
 func (s *ScanKey) config(c KeyConfig) error {
 	s.concurrency = c.Concurrency
 	s.pageSize = c.PageSize
-	s.timeOutDuration = c.GetTimeOutDuration()
+	s.timeOutDuration = c.getTimeOutDuration()
 	s.keyPattern = c.KeyName
-	s.total = c.Amount
+	s.amount = c.Amount
 
 	if s.concurrency <= 0 {
 		s.concurrency = 1
@@ -71,21 +71,17 @@ func (s *ScanKey) Scan() error {
 	s.itemsChan = make(chan []string, s.concurrency)
 
 	go func() {
-		cancels := make([]context.CancelFunc, 0)
-		defer func() {
-			for _, cancel := range cancels {
-				cancel()
-			}
-		}()
+		defer close(s.itemsChan)
 
-		var cursor uint64 = 0
+		var cursor uint64
 		for {
 			ctx, cancel := context.WithTimeout(context.Background(), s.timeOutDuration)
-			cancels = append(cancels, cancel)
-
 			keys, newCursor, err := s.format.ScanByRange(ctx, s.dialect, s.keyPattern, cursor, s.pageSize)
+			cancel()
+
 			if err != nil {
-				panic(fmt.Sprintf("scan keys: %v", err))
+				s.scanErr = fmt.Errorf("ScanByRange: %w", err)
+				break
 			}
 
 			if len(keys) > 0 {
@@ -97,14 +93,12 @@ func (s *ScanKey) Scan() error {
 				break
 			}
 
-			if s.total > 0 && atomic.LoadInt64(&s.scanned) >= s.total {
+			if s.amount > 0 && atomic.LoadInt64(&s.scanned) >= s.amount {
 				break
 			}
 
 			cursor = newCursor
 		}
-
-		close(s.itemsChan)
 
 		s.state.DurationStop()
 		s.state.MarkAsFinished()
@@ -115,6 +109,10 @@ func (s *ScanKey) Scan() error {
 
 func (s *ScanKey) ReceiveChan() <-chan []string {
 	return s.itemsChan
+}
+
+func (s *ScanKey) Error() error {
+	return s.scanErr
 }
 
 func (s *ScanKey) Close() error {

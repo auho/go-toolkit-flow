@@ -10,7 +10,7 @@ type KeyConfig struct {
 	KeyName         string
 }
 
-func (c *KeyConfig) GetTimeOutDuration() time.Duration {
+func (c *KeyConfig) getTimeOutDuration() time.Duration {
 	if c.TimeOutDuration <= 0 {
 		c.TimeOutDuration = time.Second * 3
 	}

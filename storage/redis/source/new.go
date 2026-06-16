@@ -13,7 +13,7 @@ import (
 )
 
 func NewHashesWithGoRedisV8(config KeyConfig, client *redis.Client) (*Key[storage.MapOfStringsEntry], error) {
-	d, err := newGoRedisV8(config.GetTimeOutDuration(), client)
+	d, err := newGoRedisV8(client, config.getTimeOutDuration())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dialect: %w", err)
 	}
@@ -22,7 +22,7 @@ func NewHashesWithGoRedisV8(config KeyConfig, client *redis.Client) (*Key[storag
 }
 
 func NewListsWithGoRedisV8(config KeyConfig, client *redis.Client) (*Key[string], error) {
-	d, err := newGoRedisV8(config.GetTimeOutDuration(), client)
+	d, err := newGoRedisV8(client, config.getTimeOutDuration())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dialect: %w", err)
 	}
@@ -31,7 +31,7 @@ func NewListsWithGoRedisV8(config KeyConfig, client *redis.Client) (*Key[string]
 }
 
 func NewSetsWithGoRedisV8(config KeyConfig, client *redis.Client) (*Key[string], error) {
-	d, err := newGoRedisV8(config.GetTimeOutDuration(), client)
+	d, err := newGoRedisV8(client, config.getTimeOutDuration())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dialect: %w", err)
 	}
@@ -40,7 +40,7 @@ func NewSetsWithGoRedisV8(config KeyConfig, client *redis.Client) (*Key[string],
 }
 
 func NewSortedSetsWithGoRedisV8(config KeyConfig, client *redis.Client) (*Key[storage.MapOfStringsEntry], error) {
-	d, err := newGoRedisV8(config.GetTimeOutDuration(), client)
+	d, err := newGoRedisV8(client, config.getTimeOutDuration())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dialect: %w", err)
 	}
@@ -49,7 +49,7 @@ func NewSortedSetsWithGoRedisV8(config KeyConfig, client *redis.Client) (*Key[st
 }
 
 func NewScanWithGoRedisV8(config KeyConfig, client *redis.Client) (*ScanKey, error) {
-	d, err := newGoRedisV8(config.GetTimeOutDuration(), client)
+	d, err := newGoRedisV8(client, config.getTimeOutDuration())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dialect: %w", err)
 	}
@@ -57,7 +57,7 @@ func NewScanWithGoRedisV8(config KeyConfig, client *redis.Client) (*ScanKey, err
 	return newScanKey(config, d, format.NewScanFormat())
 }
 
-func newGoRedisV8(d time.Duration, client *redis.Client) (dialect.Dialect, error) {
+func newGoRedisV8(client *redis.Client, d time.Duration) (dialect.Dialect, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
 

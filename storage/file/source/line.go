@@ -54,6 +54,7 @@ func (l *Line) Scan() error {
 
 	go func() {
 		defer close(l.itemsChan)
+
 		items := make([]string, 0, l.config.Line)
 		for l.scanner.Scan() {
 			items = append(items, l.scanner.Text())
@@ -84,7 +85,7 @@ func (l *Line) ReceiveChan() <-chan []string {
 	return l.itemsChan
 }
 
-func (l *Line) Err() error {
+func (l *Line) Error() error {
 	return l.scanErr
 }
 
