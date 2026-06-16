@@ -163,7 +163,7 @@ func (b *Bulk[E]) writeBatch(items []E) error {
 	defer cancel()
 
 	if err := b.format.Write(ctx, b.dialect, items); err != nil {
-		return fmt.Errorf("redis destination write error; %w", err)
+		return fmt.Errorf("redis destination write: %w", err)
 	}
 
 	b.state.AddAmount(int64(len(items)))

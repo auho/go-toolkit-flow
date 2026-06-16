@@ -12,7 +12,7 @@ import (
 
 // NewBulkInsertMapWithGorm 创建基于 gorm 的 MapEntry 插入 Bulk
 func NewBulkInsertMapWithGorm(c BulkConfig, wc WriteConfig, db *gorm.DB) (*Bulk[storage.MapEntry], error) {
-	return neBulkWithwGorm(format.NewInsertMapFormat(int(c.PageSize)), db, c, wc)
+	return newBulkWithGorm(format.NewInsertMapFormat(int(c.PageSize)), db, c, wc)
 }
 
 // NewBulkInsertSliceWithGorm 创建基于 gorm 的 SliceEntry 插入 Bulk
@@ -21,15 +21,15 @@ func NewBulkInsertSliceWithGorm(c BulkConfig, wc WriteConfig, fields []string, d
 		return nil, errors.New("fields is error")
 	}
 
-	return neBulkWithwGorm(format.NewInsertSliceFormat(fields, int(c.PageSize)), db, c, wc)
+	return newBulkWithGorm(format.NewInsertSliceFormat(fields, int(c.PageSize)), db, c, wc)
 }
 
 // NewBulkUpdateMapWithGorm 创建基于 gorm 的 MapEntry 更新 Bulk
 func NewBulkUpdateMapWithGorm(c BulkConfig, wc WriteConfig, idName string, db *gorm.DB) (*Bulk[storage.MapEntry], error) {
-	return neBulkWithwGorm(format.NewUpdateMapFormat(idName), db, c, wc)
+	return newBulkWithGorm(format.NewUpdateMapFormat(idName), db, c, wc)
 }
 
-func neBulkWithwGorm[E storage.Entry](f format.Format[E], db *gorm.DB, c BulkConfig, wc WriteConfig) (*Bulk[E], error) {
+func newBulkWithGorm[E storage.Entry](f format.Format[E], db *gorm.DB, c BulkConfig, wc WriteConfig) (*Bulk[E], error) {
 	d, err := newGorm(db, wc)
 	if err != nil {
 		return nil, err

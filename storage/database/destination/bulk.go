@@ -132,7 +132,7 @@ func (b *Bulk[E]) Finish() error {
 
 func (b *Bulk[E]) writeBatch(items []E) error {
 	if err := b.format.Write(b.dialect, items); err != nil {
-		return fmt.Errorf("database destination exec error; %w", err)
+		return fmt.Errorf("database destination exec: %w", err)
 	}
 
 	b.state.AddAmount(int64(len(items)))

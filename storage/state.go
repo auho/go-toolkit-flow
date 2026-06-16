@@ -112,7 +112,7 @@ func (t *TotalState) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Duration: %s",
 		t.Status(),
 		t.Concurrency,
-		t.amount,
+		t.Amount(),
 		t.Total,
 		t.duration.StringStartToStop())
 }

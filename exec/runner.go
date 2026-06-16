@@ -27,6 +27,7 @@ type Runner[E storage.Entry] interface {
 	Run() error     // Process data
 	Done()          // triggered after upstream data processing
 	Finish() error  // data processing completed
+	Close() error
 	Summary() string
 	State() []string
 	Output() []string
@@ -81,29 +82,30 @@ func (r *runner[E]) Receive(items []E) {
 func (r *runner[E]) Run() error {
 	err := r.operator.BeforeRun()
 	if err != nil {
-		return fmt.Errorf("BeforeRun error; %w", err)
+		return fmt.Errorf("BeforeRun: %w", err)
 	}
 
 	for i := 0; i < r.operator.Concurrency(); i++ {
 		r.runGroup.Go(func() error {
-			select {
-			case <-r.runCtx.Done():
-			case items, ok := <-r.itemsChan:
-				if !ok {
+			for {
+				select {
+				case <-r.runCtx.Done():
 					return nil
-				}
+				case items, ok := <-r.itemsChan:
+					if !ok {
+						return nil
+					}
 
-				atomic.AddInt64(&r.total, int64(len(items)))
-				amount, effected, err1 := r.processor.Run(items)
-				if err1 != nil {
-					return fmt.Errorf("run: %w", err1)
-				}
+					atomic.AddInt64(&r.total, int64(len(items)))
+					amount, effected, err1 := r.processor.Run(items)
+					if err1 != nil {
+						return fmt.Errorf("run: %w", err1)
+					}
 
-				atomic.AddInt64(&r.amount, amount)
-				atomic.AddInt64(&r.effected, effected)
+					atomic.AddInt64(&r.amount, amount)
+					atomic.AddInt64(&r.effected, effected)
+				}
 			}
-
-			return nil
 		})
 	}
 
@@ -119,20 +121,19 @@ func (r *runner[E]) Finish() error {
 	r.runCancel()
 
 	if err != nil {
-		return fmt.Errorf("run error; %w", err)
+		return fmt.Errorf("run: %w", err)
 	}
 
 	err = r.operator.AfterRun()
 	if err != nil {
-		return fmt.Errorf("AfterRun error; %w", err)
-	}
-
-	err = r.operator.Close()
-	if err != nil {
-		return fmt.Errorf("close error; %w", err)
+		return fmt.Errorf("AfterRun: %w", err)
 	}
 
 	return nil
+}
+
+func (r *runner[E]) Close() error {
+	return r.operator.Close()
 }
 
 func (r *runner[E]) Summary() string {
