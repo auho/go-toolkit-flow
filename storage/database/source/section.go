@@ -77,9 +77,9 @@ func (s *Section[E]) Scan() error {
 	s.rowsChan = make(chan []E, s.config.Concurrency)
 	s.segmentChan = make(chan []int64, s.config.Concurrency)
 
-	rootCtx, rootCancel := context.WithCancel(context.Background())
-	s.scanGroup, s.scanCtx = errgroup.WithContext(rootCtx)
-	s.scanCancel = rootCancel
+	ctx, cancel := context.WithCancel(context.Background())
+	s.scanGroup, s.scanCtx = errgroup.WithContext(ctx)
+	s.scanCancel = cancel
 
 	go s.dispatchSegments()
 	s.scanRows()

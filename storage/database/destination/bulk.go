@@ -1,17 +1,17 @@
 package destination
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"slices"
-	"sync"
-	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database"
 	"github.com/auho/go-toolkit-flow/storage/database/destination/dialect"
 	"github.com/auho/go-toolkit-flow/storage/database/destination/format"
 	"github.com/auho/go-toolkit/time/timing"
+	"golang.org/x/sync/errgroup"
 )
 
 // WriteConfig 类型别名重导出，用户无需导入 dialect 包
@@ -26,14 +26,16 @@ type Bulk[E storage.Entry] struct {
 	format  format.Format[E]
 	config  BulkConfig
 
-	state        *storage.State
-	workerWg     sync.WaitGroup
-	itemsChan    chan []E
-	errChan      chan error
-	firstErr     error
-	workerErr    error
-	workerFailed atomic.Bool
-	isDone       bool
+	state     *storage.State
+	itemsChan chan []E
+
+	// 并发与错误处理
+	writeGroup  *errgroup.Group
+	writeCtx    context.Context
+	writeCancel context.CancelFunc
+	writeError  error
+
+	isDone bool
 }
 
 func newDestination[E storage.Entry](c BulkConfig, d dialect.Dialect, f format.Format[E]) (*Bulk[E], error) {
@@ -83,27 +85,27 @@ func (b *Bulk[E]) Accept() (err error) {
 	}
 
 	b.itemsChan = make(chan []E, b.config.Concurrency)
-	b.errChan = make(chan error, b.config.Concurrency)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	b.writeGroup, b.writeCtx = errgroup.WithContext(ctx)
+	b.writeCancel = cancel
 
 	for i := 0; i < b.config.Concurrency; i++ {
-		b.workerWg.Add(1)
-		go func() {
-			b.do()
-
-			b.workerWg.Done()
-		}()
+		b.writeGroup.Go(func() error {
+			return b.write()
+		})
 	}
 
 	return nil
 }
 
 func (b *Bulk[E]) Receive(items []E) error {
-	if b.workerFailed.Load() {
-		return b.workerErr
+	select {
+	case <-b.writeCtx.Done():
+		return b.writeError
+	case b.itemsChan <- items:
+		return nil
 	}
-
-	b.itemsChan <- items
-	return nil
 }
 
 func (b *Bulk[E]) Done() {
@@ -119,78 +121,70 @@ func (b *Bulk[E]) Done() {
 }
 
 func (b *Bulk[E]) Finish() error {
-	b.workerWg.Wait()
-	close(b.errChan)
-	for err := range b.errChan {
-		if b.firstErr == nil {
-			b.firstErr = err
-		}
-	}
+	b.writeError = b.writeGroup.Wait()
+
+	b.writeCancel()
 
 	b.state.MarkAsFinished()
 	b.state.DurationStop()
 
-	return b.firstErr
+	return b.writeError
 }
 
-func (b *Bulk[E]) Err() error {
-	return b.firstErr
+func (b *Bulk[E]) writeBatch(items []E) error {
+	if err := b.format.Write(b.dialect, items); err != nil {
+		return fmt.Errorf("database destination exec error; %w", err)
+	}
+
+	b.state.AddAmount(int64(len(items)))
+
+	return nil
 }
 
-func (b *Bulk[E]) do() {
+func (b *Bulk[E]) write() error {
 	duration := timing.NewDuration()
 	duration.Start()
-	var descItems []E
-
 	duration.Begin()
-	for items := range b.itemsChan {
-		if len(items) <= 0 {
-			continue
-		}
 
-		descItems = append(descItems, items...)
+	var buf []E
 
-		length := len(descItems)
-		var start, end int64
+loop:
+	for {
+		select {
+		case <-b.writeCtx.Done():
+			return nil
+		case items, ok := <-b.itemsChan:
+			if !ok {
+				break loop
+			}
 
-		batchSize := b.config.PageSize
-		for {
-			end = start + batchSize
-			if end <= int64(length) {
-				err := b.format.Write(b.dialect, descItems[start:end])
-				if err != nil {
-					b.workerErr = err
-					b.workerFailed.Store(true)
-					b.errChan <- fmt.Errorf("database destination exec error; %w", err)
-					return
+			if len(items) == 0 {
+				continue
+			}
+
+			buf = append(buf, items...)
+
+			for int64(len(buf)) >= b.config.PageSize {
+				if err := b.writeBatch(buf[:b.config.PageSize]); err != nil {
+					return err
 				}
 
-				b.state.AddAmount(batchSize)
-
-				start += batchSize
-			} else {
-				descItems = slices.Clone(descItems[start:])
-				descItems = slices.Clip(descItems)
-
-				break
+				buf = slices.Clone(buf[b.config.PageSize:])
 			}
 		}
 	}
 
-	if len(descItems) > 0 {
-		err := b.format.Write(b.dialect, descItems)
-		if err != nil {
-			b.workerErr = err
-			b.workerFailed.Store(true)
-			b.errChan <- fmt.Errorf("database destination exec error; %w", err)
-			return
+	// flush remaining
+	if len(buf) > 0 {
+		if err := b.writeBatch(buf); err != nil {
+			return err
 		}
-
-		b.state.AddAmount(int64(len(descItems)))
 	}
 
 	duration.End()
 	duration.Stop()
+
+	return nil
 }
 
 func (b *Bulk[E]) Title() string {
