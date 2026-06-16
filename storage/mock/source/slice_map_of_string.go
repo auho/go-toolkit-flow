@@ -2,7 +2,6 @@ package source
 
 import (
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/storage"
@@ -24,7 +23,7 @@ func (sms SliceMapOfString) scan(idName string, id *int64, amount int64) (*int64
 	startString := time.Now().String()
 	for i := int64(0); i < amount; i++ {
 		item := make(storage.MapOfStringsEntry)
-		atomic.AddInt64(id, 1)
+		*id++
 		item[idName] = strconv.FormatInt(*id, 10)
 		item["content"] = startString + " " + item[idName]
 		items[i] = item

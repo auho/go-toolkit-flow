@@ -187,8 +187,8 @@ func (f *flow[E]) state() []string {
 
 	for _, r := range f.runners {
 		lines = append(lines, r.Summary())
-		for _, _s := range r.State() {
-			lines = append(lines, "  "+_s)
+		for _, s := range r.State() {
+			lines = append(lines, "  "+s)
 		}
 	}
 

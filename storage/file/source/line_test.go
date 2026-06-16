@@ -16,8 +16,8 @@ func TestNewLine(t *testing.T) {
 	_buildFile(t, _max)
 
 	s, err := NewLine(Config{
-		Name: file.SourceFile,
-		Line: rand.Intn(50) + 50,
+		Name:      file.SourceFile,
+		BatchSize: rand.Intn(50) + 50,
 	})
 	if err != nil {
 		t.Fatal(err)

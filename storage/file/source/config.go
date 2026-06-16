@@ -2,6 +2,6 @@ package source
 
 type Config struct {
 	Name        string
-	Line        int
+	BatchSize   int
 	Concurrency int
 }

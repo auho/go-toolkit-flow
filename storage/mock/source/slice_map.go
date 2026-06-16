@@ -1,7 +1,6 @@
 package source
 
 import (
-	"sync/atomic"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/storage"
@@ -23,7 +22,7 @@ func (sm SliceMap) scan(idName string, id *int64, amount int64) (*int64, storage
 	startUnixNano := time.Now().UnixNano()
 	for i := int64(0); i < amount; i++ {
 		item := make(storage.MapEntry)
-		atomic.AddInt64(id, 1)
+		*id++
 		item[idName] = *id
 		item["content"] = startUnixNano + i
 		items[i] = item

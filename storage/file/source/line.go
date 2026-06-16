@@ -39,8 +39,8 @@ func NewLine(c Config) (*Line, error) {
 		l.config.Concurrency = runtime.NumCPU()
 	}
 
-	if l.config.Line <= 0 {
-		l.config.Line = 100
+	if l.config.BatchSize <= 0 {
+		l.config.BatchSize = 100
 	}
 
 	return l, nil
@@ -55,13 +55,13 @@ func (l *Line) Scan() error {
 	go func() {
 		defer close(l.itemsChan)
 
-		items := make([]string, 0, l.config.Line)
+		items := make([]string, 0, l.config.BatchSize)
 		for l.scanner.Scan() {
 			items = append(items, l.scanner.Text())
 			l.state.AddAmount(1)
-			if len(items) >= l.config.Line {
+			if len(items) >= l.config.BatchSize {
 				l.itemsChan <- items
-				items = make([]string, 0, l.config.Line)
+				items = make([]string, 0, l.config.BatchSize)
 			}
 		}
 

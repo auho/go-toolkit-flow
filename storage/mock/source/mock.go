@@ -18,15 +18,16 @@ type generator[E storage.Entry] interface {
 
 type Mock[E storage.Entry] struct {
 	storage.Storage
-	id        int64
-	total     int64 // 最大数量(总数)
-	page      int64
-	pageSize  int64
-	totalPage int64
-	amount    int64
-	idName    string
-	itemsChan chan []E
-	generator generator[E]
+	id          int64
+	total       int64 // 最大数量(总数)
+	page        int64
+	pageSize    int64
+	totalPage   int64
+	amount      int64
+	concurrency int
+	idName      string
+	itemsChan   chan []E
+	generator   generator[E]
 }
 
 func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
@@ -34,6 +35,7 @@ func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
 	m.idName = config.IDName
 	m.total = config.Total
 	m.pageSize = config.PageSize
+	m.concurrency = config.Concurrency
 	m.generator = generator
 
 	if m.total <= 0 {
@@ -42,6 +44,10 @@ func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
 
 	if m.pageSize <= 0 {
 		m.pageSize = 1e1
+	}
+
+	if m.concurrency <= 0 {
+		m.concurrency = 1
 	}
 
 	if m.idName == "" {
@@ -54,7 +60,7 @@ func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
 }
 
 func (m *Mock[E]) Scan() error {
-	m.itemsChan = make(chan []E)
+	m.itemsChan = make(chan []E, m.concurrency)
 
 	go func() {
 		defer close(m.itemsChan)

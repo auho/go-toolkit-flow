@@ -28,7 +28,7 @@ type Operator[E storage.Entry] interface {
 	// RefreshState need to be implemented
 	RefreshState()
 
-	// Concurrency  need to be implemented
+	// Concurrency need to be implemented
 	Concurrency() int
 
 	Init()
