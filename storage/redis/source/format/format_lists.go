@@ -3,19 +3,26 @@ package format
 import (
 	"context"
 
+	"github.com/auho/go-toolkit-flow/storage/redis/client"
 	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
 )
 
 var _ Format[string] = (*listsFormat)(nil)
 
-type listsFormat struct{}
-
-func NewListsFormat() Format[string] {
-	return &listsFormat{}
+type listsFormat struct {
+	keyFormat
 }
 
-func (f *listsFormat) ScanByRange(ctx context.Context, d dialect.Dialect, keyName string, cursor uint64, count int64) ([]string, uint64, error) {
-	items, err := d.ListRange(ctx, keyName, int64(cursor), int64(cursor)+count-1)
+func NewListsFormat(key string) Format[string] {
+	return &listsFormat{keyFormat{key: key}}
+}
+
+func (f *listsFormat) Type() string {
+	return client.KeyTypeList
+}
+
+func (f *listsFormat) ScanByRange(ctx context.Context, d dialect.Dialect, cursor uint64, count int64) ([]string, uint64, error) {
+	items, err := d.ListRange(ctx, f.key, int64(cursor), int64(cursor)+count-1)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -30,8 +37,8 @@ func (f *listsFormat) ScanByRange(ctx context.Context, d dialect.Dialect, keyNam
 	return items, cursor + uint64(len(items)), nil
 }
 
-func (f *listsFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
-	return d.ListLen(ctx, keyName)
+func (f *listsFormat) FetchLen(ctx context.Context, d dialect.Dialect) (int64, error) {
+	return d.ListLen(ctx, f.key)
 }
 
 func (f *listsFormat) Copy(items []string) []string {

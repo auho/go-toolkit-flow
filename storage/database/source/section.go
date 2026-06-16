@@ -41,7 +41,7 @@ type Section[E storage.Entry] struct {
 	scanErr    error
 }
 
-func newSection[E storage.Entry](c SectionConfig, d dialect.Dialect, f format.Format[E]) *Section[E] {
+func newSection[E storage.Entry](f format.Format[E], d dialect.Dialect, c SectionConfig) *Section[E] {
 	s := &Section[E]{
 		dialect: d,
 		format:  f,

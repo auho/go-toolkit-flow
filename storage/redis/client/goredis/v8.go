@@ -10,8 +10,8 @@ type V8 struct {
 	Client *redis.Client
 }
 
-func (v *V8) DBName() string {
-	return v.Client.Options().Addr
+func (v *V8) DB() int {
+	return v.Client.Options().DB
 }
 
 func (v *V8) Close() error {

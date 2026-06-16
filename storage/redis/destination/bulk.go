@@ -23,7 +23,6 @@ type Bulk[E storage.Entry] struct {
 	isTruncate      bool
 	pageSize        int64
 	timeOutDuration time.Duration
-	keyName         string
 
 	isDone    bool
 	itemsChan chan []E
@@ -33,20 +32,25 @@ type Bulk[E storage.Entry] struct {
 	writeGroup  *errgroup.Group
 	writeCtx    context.Context
 	writeCancel context.CancelFunc
-	writeError  error
+	writeErr    error
 }
 
-func newBulk[E storage.Entry](config BulkConfig, d dialect.Dialect, f format.Format[E]) (*Bulk[E], error) {
-	k := &Bulk[E]{}
-	k.dialect = d
-	k.format = f
+func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfig) (*Bulk[E], error) {
+	b := &Bulk[E]{}
+	b.dialect = d
+	b.format = f
 
-	err := k.config(config)
+	err := b.config(c)
 	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
 
-	return k, nil
+	err = b.format.Check()
+	if err != nil {
+		return nil, fmt.Errorf("check: %w", err)
+	}
+
+	return b, nil
 }
 
 func (b *Bulk[E]) Accept() error {
@@ -57,7 +61,7 @@ func (b *Bulk[E]) Accept() error {
 		ctx, cancel := context.WithTimeout(context.Background(), b.timeOutDuration)
 		defer cancel()
 
-		_, err := b.dialect.Truncate(ctx, b.keyName)
+		_, err := b.dialect.Truncate(ctx, b.format.Key())
 		if err != nil {
 			return err
 		}
@@ -99,14 +103,14 @@ func (b *Bulk[E]) Done() {
 }
 
 func (b *Bulk[E]) Finish() error {
-	b.writeError = b.writeGroup.Wait()
+	b.writeErr = b.writeGroup.Wait()
 
 	b.writeCancel()
 
 	b.state.MarkAsFinished()
 	b.state.DurationStop()
 
-	return b.writeError
+	return b.writeErr
 }
 
 func (b *Bulk[E]) Summary() []string {
@@ -118,14 +122,14 @@ func (b *Bulk[E]) State() []string {
 }
 
 func (b *Bulk[E]) Title() string {
-	return fmt.Sprintf("Destination redis[%s]:%s", b.dialect.DBName(), b.keyName)
+	return fmt.Sprintf("Destination redis[%s][%d:%s]", b.format.Key(), b.dialect.DB(), b.format.Type())
 }
 
 func (b *Bulk[E]) FetchLen() (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), b.timeOutDuration)
 	defer cancel()
 
-	return b.format.FetchLen(ctx, b.dialect, b.keyName)
+	return b.format.FetchLen(ctx, b.dialect)
 }
 
 func (b *Bulk[E]) Close() error {
@@ -136,8 +140,7 @@ func (b *Bulk[E]) config(config BulkConfig) error {
 	b.isTruncate = config.IsTruncate
 	b.concurrency = config.Concurrency
 	b.pageSize = config.PageSize
-	b.timeOutDuration = config.GetTimeOutDuration()
-	b.keyName = config.KeyName
+	b.timeOutDuration = config.getTimeOutDuration()
 
 	if b.concurrency <= 0 {
 		b.concurrency = 1
@@ -145,10 +148,6 @@ func (b *Bulk[E]) config(config BulkConfig) error {
 
 	if b.pageSize <= 0 {
 		b.pageSize = 20
-	}
-
-	if b.keyName == "" {
-		return fmt.Errorf("key name is empty")
 	}
 
 	b.state = storage.NewState()
@@ -163,7 +162,7 @@ func (b *Bulk[E]) writeBatch(items []E) error {
 	ctx, cancel := context.WithTimeout(context.Background(), b.timeOutDuration)
 	defer cancel()
 
-	if err := b.format.Write(ctx, b.dialect, b.keyName, items); err != nil {
+	if err := b.format.Write(ctx, b.dialect, items); err != nil {
 		return fmt.Errorf("redis destination write error; %w", err)
 	}
 

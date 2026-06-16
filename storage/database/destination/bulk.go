@@ -38,7 +38,7 @@ type Bulk[E storage.Entry] struct {
 	isDone bool
 }
 
-func newDestination[E storage.Entry](c BulkConfig, d dialect.Dialect, f format.Format[E]) (*Bulk[E], error) {
+func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfig) (*Bulk[E], error) {
 	if c.PageSize <= 0 {
 		return nil, fmt.Errorf("page size[%d] is error", c.PageSize)
 	}

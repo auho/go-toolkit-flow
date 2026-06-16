@@ -4,24 +4,31 @@ import (
 	"context"
 
 	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/storage/redis/client"
 	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
 	"github.com/auho/go-toolkit-flow/tool"
 )
 
 var _ Format[storage.MapOfStringsEntry] = (*sortedSetsFormat)(nil)
 
-type sortedSetsFormat struct{}
-
-func NewSortedSetsFormat() Format[storage.MapOfStringsEntry] {
-	return &sortedSetsFormat{}
+type sortedSetsFormat struct {
+	keyFormat
 }
 
-func (f *sortedSetsFormat) ScanByRange(ctx context.Context, d dialect.Dialect, keyName string, cursor uint64, count int64) (storage.MapOfStringsEntries, uint64, error) {
-	return d.SortedSetScan(ctx, keyName, cursor, count)
+func NewSortedSetsFormat(key string) Format[storage.MapOfStringsEntry] {
+	return &sortedSetsFormat{keyFormat{key: key}}
 }
 
-func (f *sortedSetsFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
-	return d.SortedSetLen(ctx, keyName)
+func (f *sortedSetsFormat) Type() string {
+	return client.KeyTypeSortedSet
+}
+
+func (f *sortedSetsFormat) ScanByRange(ctx context.Context, d dialect.Dialect, cursor uint64, count int64) (storage.MapOfStringsEntries, uint64, error) {
+	return d.SortedSetScan(ctx, f.key, cursor, count)
+}
+
+func (f *sortedSetsFormat) FetchLen(ctx context.Context, d dialect.Dialect) (int64, error) {
+	return d.SortedSetLen(ctx, f.key)
 }
 
 func (f *sortedSetsFormat) Copy(items storage.MapOfStringsEntries) storage.MapOfStringsEntries {

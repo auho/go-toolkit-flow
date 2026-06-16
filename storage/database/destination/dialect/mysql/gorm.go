@@ -17,7 +17,7 @@ type gormMySQL struct {
 }
 
 // newGormMySQL 创建 MySQL 方言
-func newGormMySQL(config dialect.WriteConfig, db *gorm.DB) (*gormMySQL, error) {
+func newGormMySQL(db *gorm.DB, config dialect.WriteConfig) (*gormMySQL, error) {
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect database: %w", err)

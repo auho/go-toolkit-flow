@@ -4,23 +4,30 @@ import (
 	"context"
 
 	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/storage/redis/client"
 	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
 )
 
 var _ Format[storage.ScoreMapEntry] = (*sortedSetsFormat)(nil)
 
-type sortedSetsFormat struct{}
-
-func NewSortedSetsFormat() Format[storage.ScoreMapEntry] {
-	return &sortedSetsFormat{}
+type sortedSetsFormat struct {
+	keyFormat
 }
 
-func (f *sortedSetsFormat) Write(ctx context.Context, d dialect.Dialect, keyName string, items storage.ScoreMapEntries) error {
-	return d.SortedSetAdd(ctx, keyName, items)
+func NewSortedSetsFormat(key string) Format[storage.ScoreMapEntry] {
+	return &sortedSetsFormat{keyFormat{key: key}}
 }
 
-func (f *sortedSetsFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
-	return d.SortedSetLen(ctx, keyName)
+func (f *sortedSetsFormat) Type() string {
+	return client.KeyTypeSortedSet
+}
+
+func (f *sortedSetsFormat) Write(ctx context.Context, d dialect.Dialect, items storage.ScoreMapEntries) error {
+	return d.SortedSetAdd(ctx, f.key, items)
+}
+
+func (f *sortedSetsFormat) FetchLen(ctx context.Context, d dialect.Dialect) (int64, error) {
+	return d.SortedSetLen(ctx, f.key)
 }
 
 func (f *sortedSetsFormat) Copy(items storage.ScoreMapEntries) storage.ScoreMapEntries {

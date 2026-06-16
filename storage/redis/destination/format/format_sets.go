@@ -3,23 +3,30 @@ package format
 import (
 	"context"
 
+	"github.com/auho/go-toolkit-flow/storage/redis/client"
 	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
 )
 
 var _ Format[string] = (*setsFormat)(nil)
 
-type setsFormat struct{}
-
-func NewSetsFormat() Format[string] {
-	return &setsFormat{}
+type setsFormat struct {
+	keyFormat
 }
 
-func (f *setsFormat) Write(ctx context.Context, d dialect.Dialect, keyName string, items []string) error {
-	return d.SetAdd(ctx, keyName, items)
+func NewSetsFormat(key string) Format[string] {
+	return &setsFormat{keyFormat{key: key}}
 }
 
-func (f *setsFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
-	return d.SetLen(ctx, keyName)
+func (f *setsFormat) Type() string {
+	return client.KeyTypeSet
+}
+
+func (f *setsFormat) Write(ctx context.Context, d dialect.Dialect, items []string) error {
+	return d.SetAdd(ctx, f.key, items)
+}
+
+func (f *setsFormat) FetchLen(ctx context.Context, d dialect.Dialect) (int64, error) {
+	return d.SetLen(ctx, f.key)
 }
 
 func (f *setsFormat) Copy(items []string) []string {

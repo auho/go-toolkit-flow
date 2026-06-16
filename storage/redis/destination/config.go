@@ -7,10 +7,10 @@ type BulkConfig struct {
 	Concurrency     int
 	PageSize        int64
 	TimeOutDuration time.Duration
-	KeyName         string
+	Key             string
 }
 
-func (c *BulkConfig) GetTimeOutDuration() time.Duration {
+func (c *BulkConfig) getTimeOutDuration() time.Duration {
 	if c.TimeOutDuration <= 0 {
 		c.TimeOutDuration = time.Second * 3
 	}

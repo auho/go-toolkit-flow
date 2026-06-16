@@ -7,7 +7,7 @@ type KeyConfig struct {
 	Amount          int64 // 取的总数量，不是精确值
 	PageSize        int64
 	TimeOutDuration time.Duration
-	KeyName         string
+	Key             string
 }
 
 func (c *KeyConfig) getTimeOutDuration() time.Duration {

@@ -7,7 +7,7 @@ import (
 )
 
 type Dialect interface {
-	DBName() string
+	DB() int
 	Close() error
 
 	HashLen(ctx context.Context, keyName string) (int64, error)

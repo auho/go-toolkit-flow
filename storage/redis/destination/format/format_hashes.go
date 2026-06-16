@@ -4,24 +4,31 @@ import (
 	"context"
 
 	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/storage/redis/client"
 	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
 	"github.com/auho/go-toolkit-flow/tool"
 )
 
 var _ Format[storage.MapEntry] = (*hashesFormat)(nil)
 
-type hashesFormat struct{}
-
-func NewHashesFormat() Format[storage.MapEntry] {
-	return &hashesFormat{}
+type hashesFormat struct {
+	keyFormat
 }
 
-func (f *hashesFormat) Write(ctx context.Context, d dialect.Dialect, keyName string, items storage.MapEntries) error {
-	return d.HashMSet(ctx, keyName, items)
+func NewHashesFormat(key string) Format[storage.MapEntry] {
+	return &hashesFormat{keyFormat{key: key}}
 }
 
-func (f *hashesFormat) FetchLen(ctx context.Context, d dialect.Dialect, keyName string) (int64, error) {
-	return d.HashLen(ctx, keyName)
+func (f *hashesFormat) Type() string {
+	return client.KeyTypeHash
+}
+
+func (f *hashesFormat) Write(ctx context.Context, d dialect.Dialect, items storage.MapEntries) error {
+	return d.HashMSet(ctx, f.key, items)
+}
+
+func (f *hashesFormat) FetchLen(ctx context.Context, d dialect.Dialect) (int64, error) {
+	return d.HashLen(ctx, f.key)
 }
 
 func (f *hashesFormat) Copy(items storage.MapEntries) storage.MapEntries {

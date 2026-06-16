@@ -7,12 +7,15 @@ import (
 
 func TestNewScan(t *testing.T) {
 	c := _newRedisClient()
-	s, err := NewScanWithGoRedisV8(KeyConfig{
-		Concurrency: 1,
-		Amount:      0,
-		PageSize:    0,
-		KeyName:     "",
-	}, c)
+	s, err := NewScanWithGoRedisV8(
+		c,
+		KeyConfig{
+			Concurrency: 1,
+			Amount:      0,
+			PageSize:    0,
+			Key:         "",
+		},
+	)
 
 	if err != nil {
 		t.Fatal(err)

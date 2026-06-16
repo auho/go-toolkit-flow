@@ -6,6 +6,6 @@ import (
 )
 
 // NewDialectGorm 创建基于 gorm 的 MySQL 方言
-func NewDialectGorm(config dialect.WriteConfig, db *gorm.DB) (dialect.Dialect, error) {
-	return newGormMySQL(config, db)
+func NewDialectGorm(db *gorm.DB, config dialect.WriteConfig) (dialect.Dialect, error) {
+	return newGormMySQL(db, config)
 }
