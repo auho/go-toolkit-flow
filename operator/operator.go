@@ -16,17 +16,17 @@ type Operator[E storage.Entry] interface {
 	// Prepare need to be implemented
 	Prepare() error
 
-	// BeforeRun need to be implemented
-	BeforeRun() error
+	// BeforeExec need to be implemented
+	BeforeExec() error
 
-	// AfterRun need to be implemented
-	AfterRun() error
+	// AfterExec need to be implemented
+	AfterExec() error
 
 	// Close need to be implemented
 	Close() error
 
-	// RefreshState need to be implemented
-	RefreshState()
+	// AdditionalState need to be implemented
+	AdditionalState()
 
 	// Concurrency need to be implemented
 	Concurrency() int

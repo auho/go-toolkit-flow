@@ -5,7 +5,7 @@ import "github.com/auho/go-toolkit-flow/storage"
 type Batch[E storage.Entry] interface {
 	Operator[E]
 
-	// Do need to be implemented
+	// Exec need to be implemented
 	// effected
-	Do([]E) (int64, error)
+	Exec([]E) (int64, error)
 }

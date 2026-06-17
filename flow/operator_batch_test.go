@@ -16,7 +16,7 @@ func (b *batch) Concurrency() int {
 	return runtime.NumCPU()
 }
 
-func (b *batch) RefreshState() {}
+func (b *batch) AdditionalState() {}
 
 func (b *batch) Summary() string {
 	return "test batch"
@@ -27,7 +27,7 @@ func (b *batch) Prepare() error {
 	return nil
 }
 
-func (b *batch) Do(items []map[string]any) (int64, error) {
+func (b *batch) Exec(items []map[string]any) (int64, error) {
 	for _, item := range items {
 		_ = item
 	}
@@ -35,14 +35,14 @@ func (b *batch) Do(items []map[string]any) (int64, error) {
 	return int64(len(items)), nil
 }
 
-func (b *batch) BeforeRun() error {
+func (b *batch) BeforeExec() error {
 	b.SetStateLine(0, "pre do")
 	b.Outputln("pre do")
 
 	return nil
 }
 
-func (b *batch) AfterRun() error {
+func (b *batch) AfterExec() error {
 	b.SetStateLine(0, "post do")
 	b.Outputln("post do")
 

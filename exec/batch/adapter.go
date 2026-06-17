@@ -23,9 +23,9 @@ func NewRunner[E storage.Entry](b operator.Batch[E]) exec.Runner[E] {
 }
 
 func (a *adapter[E]) Run(items []E) (amount, effected int64, err error) {
-	n, err := a.batch.Do(items)
+	n, err := a.batch.Exec(items)
 	if err != nil {
-		return 0, 0, fmt.Errorf("batch.Do: %w", err)
+		return 0, 0, fmt.Errorf("batch.Exec: %w", err)
 	}
 
 	return int64(len(items)), n, nil

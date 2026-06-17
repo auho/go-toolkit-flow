@@ -63,9 +63,9 @@ func (r *runner[E]) Prepare(ctx context.Context) error {
 		return fmt.Errorf("operator.Prepare: %w", err)
 	}
 
-	err = r.operator.BeforeRun()
+	err = r.operator.BeforeExec()
 	if err != nil {
-		return fmt.Errorf("operator.BeforeRun: %w", err)
+		return fmt.Errorf("operator.BeforeExec: %w", err)
 	}
 
 	r.runGroup, r.runCtx = errgroup.WithContext(ctx)
@@ -116,9 +116,9 @@ func (r *runner[E]) Finish() error {
 		return fmt.Errorf("runGroup.Wait: %w", err)
 	}
 
-	err = r.operator.AfterRun()
+	err = r.operator.AfterExec()
 	if err != nil {
-		return fmt.Errorf("operator.AfterRun: %w", err)
+		return fmt.Errorf("operator.AfterExec: %w", err)
 	}
 
 	return nil
@@ -133,7 +133,7 @@ func (r *runner[E]) Summary() string {
 }
 
 func (r *runner[E]) State() []string {
-	r.operator.RefreshState()
+	r.operator.AdditionalState()
 	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Effected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.effected))}, r.operator.State()...)
 }
 

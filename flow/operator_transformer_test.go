@@ -16,7 +16,7 @@ func (t *transformer) Concurrency() int {
 	return runtime.NumCPU()
 }
 
-func (t *transformer) RefreshState() {}
+func (t *transformer) AdditionalState() {}
 
 func (t *transformer) Summary() string {
 	return "test transformer"
@@ -27,11 +27,11 @@ func (t *transformer) Prepare() error {
 	return nil
 }
 
-func (t *transformer) Do(item map[string]any) ([]map[string]any, bool, error) {
+func (t *transformer) Exec(item map[string]any) ([]map[string]any, bool, error) {
 	return []map[string]any{item}, true, nil
 }
 
-func (t *transformer) PostBatchDo(items []map[string]any) error {
+func (t *transformer) PostBatchExec(items []map[string]any) error {
 	for _, item := range items {
 		_ = item
 	}
@@ -39,14 +39,14 @@ func (t *transformer) PostBatchDo(items []map[string]any) error {
 	return nil
 }
 
-func (t *transformer) BeforeRun() error {
+func (t *transformer) BeforeExec() error {
 	t.SetStateLine(0, "pre do")
 	t.Outputln("pre do")
 
 	return nil
 }
 
-func (t *transformer) AfterRun() error {
+func (t *transformer) AfterExec() error {
 	t.SetStateLine(0, "post do")
 	t.Outputln("post do")
 

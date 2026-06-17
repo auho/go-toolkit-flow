@@ -25,9 +25,9 @@ func NewRunner[E storage.Entry](t operator.Transformer[E]) exec.Runner[E] {
 func (a *adapter[E]) Run(items []E) (amount, effected int64, err error) {
 	newItems := make([]E, 0, len(items))
 	for k := range items {
-		v, ok, err1 := a.transformer.Do(items[k])
+		v, ok, err1 := a.transformer.Exec(items[k])
 		if err1 != nil {
-			return 0, 0, fmt.Errorf("transformer.Do: %w", err1)
+			return 0, 0, fmt.Errorf("transformer.Exec: %w", err1)
 		}
 
 		if ok {
@@ -36,9 +36,9 @@ func (a *adapter[E]) Run(items []E) (amount, effected int64, err error) {
 		}
 	}
 
-	err = a.transformer.PostBatchDo(newItems)
+	err = a.transformer.PostBatchExec(newItems)
 	if err != nil {
-		return amount, int64(len(newItems)), fmt.Errorf("transformer.PostBatchDo: %w", err)
+		return amount, int64(len(newItems)), fmt.Errorf("transformer.PostBatchExec: %w", err)
 	}
 
 	return amount, int64(len(newItems)), nil

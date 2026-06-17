@@ -1,7 +1,5 @@
 package storage
 
-import "log"
-
 type SliceEntry = []any
 type SliceOfStringsEntry = []string
 
@@ -19,17 +17,4 @@ type Entry interface {
 	SliceEntry | SliceOfStringsEntry | MapEntry | MapOfStringsEntry | ScoreMapEntry | string
 }
 
-type Storage struct {
-}
-
-func (s *Storage) Title() string {
-	return ""
-}
-
-func (s *Storage) LogFatalWithTitle(v ...any) {
-	log.Fatal(append([]any{s.Title()}, v...)...)
-}
-
-func (s *Storage) LogFatal(v ...any) {
-	log.Fatal(v...)
-}
+type Storage struct{}

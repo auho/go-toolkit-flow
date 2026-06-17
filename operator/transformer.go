@@ -5,9 +5,9 @@ import "github.com/auho/go-toolkit-flow/storage"
 type Transformer[E storage.Entry] interface {
 	Operator[E]
 
-	// Do need to be implemented
-	Do(E) ([]E, bool, error)
+	// Exec need to be implemented
+	Exec(E) ([]E, bool, error)
 
-	// PostBatchDo need to be implemented
-	PostBatchDo([]E) error
+	// PostBatchExec need to be implemented
+	PostBatchExec([]E) error
 }
