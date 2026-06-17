@@ -59,6 +59,15 @@ func (l *Line) Prepare(ctx context.Context) error {
 	return nil
 }
 
+func (l *Line) send(items []string) bool {
+	select {
+	case l.itemsChan <- items:
+		return true
+	case <-l.scanCtx.Done():
+		return false
+	}
+}
+
 func (l *Line) Scan() {
 	l.state.MarkAsScanning()
 	l.state.DurationStart()
@@ -72,9 +81,7 @@ func (l *Line) Scan() {
 			items = append(items, l.scanner.Text())
 			l.state.AddAmount(1)
 			if len(items) >= l.config.BatchSize {
-				select {
-				case l.itemsChan <- items:
-				case <-l.scanCtx.Done():
+				if !l.send(items) {
 					return
 				}
 				items = make([]string, 0, l.config.BatchSize)
@@ -82,9 +89,7 @@ func (l *Line) Scan() {
 		}
 
 		if len(items) > 0 {
-			select {
-			case l.itemsChan <- items:
-			case <-l.scanCtx.Done():
+			if !l.send(items) {
 				return
 			}
 		}
