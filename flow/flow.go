@@ -99,7 +99,7 @@ func (f *flow[E]) run() error {
 
 	err = f.runners.Prepare(ctx)
 	if err != nil {
-		return fmt.Errorf("runnersPrepare: %w", err)
+		return fmt.Errorf("runners.Prepare: %w", err)
 	}
 
 	f.summary()
@@ -128,7 +128,7 @@ func (f *flow[E]) run() error {
 	g.Go(func() error {
 		err1 := f.runners.Finish()
 		if err1 != nil {
-			return fmt.Errorf("runnersFinish: %w", err1)
+			return fmt.Errorf("runners.Finish: %w", err1)
 		}
 
 		return nil
@@ -176,7 +176,7 @@ func (f *flow[E]) close() {
 
 	err = f.runners.Close()
 	if err != nil {
-		f.refreshOutput.PrintNext(fmt.Errorf("runnersClose: %w", err).Error())
+		f.refreshOutput.PrintNext(fmt.Errorf("runners.Close: %w", err).Error())
 	}
 }
 

@@ -95,7 +95,7 @@ func (r *runner[E]) Run() {
 					atomic.AddInt64(&r.total, int64(len(items)))
 					amount, effected, err1 := r.processor.Run(items)
 					if err1 != nil {
-						return fmt.Errorf("run: %w", err1)
+						return fmt.Errorf("processor.Run: %w", err1)
 					}
 
 					atomic.AddInt64(&r.amount, amount)
@@ -113,12 +113,12 @@ func (r *runner[E]) Done() {
 func (r *runner[E]) Finish() error {
 	err := r.runGroup.Wait()
 	if err != nil {
-		return fmt.Errorf("run: %w", err)
+		return fmt.Errorf("runGroup.Wait: %w", err)
 	}
 
 	err = r.operator.AfterRun()
 	if err != nil {
-		return fmt.Errorf("AfterRun: %w", err)
+		return fmt.Errorf("operator.AfterRun: %w", err)
 	}
 
 	return nil

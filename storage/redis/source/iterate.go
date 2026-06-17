@@ -111,7 +111,7 @@ func (i *Iterator[E]) Scan() {
 			scanCancel()
 
 			if err != nil {
-				i.scanErr = fmt.Errorf("ScanByRange: %w", err)
+				i.scanErr = fmt.Errorf("format.ScanByRange: %w", err)
 				break
 			}
 

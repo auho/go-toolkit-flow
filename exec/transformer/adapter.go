@@ -27,7 +27,7 @@ func (a *adapter[E]) Run(items []E) (amount, effected int64, err error) {
 	for k := range items {
 		v, ok, err1 := a.transformer.Do(items[k])
 		if err1 != nil {
-			return 0, 0, fmt.Errorf("do: %w", err1)
+			return 0, 0, fmt.Errorf("transformer.Do: %w", err1)
 		}
 
 		if ok {
@@ -38,7 +38,7 @@ func (a *adapter[E]) Run(items []E) (amount, effected int64, err error) {
 
 	err = a.transformer.PostBatchDo(newItems)
 	if err != nil {
-		return amount, int64(len(newItems)), fmt.Errorf("PostBatchDo: %w", err)
+		return amount, int64(len(newItems)), fmt.Errorf("transformer.PostBatchDo: %w", err)
 	}
 
 	return amount, int64(len(newItems)), nil

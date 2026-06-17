@@ -186,7 +186,7 @@ func (s *Section[E]) idRange() error {
 
 	minID, maxID, err := s.dialect.FetchIDBounds()
 	if err != nil {
-		return err
+		return fmt.Errorf("dialect.FetchIDBounds: %w", err)
 	}
 
 	if minID > s.startID {

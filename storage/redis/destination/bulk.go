@@ -47,7 +47,7 @@ func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfi
 
 	err = b.format.Check()
 	if err != nil {
-		return nil, fmt.Errorf("check: %w", err)
+		return nil, fmt.Errorf("format.Check: %w", err)
 	}
 
 	return b, nil
@@ -160,7 +160,7 @@ func (b *Bulk[E]) writeBatch(items []E) error {
 	defer cancel()
 
 	if err := b.format.Write(ctx, b.dialect, items); err != nil {
-		return fmt.Errorf("redis destination write: %w", err)
+		return fmt.Errorf("format.Write: %w", err)
 	}
 
 	b.state.AddAmount(int64(len(items)))
@@ -189,7 +189,7 @@ loop:
 
 			for int64(len(buf)) >= b.pageSize {
 				if err := b.writeBatch(buf[:b.pageSize]); err != nil {
-					return err
+					return fmt.Errorf("writeBatch: %w", err)
 				}
 
 				buf = slices.Clone(buf[b.pageSize:])
@@ -199,7 +199,7 @@ loop:
 
 	if len(buf) > 0 {
 		if err := b.writeBatch(buf); err != nil {
-			return err
+			return fmt.Errorf("writeBatch: %w", err)
 		}
 	}
 

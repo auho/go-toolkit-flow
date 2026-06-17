@@ -95,7 +95,7 @@ func (l *Line) Scan() {
 		}
 
 		if err := l.scanner.Err(); err != nil {
-			l.scanErr = fmt.Errorf("file source scan error: %w", err)
+			l.scanErr = fmt.Errorf("scanner: %w", err)
 			return
 		}
 	}()

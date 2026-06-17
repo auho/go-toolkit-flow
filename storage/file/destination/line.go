@@ -56,13 +56,13 @@ func (l *Line) Receive(items []string) error {
 		l.state.AddAmount(1)
 		_, err := l.b.WriteString(items[k] + "\n")
 		if err != nil {
-			return fmt.Errorf("file destination receive: %w", err)
+			return fmt.Errorf("WriteString: %w", err)
 		}
 	}
 
 	err := l.b.Flush()
 	if err != nil {
-		return fmt.Errorf("file destination receive: %w", err)
+		return fmt.Errorf("flush: %w", err)
 	}
 
 	return nil

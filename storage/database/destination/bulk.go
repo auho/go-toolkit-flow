@@ -132,7 +132,7 @@ func (b *Bulk[E]) Finish() error {
 
 func (b *Bulk[E]) writeBatch(items []E) error {
 	if err := b.format.Write(b.dialect, items); err != nil {
-		return fmt.Errorf("database destination exec: %w", err)
+		return fmt.Errorf("format.Write: %w", err)
 	}
 
 	b.state.AddAmount(int64(len(items)))
@@ -165,7 +165,7 @@ loop:
 
 			for int64(len(buf)) >= b.config.PageSize {
 				if err := b.writeBatch(buf[:b.config.PageSize]); err != nil {
-					return err
+					return fmt.Errorf("writeBatch: %w", err)
 				}
 
 				buf = slices.Clone(buf[b.config.PageSize:])

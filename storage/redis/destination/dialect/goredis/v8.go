@@ -2,6 +2,7 @@ package goredis
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/redis/client/goredis"
@@ -25,7 +26,11 @@ func (v *v8) HashMSet(ctx context.Context, keyName string, entries storage.MapEn
 	_, err := pipe.Exec(ctx)
 	_ = pipe.Close()
 
-	return err
+	if err != nil {
+		return fmt.Errorf("exec: %w", err)
+	}
+
+	return nil
 }
 
 func (v *v8) ListPush(ctx context.Context, keyName string, entries []string) error {
@@ -35,7 +40,11 @@ func (v *v8) ListPush(ctx context.Context, keyName string, entries []string) err
 	}
 
 	_, err := v.Client.LPush(ctx, keyName, anyEntries...).Result()
-	return err
+	if err != nil {
+		return fmt.Errorf("LPush: %w", err)
+	}
+
+	return nil
 }
 
 func (v *v8) SetAdd(ctx context.Context, keyName string, entries []string) error {
@@ -45,7 +54,11 @@ func (v *v8) SetAdd(ctx context.Context, keyName string, entries []string) error
 	}
 
 	_, err := v.Client.SAdd(ctx, keyName, anyEntries...).Result()
-	return err
+	if err != nil {
+		return fmt.Errorf("SAdd: %w", err)
+	}
+
+	return nil
 }
 
 func (v *v8) SortedSetAdd(ctx context.Context, keyName string, entries storage.ScoreMapEntries) error {
@@ -62,7 +75,11 @@ func (v *v8) SortedSetAdd(ctx context.Context, keyName string, entries storage.S
 	_, err := pipe.Exec(ctx)
 	_ = pipe.Close()
 
-	return err
+	if err != nil {
+		return fmt.Errorf("exec: %w", err)
+	}
+
+	return nil
 }
 
 func (v *v8) flattenMapEntry(entry storage.MapEntry) []any {
