@@ -1,6 +1,7 @@
 package source
 
 import (
+	"context"
 	"math/rand"
 	"os"
 	"strconv"
@@ -23,13 +24,23 @@ func TestNewLine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = s.Scan()
+	err = s.Prepare(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+	s.Scan()
+
+	var finishErr error
+	go func() {
+		finishErr = s.Finish()
+	}()
 
 	for items := range s.ReceiveChan() {
 		_ = items
+	}
+
+	if finishErr != nil {
+		t.Fatal(finishErr)
 	}
 
 	if s.state.Amount() != int64(_max) {

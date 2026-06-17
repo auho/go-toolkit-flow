@@ -8,11 +8,12 @@ import (
 )
 
 const (
-	StatusConfig = "config"
-	StatusAccept = "accept"
-	StatusScan   = "scan"
-	StatusDone   = "done"
-	StatusFinish = "finish"
+	StatusConfig  = "config"
+	StatusPrepare = "prepare"
+	StatusAccept  = "accept"
+	StatusScan    = "scan"
+	StatusDone    = "done"
+	StatusFinish  = "finish"
 )
 
 type StateProvider interface {
@@ -55,6 +56,10 @@ func (s *baseState) SetStatus(status string) {
 
 func (s *baseState) MarkAsConfigured() {
 	s.SetStatus(StatusConfig)
+}
+
+func (s *baseState) MarkAsPrepare() {
+	s.SetStatus(StatusPrepare)
 }
 
 func (s *baseState) MarkAsAccepted() {

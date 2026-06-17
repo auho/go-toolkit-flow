@@ -1,6 +1,7 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -19,14 +20,24 @@ func _testMock[E storage.Entry](t *testing.T, buildMock func(Config) *Mock[E]) {
 		Total:    int64(total),
 	})
 
-	err := m.Scan()
+	err := m.Prepare(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+	m.Scan()
+
+	var finishErr error
+	go func() {
+		finishErr = m.Finish()
+	}()
 
 	amount := 0
 	for items := range m.ReceiveChan() {
 		amount = amount + len(items)
+	}
+
+	if finishErr != nil {
+		t.Fatal(finishErr)
 	}
 
 	fmt.Println(m.Summary())

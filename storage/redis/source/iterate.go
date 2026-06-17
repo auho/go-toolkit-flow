@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -27,6 +28,8 @@ type Iterator[E storage.Entry] struct {
 
 	state     *storage.TotalState
 	itemsChan chan []E
+	scanCtx   context.Context
+	scanWg    sync.WaitGroup
 	scanErr   error
 }
 
@@ -70,18 +73,17 @@ func (i *Iterator[E]) config(c KeyConfig) error {
 	return nil
 }
 
-func (i *Iterator[E]) Scan() error {
-	i.state.MarkAsScanning()
-	i.state.DurationStart()
-	i.itemsChan = make(chan []E, i.concurrency)
+func (i *Iterator[E]) Prepare(ctx context.Context) error {
+	i.state.MarkAsPrepare()
+	i.scanCtx = ctx
+
+	lenCtx, lenCancel := context.WithTimeout(ctx, i.timeoutDuration)
+	defer lenCancel()
 
 	var err error
-
-	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
-	i.total, err = i.format.FetchLen(ctx, i.dialect)
-	cancel()
+	i.total, err = i.format.FetchLen(lenCtx, i.dialect)
 	if err != nil {
-		return err
+		return fmt.Errorf("format.FetchLen: %w", err)
 	}
 
 	if i.amount > 0 && i.total >= i.amount {
@@ -90,23 +92,37 @@ func (i *Iterator[E]) Scan() error {
 
 	i.state.Total = i.total
 
+	return nil
+}
+
+func (i *Iterator[E]) Scan() {
+	i.state.MarkAsScanning()
+	i.state.DurationStart()
+	i.itemsChan = make(chan []E, i.concurrency)
+
+	i.scanWg.Add(1)
 	go func() {
-		defer close(i.itemsChan)
+		defer i.scanWg.Done()
 
 		var cursor uint64
 		for {
-			ctxScan, cancelScan := context.WithTimeout(context.Background(), i.timeoutDuration)
-			items, newCursor, scanErr := i.format.ScanByRange(ctxScan, i.dialect, cursor, i.pageSize)
-			cancelScan()
+			scanCtx, scanCancel := context.WithTimeout(i.scanCtx, i.timeoutDuration)
+			items, newCursor, err := i.format.ScanByRange(scanCtx, i.dialect, cursor, i.pageSize)
+			scanCancel()
 
-			if scanErr != nil {
-				i.scanErr = fmt.Errorf("ScanByRange: %w", scanErr)
+			if err != nil {
+				i.scanErr = fmt.Errorf("ScanByRange: %w", err)
 				break
 			}
 
 			if len(items) > 0 {
 				atomic.AddInt64(&i.scanned, int64(len(items)))
-				i.itemsChan <- items
+
+				select {
+				case i.itemsChan <- items:
+				case <-i.scanCtx.Done():
+					return
+				}
 			}
 
 			if newCursor == 0 {
@@ -119,19 +135,20 @@ func (i *Iterator[E]) Scan() error {
 
 			cursor = newCursor
 		}
-
-		i.state.DurationStop()
-		i.state.MarkAsFinished()
 	}()
-
-	return nil
 }
 
 func (i *Iterator[E]) ReceiveChan() <-chan []E {
 	return i.itemsChan
 }
 
-func (i *Iterator[E]) Error() error {
+func (i *Iterator[E]) Finish() error {
+	i.scanWg.Wait()
+
+	close(i.itemsChan)
+	i.state.DurationStop()
+	i.state.MarkAsFinished()
+
 	return i.scanErr
 }
 

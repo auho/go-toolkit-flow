@@ -1,6 +1,7 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -32,15 +33,25 @@ func _testSection[E storage.Entry](
 	t *testing.T,
 	s *Section[E],
 ) {
-	err := s.Scan()
+	err := s.Prepare(context.Background())
 	if err != nil {
-		t.Error("scan ", err)
+		t.Error("prepare ", err)
 	}
+	s.Scan()
+
+	var finishErr error
+	go func() {
+		finishErr = s.Finish()
+	}()
 
 	amount := 0
 	for items := range s.ReceiveChan() {
 		l := len(items)
 		amount = amount + l
+	}
+
+	if finishErr != nil {
+		t.Error("finish ", finishErr)
 	}
 
 	fmt.Println(s.Summary())

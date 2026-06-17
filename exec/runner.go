@@ -22,11 +22,11 @@ type Processor[E storage.Entry] interface {
 
 // Runner defines the lifecycle interface for an executable task.
 type Runner[E storage.Entry] interface {
-	Prepare() error // preparation before processing data
-	Receive([]E)    // receive data asynchronously
-	Run() error     // Process data
-	Done()          // triggered after upstream data processing
-	Finish() error  // data processing completed
+	Prepare(ctx context.Context) error // preparation before processing data
+	Receive([]E)                       // receive data asynchronously
+	Run()                              // process data
+	Done()                             // triggered after upstream data processing
+	Finish() error                     // data processing completed
 	Close() error
 	Summary() string
 	State() []string
@@ -42,28 +42,35 @@ type runner[E storage.Entry] struct {
 	processor Processor[E]
 	operator  operator.Operator[E]
 
-	runGroup  *errgroup.Group
-	runCtx    context.Context
-	runCancel context.CancelFunc
+	runGroup *errgroup.Group
+	runCtx   context.Context
 }
 
 func NewRunner[E storage.Entry](p Processor[E], o operator.Operator[E]) Runner[E] {
 	r := &runner[E]{}
 	r.processor = p
 	r.operator = o
-	r.itemsChan = make(chan []E, r.operator.Concurrency())
-
-	ctx, cancel := context.WithCancel(context.Background())
-	r.runGroup, r.runCtx = errgroup.WithContext(ctx)
-	r.runCancel = cancel
+	r.itemsChan = make(chan []E, o.Concurrency())
 
 	return r
 }
 
-func (r *runner[E]) Prepare() error {
+func (r *runner[E]) Prepare(ctx context.Context) error {
 	r.operator.Init()
 
-	return r.operator.Prepare()
+	err := r.operator.Prepare()
+	if err != nil {
+		return fmt.Errorf("operator.Prepare: %w", err)
+	}
+
+	err = r.operator.BeforeRun()
+	if err != nil {
+		return fmt.Errorf("operator.BeforeRun: %w", err)
+	}
+
+	r.runGroup, r.runCtx = errgroup.WithContext(ctx)
+
+	return nil
 }
 
 func (r *runner[E]) Receive(items []E) {
@@ -71,15 +78,9 @@ func (r *runner[E]) Receive(items []E) {
 	case <-r.runCtx.Done():
 	case r.itemsChan <- items:
 	}
-	return
 }
 
-func (r *runner[E]) Run() error {
-	err := r.operator.BeforeRun()
-	if err != nil {
-		return fmt.Errorf("BeforeRun: %w", err)
-	}
-
+func (r *runner[E]) Run() {
 	for i := 0; i < r.operator.Concurrency(); i++ {
 		r.runGroup.Go(func() error {
 			for {
@@ -103,8 +104,6 @@ func (r *runner[E]) Run() error {
 			}
 		})
 	}
-
-	return nil
 }
 
 func (r *runner[E]) Done() {
@@ -113,8 +112,6 @@ func (r *runner[E]) Done() {
 
 func (r *runner[E]) Finish() error {
 	err := r.runGroup.Wait()
-	r.runCancel()
-
 	if err != nil {
 		return fmt.Errorf("run: %w", err)
 	}

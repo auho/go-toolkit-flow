@@ -2,9 +2,11 @@ package source
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/auho/go-toolkit-flow/storage"
 )
@@ -18,6 +20,8 @@ type Line struct {
 	scanner   *bufio.Scanner
 	state     *storage.State
 	itemsChan chan []string
+	scanCtx   context.Context
+	scanWg    sync.WaitGroup
 	scanErr   error
 }
 
@@ -46,46 +50,63 @@ func NewLine(c Config) (*Line, error) {
 	return l, nil
 }
 
-func (l *Line) Scan() error {
+func (l *Line) Prepare(ctx context.Context) error {
+	l.state.MarkAsPrepare()
+	l.state.Title = l.Title()
+	l.scanCtx = ctx
+
+	return nil
+}
+
+func (l *Line) Scan() {
 	l.state.MarkAsScanning()
 	l.state.DurationStart()
-	l.state.Title = l.Title()
 	l.itemsChan = make(chan []string, l.config.Concurrency)
 
+	l.scanWg.Add(1)
 	go func() {
-		defer close(l.itemsChan)
+		defer l.scanWg.Done()
 
 		items := make([]string, 0, l.config.BatchSize)
 		for l.scanner.Scan() {
 			items = append(items, l.scanner.Text())
 			l.state.AddAmount(1)
 			if len(items) >= l.config.BatchSize {
-				l.itemsChan <- items
+				select {
+				case l.itemsChan <- items:
+				case <-l.scanCtx.Done():
+					return
+				}
 				items = make([]string, 0, l.config.BatchSize)
 			}
 		}
 
 		if len(items) > 0 {
-			l.itemsChan <- items
+			select {
+			case l.itemsChan <- items:
+			case <-l.scanCtx.Done():
+				return
+			}
 		}
 
 		if err := l.scanner.Err(); err != nil {
 			l.scanErr = fmt.Errorf("file source scan error: %w", err)
 			return
 		}
-
-		l.state.MarkAsFinished()
-		l.state.DurationStop()
 	}()
-
-	return nil
 }
 
 func (l *Line) ReceiveChan() <-chan []string {
 	return l.itemsChan
 }
 
-func (l *Line) Error() error {
+func (l *Line) Finish() error {
+	l.scanWg.Wait()
+
+	close(l.itemsChan)
+	l.state.DurationStop()
+	l.state.MarkAsFinished()
+
 	return l.scanErr
 }
 

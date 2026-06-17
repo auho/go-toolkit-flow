@@ -1,6 +1,6 @@
 module github.com/auho/go-toolkit-flow
 
-go 1.21
+go 1.23
 
 require (
 	github.com/auho/go-simple-db/v2 v2.0.1

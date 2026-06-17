@@ -55,15 +55,25 @@ func _testKey[E storage.Entry](
 		t.Fatal("new", err)
 	}
 
-	err = k.Scan()
+	err = k.Prepare(context.Background())
 	if err != nil {
-		t.Fatal("scan", err)
+		t.Fatal("prepare", err)
 	}
+	k.Scan()
+
+	var finishErr error
+	go func() {
+		finishErr = k.Finish()
+	}()
 
 	amount := 0
 	for items := range k.ReceiveChan() {
 		l := len(items)
 		amount = amount + l
+	}
+
+	if finishErr != nil {
+		t.Fatal("finish", finishErr)
 	}
 
 	fmt.Println(k.Summary())

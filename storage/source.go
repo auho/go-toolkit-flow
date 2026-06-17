@@ -1,9 +1,12 @@
 package storage
 
+import "context"
+
 type Source[E Entry] interface {
-	Scan() error
+	Prepare(ctx context.Context) error
+	Scan()
 	ReceiveChan() <-chan []E
-	Error() error
+	Finish() error
 	Close() error
 	Summary() []string
 	State() []string

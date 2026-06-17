@@ -35,10 +35,9 @@ type Section[E storage.Entry] struct {
 	state       *storage.PageState
 
 	// 并发与错误处理
-	scanGroup  *errgroup.Group
-	scanCtx    context.Context
-	scanCancel context.CancelFunc
-	scanErr    error
+	scanGroup *errgroup.Group
+	scanCtx   context.Context
+	scanErr   error
 }
 
 func newSection[E storage.Entry](f format.Format[E], d dialect.Dialect, c SectionConfig) *Section[E] {
@@ -65,45 +64,42 @@ func (s *Section[E]) Copy(items []E) []E {
 	return s.format.Copy(items)
 }
 
-func (s *Section[E]) Scan() error {
-	s.state.MarkAsScanning()
-	s.state.DurationStart()
+func (s *Section[E]) Prepare(ctx context.Context) error {
+	s.state.MarkAsPrepare()
 
 	err := s.idRange()
 	if err != nil {
-		return err
+		return fmt.Errorf("idRange: %w", err)
 	}
 
-	s.itemsChan = make(chan []E, s.config.Concurrency)
-	s.segmentChan = make(chan []int64, s.config.Concurrency)
-
-	ctx, cancel := context.WithCancel(context.Background())
 	s.scanGroup, s.scanCtx = errgroup.WithContext(ctx)
-	s.scanCancel = cancel
+
+	return nil
+}
+
+func (s *Section[E]) Scan() {
+	s.state.MarkAsScanning()
+	s.state.DurationStart()
+
+	s.segmentChan = make(chan []int64, s.config.Concurrency)
+	s.itemsChan = make(chan []E, s.config.Concurrency)
 
 	go s.dispatchSegments()
 	s.scanRows()
-
-	go func() {
-		s.scanErr = s.scanGroup.Wait()
-
-		s.scanCancel()
-
-		close(s.itemsChan)
-
-		s.state.DurationStop()
-		s.state.MarkAsFinished()
-	}()
-
-	return nil
 }
 
 func (s *Section[E]) ReceiveChan() <-chan []E {
 	return s.itemsChan
 }
 
-func (s *Section[E]) Error() error {
-	return s.scanErr
+func (s *Section[E]) Finish() error {
+	err := s.scanGroup.Wait()
+
+	close(s.itemsChan)
+	s.state.DurationStop()
+	s.state.MarkAsFinished()
+
+	return err
 }
 
 // dispatchSegments 根据 start id, end id 分段并分发
@@ -154,7 +150,11 @@ func (s *Section[E]) scanRows() {
 						s.state.AddPage(1)
 						s.state.AddAmount(int64(len(items)))
 
-						s.itemsChan <- items
+						select {
+						case s.itemsChan <- items:
+						case <-s.scanCtx.Done():
+							return nil
+						}
 					}
 				}
 			}

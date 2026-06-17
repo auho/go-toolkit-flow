@@ -1,6 +1,7 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"testing"
 )
@@ -21,15 +22,25 @@ func TestNewScan(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = s.Scan()
+	err = s.Prepare(context.Background())
 	if err != nil {
-		t.Fatal("scan", err)
+		t.Fatal("prepare", err)
 	}
+	s.Scan()
+
+	var finishErr error
+	go func() {
+		finishErr = s.Finish()
+	}()
 
 	amount := 0
 	for items := range s.ReceiveChan() {
 		l := len(items)
 		amount = amount + l
+	}
+
+	if finishErr != nil {
+		t.Fatal("finish", finishErr)
 	}
 
 	fmt.Println(s.Summary())

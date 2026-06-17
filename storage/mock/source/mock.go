@@ -1,8 +1,10 @@
 package source
 
 import (
+	"context"
 	"fmt"
 	"math"
+	"sync"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
@@ -28,6 +30,8 @@ type Mock[E storage.Entry] struct {
 	idName      string
 	itemsChan   chan []E
 	generator   generator[E]
+	scanCtx     context.Context
+	scanWg      sync.WaitGroup
 }
 
 func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
@@ -59,11 +63,18 @@ func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
 	return m
 }
 
-func (m *Mock[E]) Scan() error {
+func (m *Mock[E]) Prepare(ctx context.Context) error {
+	m.scanCtx = ctx
+
+	return nil
+}
+
+func (m *Mock[E]) Scan() {
 	m.itemsChan = make(chan []E, m.concurrency)
 
+	m.scanWg.Add(1)
 	go func() {
-		defer close(m.itemsChan)
+		defer m.scanWg.Done()
 
 		for i := int64(0); i < m.total; i += m.pageSize {
 			size := m.pageSize
@@ -72,21 +83,27 @@ func (m *Mock[E]) Scan() error {
 			}
 
 			_, items := m.generator.scan(m.idName, &m.id, size)
-			m.itemsChan <- items
+			select {
+			case m.itemsChan <- items:
+			case <-m.scanCtx.Done():
+				return
+			}
 
 			atomic.AddInt64(&m.page, 1)
 			atomic.AddInt64(&m.amount, int64(len(items)))
 		}
 	}()
-
-	return nil
 }
 
 func (m *Mock[E]) ReceiveChan() <-chan []E {
 	return m.itemsChan
 }
 
-func (m *Mock[E]) Error() error {
+func (m *Mock[E]) Finish() error {
+	m.scanWg.Wait()
+
+	close(m.itemsChan)
+
 	return nil
 }
 

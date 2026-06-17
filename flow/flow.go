@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit/console/output"
 	"github.com/auho/go-toolkit/time/timing"
+	"golang.org/x/sync/errgroup"
 )
 
 type Option[E storage.Entry] func(*flow[E])
@@ -84,43 +86,69 @@ func (f *flow[E]) run() error {
 		}),
 	)
 
-	err := f.source.Scan()
+	// 创建全局 context errgroup
+	g, ctx := errgroup.WithContext(context.Background())
+
+	// Prepare 阶段（同步，可能出错，传入 ctx 创建 errgroup）
+	err := f.source.Prepare(ctx)
 	if err != nil {
-		return fmt.Errorf("source.Scan: %w", err)
+		return fmt.Errorf("source.Prepare: %w", err)
 	}
 
-	err = f.runnersPrepare()
+	err = f.runnersPrepare(ctx)
 	if err != nil {
-		return fmt.Errorf("runnersPrepare; %w", err)
+		return fmt.Errorf("runnersPrepare: %w", err)
 	}
 
 	f.summary()
 
-	err = f.runnersRun()
-	if err != nil {
-		return fmt.Errorf("runnersRun; %w", err)
-	}
+	// 异步启动
+	f.source.Scan()
+	f.runnersRun()
 
 	f.refreshOutput.Start()
 
-	f.transport()
+	// errgroup 协调并发
+	g.Go(func() error {
+		err1 := f.source.Finish()
+		if err1 != nil {
+			return fmt.Errorf("source.Finish: %w", err1)
+		}
 
-	return f.finish()
+		return nil
+	})
+
+	g.Go(func() error {
+		f.transport(ctx)
+		return nil
+	})
+
+	g.Go(func() error {
+		err1 := f.runnersFinish()
+		if err1 != nil {
+			return fmt.Errorf("runnersFinish: %w", err1)
+		}
+
+		return nil
+	})
+
+	// 5. 等待全部退出
+	return g.Wait()
 }
 
-func (f *flow[E]) transport() {
+func (f *flow[E]) transport(ctx context.Context) {
 	needCopy := false
 	if len(f.runners) > 1 {
 		needCopy = true
 	}
 
-	go func() {
-		for {
-			items, ok := <-f.source.ReceiveChan()
+	for {
+		select {
+		case items, ok := <-f.source.ReceiveChan():
 			if !ok {
-				break
+				f.runnersDone()
+				return
 			}
-
 			for _, r := range f.runners {
 				if needCopy {
 					newItems := f.source.Copy(items)
@@ -129,24 +157,11 @@ func (f *flow[E]) transport() {
 					r.Receive(items)
 				}
 			}
+		case <-ctx.Done():
+			f.runnersDone()
+			return
 		}
-
-		f.runnersDone()
-	}()
-}
-
-func (f *flow[E]) finish() error {
-	err := f.runnersFinish()
-	if err != nil {
-		return fmt.Errorf("runnersFinish: %w", err)
 	}
-
-	err = f.source.Error()
-	if err != nil {
-		return fmt.Errorf("source.Error: %w", err)
-	}
-
-	return nil
 }
 
 func (f *flow[E]) close() {
@@ -207,9 +222,9 @@ func (f *flow[E]) runnersOutput() {
 	}
 }
 
-func (f *flow[E]) runnersPrepare() error {
+func (f *flow[E]) runnersPrepare(ctx context.Context) error {
 	for _, r := range f.runners {
-		if err := r.Prepare(); err != nil {
+		if err := r.Prepare(ctx); err != nil {
 			return fmt.Errorf("prepare: %w", err)
 		}
 	}
@@ -217,14 +232,10 @@ func (f *flow[E]) runnersPrepare() error {
 	return nil
 }
 
-func (f *flow[E]) runnersRun() error {
+func (f *flow[E]) runnersRun() {
 	for _, r := range f.runners {
-		if err := r.Run(); err != nil {
-			return fmt.Errorf("run: %w", err)
-		}
+		r.Run()
 	}
-
-	return nil
 }
 
 func (f *flow[E]) runnersDone() {
