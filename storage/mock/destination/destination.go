@@ -12,7 +12,7 @@ import (
 var _ storage.Destination[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
 
 type Destination[E storage.Entry] struct {
-	isDone    bool
+	isDone    atomic.Bool
 	amount    int64
 	itemsChan chan []E
 	chanWg    sync.WaitGroup
@@ -41,11 +41,10 @@ func (d *Destination[E]) Receive(items []E) error {
 }
 
 func (d *Destination[E]) Done() {
-	if d.isDone {
+	if !d.isDone.CompareAndSwap(false, true) {
 		return
 	}
 
-	d.isDone = true
 	close(d.itemsChan)
 }
 

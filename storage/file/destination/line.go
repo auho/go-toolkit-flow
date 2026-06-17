@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 )
@@ -14,7 +15,7 @@ var _ storage.Destination[string] = (*Line)(nil)
 
 type Line struct {
 	storage.Storage
-	isDone bool
+	isDone atomic.Bool
 	f      *os.File
 	b      *bufio.Writer
 	state  *storage.State
@@ -68,13 +69,12 @@ func (l *Line) Receive(items []string) error {
 }
 
 func (l *Line) Done() {
-	l.state.MarkAsDone()
-
-	if l.isDone {
+	if !l.isDone.CompareAndSwap(false, true) {
 		return
 	}
 
-	l.isDone = true
+	l.state.MarkAsDone()
+
 	l.wg.Done()
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 	"slices"
+	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database"
@@ -35,7 +36,7 @@ type Bulk[E storage.Entry] struct {
 	writeCancel context.CancelFunc
 	writeError  error
 
-	isDone bool
+	isDone atomic.Bool
 }
 
 func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfig) (*Bulk[E], error) {
@@ -109,13 +110,11 @@ func (b *Bulk[E]) Receive(items []E) error {
 }
 
 func (b *Bulk[E]) Done() {
-	b.state.MarkAsDone()
-
-	if b.isDone {
+	if !b.isDone.CompareAndSwap(false, true) {
 		return
 	}
 
-	b.isDone = true
+	b.state.MarkAsDone()
 
 	close(b.itemsChan)
 }
