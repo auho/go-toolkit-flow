@@ -1,7 +1,10 @@
 package storage
 
+import "context"
+
 type Destination[E Entry] interface {
-	Accept() error
+	Prepare(ctx context.Context) error
+	Accept()
 	Receive([]E) error
 	Done()
 	Finish() error

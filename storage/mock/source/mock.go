@@ -65,13 +65,12 @@ func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
 
 func (m *Mock[E]) Prepare(ctx context.Context) error {
 	m.scanCtx = ctx
+	m.itemsChan = make(chan []E, m.concurrency)
 
 	return nil
 }
 
 func (m *Mock[E]) Scan() {
-	m.itemsChan = make(chan []E, m.concurrency)
-
 	m.scanWg.Add(1)
 	go func() {
 		defer m.scanWg.Done()

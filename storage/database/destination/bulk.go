@@ -73,30 +73,31 @@ func (b *Bulk[E]) initConfig() {
 	b.state.MarkAsConfigured()
 }
 
-func (b *Bulk[E]) Accept() (err error) {
-	b.state.MarkAsAccepted()
-	b.state.DurationStart()
+func (b *Bulk[E]) Prepare(ctx context.Context) error {
+	b.state.MarkAsPrepare()
 
 	if b.config.IsTruncate {
-		err = b.dialect.Truncate()
+		err := b.dialect.Truncate()
 		if err != nil {
-			return
+			return err
 		}
 	}
 
 	b.itemsChan = make(chan []E, b.config.Concurrency)
-
-	ctx, cancel := context.WithCancel(context.Background())
 	b.writeGroup, b.writeCtx = errgroup.WithContext(ctx)
-	b.writeCancel = cancel
+
+	return nil
+}
+
+func (b *Bulk[E]) Accept() {
+	b.state.MarkAsAccepted()
+	b.state.DurationStart()
 
 	for i := 0; i < b.config.Concurrency; i++ {
 		b.writeGroup.Go(func() error {
 			return b.write()
 		})
 	}
-
-	return nil
 }
 
 func (b *Bulk[E]) Receive(items []E) error {

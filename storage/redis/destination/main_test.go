@@ -1,6 +1,7 @@
 package destination
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -53,10 +54,11 @@ func _testKey[E storage.Entry](
 		t.Fatal("new", err)
 	}
 
-	err = k.Accept()
+	err = k.Prepare(context.Background())
 	if err != nil {
-		t.Fatal("scan", err)
+		t.Fatal("prepare", err)
 	}
+	k.Accept()
 
 	amount := int64(0)
 	go func() {

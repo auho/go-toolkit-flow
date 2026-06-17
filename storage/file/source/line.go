@@ -54,6 +54,7 @@ func (l *Line) Prepare(ctx context.Context) error {
 	l.state.MarkAsPrepare()
 	l.state.Title = l.Title()
 	l.scanCtx = ctx
+	l.itemsChan = make(chan []string, l.config.Concurrency)
 
 	return nil
 }
@@ -61,7 +62,6 @@ func (l *Line) Prepare(ctx context.Context) error {
 func (l *Line) Scan() {
 	l.state.MarkAsScanning()
 	l.state.DurationStart()
-	l.itemsChan = make(chan []string, l.config.Concurrency)
 
 	l.scanWg.Add(1)
 	go func() {

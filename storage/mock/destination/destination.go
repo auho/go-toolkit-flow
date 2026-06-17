@@ -1,6 +1,7 @@
 package destination
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -17,7 +18,11 @@ type Destination[E storage.Entry] struct {
 	chanWg    sync.WaitGroup
 }
 
-func (d *Destination[E]) Accept() error {
+func (d *Destination[E]) Prepare(ctx context.Context) error {
+	return nil
+}
+
+func (d *Destination[E]) Accept() {
 	d.itemsChan = make(chan []E)
 
 	d.chanWg.Add(1)
@@ -28,8 +33,6 @@ func (d *Destination[E]) Accept() error {
 
 		d.chanWg.Done()
 	}()
-
-	return nil
 }
 
 func (d *Destination[E]) Receive(items []E) error {

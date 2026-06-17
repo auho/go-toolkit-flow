@@ -1,6 +1,7 @@
 package destination
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -18,10 +19,11 @@ func TestUpdateSliceMap(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = d.Accept()
+	err = d.Prepare(context.Background())
 	if err != nil {
 		t.Error(err)
 	}
+	d.Accept()
 
 	go func() {
 		for i := 0; i < page; i++ {

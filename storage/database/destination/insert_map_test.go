@@ -1,6 +1,7 @@
 package destination
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -23,10 +24,11 @@ func TestBulkInsertSliceMapGorm(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	err = iss.Accept()
+	err = iss.Prepare(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
+	iss.Accept()
 
 	rand.Seed(time.Now().UnixNano())
 	page := int64(rand.Intn(10)) + 10

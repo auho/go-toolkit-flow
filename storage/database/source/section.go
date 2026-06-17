@@ -72,6 +72,8 @@ func (s *Section[E]) Prepare(ctx context.Context) error {
 		return fmt.Errorf("idRange: %w", err)
 	}
 
+	s.segmentChan = make(chan []int64, s.config.Concurrency)
+	s.itemsChan = make(chan []E, s.config.Concurrency)
 	s.scanGroup, s.scanCtx = errgroup.WithContext(ctx)
 
 	return nil
@@ -80,9 +82,6 @@ func (s *Section[E]) Prepare(ctx context.Context) error {
 func (s *Section[E]) Scan() {
 	s.state.MarkAsScanning()
 	s.state.DurationStart()
-
-	s.segmentChan = make(chan []int64, s.config.Concurrency)
-	s.itemsChan = make(chan []E, s.config.Concurrency)
 
 	go s.dispatchSegments()
 	s.scanRows()

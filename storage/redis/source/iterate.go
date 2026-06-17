@@ -76,6 +76,7 @@ func (i *Iterator[E]) config(c KeyConfig) error {
 func (i *Iterator[E]) Prepare(ctx context.Context) error {
 	i.state.MarkAsPrepare()
 	i.scanCtx = ctx
+	i.itemsChan = make(chan []E, i.concurrency)
 
 	lenCtx, lenCancel := context.WithTimeout(ctx, i.timeoutDuration)
 	defer lenCancel()
@@ -98,7 +99,6 @@ func (i *Iterator[E]) Prepare(ctx context.Context) error {
 func (i *Iterator[E]) Scan() {
 	i.state.MarkAsScanning()
 	i.state.DurationStart()
-	i.itemsChan = make(chan []E, i.concurrency)
 
 	i.scanWg.Add(1)
 	go func() {

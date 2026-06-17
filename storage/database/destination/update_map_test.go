@@ -1,6 +1,7 @@
 package destination
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -36,10 +37,11 @@ func TestBilkUpdateMapFormatGorm(t *testing.T) {
 
 	go _buildDataForUpdateMap(t, page, pageSize)
 
-	err = uss.Accept()
+	err = uss.Prepare(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
+	uss.Accept()
 
 	for items := range ussItemsChan {
 		uss.Receive(items)

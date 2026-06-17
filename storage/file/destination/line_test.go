@@ -2,6 +2,7 @@ package destination
 
 import (
 	"bufio"
+	"context"
 	"math/rand"
 	"os"
 	"testing"
@@ -17,10 +18,11 @@ func TestLine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = d.Accept()
+	err = d.Prepare(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
+	d.Accept()
 
 	_rand := rand.Intn(100) + 50
 	_max := 0

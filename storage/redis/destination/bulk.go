@@ -29,10 +29,9 @@ type Bulk[E storage.Entry] struct {
 	state     *storage.State
 
 	// 并发与错误处理
-	writeGroup  *errgroup.Group
-	writeCtx    context.Context
-	writeCancel context.CancelFunc
-	writeErr    error
+	writeGroup *errgroup.Group
+	writeCtx   context.Context
+	writeErr   error
 }
 
 func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfig) (*Bulk[E], error) {
@@ -53,33 +52,34 @@ func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfi
 	return b, nil
 }
 
-func (b *Bulk[E]) Accept() error {
-	b.state.MarkAsAccepted()
-	b.state.DurationStart()
+func (b *Bulk[E]) Prepare(ctx context.Context) error {
+	b.state.MarkAsPrepare()
 
 	if b.isTruncate {
-		ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDuration)
+		_ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDuration)
 		defer cancel()
 
-		_, err := b.dialect.Truncate(ctx, b.format.Key())
+		_, err := b.dialect.Truncate(_ctx, b.format.Key())
 		if err != nil {
-			return err
+			return fmt.Errorf("dialect.Truncate: %w", err)
 		}
 	}
 
 	b.itemsChan = make(chan []E, b.concurrency)
-
-	ctx, cancel := context.WithCancel(context.Background())
 	b.writeGroup, b.writeCtx = errgroup.WithContext(ctx)
-	b.writeCancel = cancel
+
+	return nil
+}
+
+func (b *Bulk[E]) Accept() {
+	b.state.MarkAsAccepted()
+	b.state.DurationStart()
 
 	for i := 0; i < b.concurrency; i++ {
 		b.writeGroup.Go(func() error {
 			return b.write()
 		})
 	}
-
-	return nil
 }
 
 func (b *Bulk[E]) Receive(items []E) error {
@@ -104,8 +104,6 @@ func (b *Bulk[E]) Done() {
 
 func (b *Bulk[E]) Finish() error {
 	b.writeErr = b.writeGroup.Wait()
-
-	b.writeCancel()
 
 	b.state.MarkAsFinished()
 	b.state.DurationStop()

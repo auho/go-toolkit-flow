@@ -2,6 +2,7 @@ package destination
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -37,12 +38,16 @@ func NewLine(c Config) (*Line, error) {
 	return d, nil
 }
 
-func (l *Line) Accept() error {
+func (l *Line) Prepare(ctx context.Context) error {
+	l.state.MarkAsPrepare()
+
+	return nil
+}
+
+func (l *Line) Accept() {
 	l.state.MarkAsAccepted()
 	l.state.DurationStart()
 	l.wg.Add(1)
-
-	return nil
 }
 
 func (l *Line) Receive(items []string) error {
