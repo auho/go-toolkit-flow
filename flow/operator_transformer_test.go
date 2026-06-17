@@ -18,12 +18,12 @@ func (t *transformer) Concurrency() int {
 
 func (t *transformer) RefreshState() {}
 
-func (t *transformer) Title() string {
+func (t *transformer) Summary() string {
 	return "test transformer"
 }
 
 func (t *transformer) Prepare() error {
-	t.SetState(0, "prepare")
+	t.SetStateLine(0, "prepare")
 	return nil
 }
 
@@ -40,15 +40,15 @@ func (t *transformer) PostBatchDo(items []map[string]any) error {
 }
 
 func (t *transformer) BeforeRun() error {
-	t.SetState(0, "pre do")
-	t.Println("pre do")
+	t.SetStateLine(0, "pre do")
+	t.Outputln("pre do")
 
 	return nil
 }
 
 func (t *transformer) AfterRun() error {
-	t.SetState(0, "post do")
-	t.Println("post do")
+	t.SetStateLine(0, "post do")
+	t.Outputln("post do")
 
 	return nil
 }

@@ -129,7 +129,7 @@ func (r *runner[E]) Close() error {
 }
 
 func (r *runner[E]) Summary() string {
-	return r.operator.Title()
+	return r.operator.Summary()
 }
 
 func (r *runner[E]) State() []string {

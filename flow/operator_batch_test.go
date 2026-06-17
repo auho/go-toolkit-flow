@@ -18,12 +18,12 @@ func (b *batch) Concurrency() int {
 
 func (b *batch) RefreshState() {}
 
-func (b *batch) Title() string {
+func (b *batch) Summary() string {
 	return "test batch"
 }
 
 func (b *batch) Prepare() error {
-	b.SetState(0, "prepare")
+	b.SetStateLine(0, "prepare")
 	return nil
 }
 
@@ -36,15 +36,15 @@ func (b *batch) Do(items []map[string]any) (int64, error) {
 }
 
 func (b *batch) BeforeRun() error {
-	b.SetState(0, "pre do")
-	b.Println("pre do")
+	b.SetStateLine(0, "pre do")
+	b.Outputln("pre do")
 
 	return nil
 }
 
 func (b *batch) AfterRun() error {
-	b.SetState(0, "post do")
-	b.Println("post do")
+	b.SetStateLine(0, "post do")
+	b.Outputln("post do")
 
 	return nil
 }

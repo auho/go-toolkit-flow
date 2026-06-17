@@ -10,8 +10,8 @@ import (
 )
 
 type Operator[E storage.Entry] interface {
-	// Title need to be implemented
-	Title() string
+	// Summary need to be implemented
+	Summary() string
 
 	// Prepare need to be implemented
 	Prepare() error
@@ -62,34 +62,34 @@ func (t *BaseOperator) Init() {
 	t.ensureInit()
 }
 
-// AddState
+func (t *BaseOperator) State() []string {
+	return t.state.Content()
+}
+
+// AddStateLine
 // int 当前行行数 从 1 开始
-func (t *BaseOperator) AddState(s string) int {
+func (t *BaseOperator) AddStateLine(s string) int {
 	return t.state.PrintNext(s)
 }
 
-func (t *BaseOperator) SetState(line int, s string) {
+func (t *BaseOperator) SetStateLine(line int, s string) {
 	t.state.Print(line, s)
-}
-
-func (t *BaseOperator) State() []string {
-	return t.state.Content()
 }
 
 func (t *BaseOperator) Output() []string {
 	return t.output.Content()
 }
 
-func (t *BaseOperator) Log() []string {
-	return t.log.Content()
-}
-
-func (t *BaseOperator) Printf(format string, a ...any) {
+func (t *BaseOperator) Outputf(format string, a ...any) {
 	t.output.PrintNext(fmt.Sprintf(format, a...))
 }
 
-func (t *BaseOperator) Println(a ...any) {
+func (t *BaseOperator) Outputln(a ...any) {
 	t.output.PrintNext(fmt.Sprint(a...))
+}
+
+func (t *BaseOperator) Log() []string {
+	return t.log.Content()
 }
 
 func (t *BaseOperator) Logf(format string, a ...any) {

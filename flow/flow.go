@@ -21,9 +21,9 @@ func WithSource[E storage.Entry](se storage.Source[E]) Option[E] {
 	}
 }
 
-func WithRunner[E storage.Entry](runner exec.Runner[E]) Option[E] {
+func WithRunner[E storage.Entry](rs ...exec.Runner[E]) Option[E] {
 	return func(s *flow[E]) {
-		s.runners = append(s.runners, runner)
+		s.runners.Add(rs...)
 	}
 }
 
@@ -36,7 +36,7 @@ func WithStateInterval[E storage.Entry](d time.Duration) Option[E] {
 type flow[E storage.Entry] struct {
 	source        storage.Source[E]
 	refreshOutput *output.Refresh
-	runners       []exec.Runner[E]
+	runners       *exec.Runners[E]
 	stateInterval time.Duration
 }
 
@@ -44,7 +44,9 @@ func RunFlow[E storage.Entry](opts ...Option[E]) error {
 	d := timing.NewDuration()
 	d.Start()
 
-	f := &flow[E]{}
+	f := &flow[E]{
+		runners: exec.NewRunners[E](),
+	}
 	for _, o := range opts {
 		o(f)
 	}
@@ -69,7 +71,7 @@ func (f *flow[E]) check() error {
 		return errors.New("source not found")
 	}
 
-	if len(f.runners) <= 0 {
+	if f.runners.Len() <= 0 {
 		return errors.New("runner not found")
 	}
 
@@ -95,7 +97,7 @@ func (f *flow[E]) run() error {
 		return fmt.Errorf("source.Prepare: %w", err)
 	}
 
-	err = f.runnersPrepare(ctx)
+	err = f.runners.Prepare(ctx)
 	if err != nil {
 		return fmt.Errorf("runnersPrepare: %w", err)
 	}
@@ -104,7 +106,7 @@ func (f *flow[E]) run() error {
 
 	// 异步启动
 	f.source.Scan()
-	f.runnersRun()
+	f.runners.Run()
 
 	f.refreshOutput.Start()
 
@@ -124,7 +126,7 @@ func (f *flow[E]) run() error {
 	})
 
 	g.Go(func() error {
-		err1 := f.runnersFinish()
+		err1 := f.runners.Finish()
 		if err1 != nil {
 			return fmt.Errorf("runnersFinish: %w", err1)
 		}
@@ -132,33 +134,30 @@ func (f *flow[E]) run() error {
 		return nil
 	})
 
-	// 5. 等待全部退出
+	// 等待全部退出
 	return g.Wait()
 }
 
 func (f *flow[E]) transport(ctx context.Context) {
-	needCopy := false
-	if len(f.runners) > 1 {
-		needCopy = true
-	}
+	needCopy := f.runners.Len() > 1
 
 	for {
 		select {
 		case items, ok := <-f.source.ReceiveChan():
 			if !ok {
-				f.runnersDone()
+				f.runners.Done()
 				return
 			}
-			for _, r := range f.runners {
-				if needCopy {
+			if needCopy {
+				for _, r := range f.runners.All() {
 					newItems := f.source.Copy(items)
 					r.Receive(newItems)
-				} else {
-					r.Receive(items)
 				}
+			} else {
+				f.runners.Receive(items)
 			}
 		case <-ctx.Done():
-			f.runnersDone()
+			f.runners.Done()
 			return
 		}
 	}
@@ -175,7 +174,7 @@ func (f *flow[E]) close() {
 		f.refreshOutput.PrintNext(fmt.Errorf("source.Close: %w", err).Error())
 	}
 
-	err = f.runnersClose()
+	err = f.runners.Close()
 	if err != nil {
 		f.refreshOutput.PrintNext(fmt.Errorf("runnersClose: %w", err).Error())
 	}
@@ -184,8 +183,8 @@ func (f *flow[E]) close() {
 func (f *flow[E]) summary() {
 	lines := f.source.Summary()
 	lines = append(lines, "Runners: ")
-	for _, a := range f.runners {
-		lines = append(lines, "  "+a.Summary())
+	for _, s := range f.runners.Summary() {
+		lines = append(lines, "  "+s)
 	}
 
 	for _, s := range lines {
@@ -200,12 +199,7 @@ func (f *flow[E]) state() []string {
 	lines := make([]string, len(sourceLines))
 	copy(lines, sourceLines)
 
-	for _, r := range f.runners {
-		lines = append(lines, r.Summary())
-		for _, s := range r.State() {
-			lines = append(lines, "  "+s)
-		}
-	}
+	lines = append(lines, f.runners.State()...)
 
 	return lines
 }
@@ -213,53 +207,9 @@ func (f *flow[E]) state() []string {
 func (f *flow[E]) runnersOutput() {
 	fmt.Println("\nOutput: ")
 
-	for _, r := range f.runners {
-		for _, s := range r.Output() {
-			fmt.Println(s)
-		}
-
-		fmt.Println()
-	}
-}
-
-func (f *flow[E]) runnersPrepare(ctx context.Context) error {
-	for _, r := range f.runners {
-		if err := r.Prepare(ctx); err != nil {
-			return fmt.Errorf("prepare: %w", err)
-		}
+	for _, s := range f.runners.Output() {
+		fmt.Println(s)
 	}
 
-	return nil
-}
-
-func (f *flow[E]) runnersRun() {
-	for _, r := range f.runners {
-		r.Run()
-	}
-}
-
-func (f *flow[E]) runnersDone() {
-	for _, r := range f.runners {
-		r.Done()
-	}
-}
-
-func (f *flow[E]) runnersFinish() error {
-	for _, r := range f.runners {
-		if err := r.Finish(); err != nil {
-			return fmt.Errorf("finish: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (f *flow[E]) runnersClose() error {
-	for _, r := range f.runners {
-		if err := r.Close(); err != nil {
-			return fmt.Errorf("close: %w", err)
-		}
-	}
-
-	return nil
+	fmt.Println()
 }
