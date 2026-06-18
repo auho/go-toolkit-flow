@@ -25,8 +25,8 @@ type Operator[E storage.Entry] interface {
 	// Close need to be implemented
 	Close() error
 
-	// AdditionalState need to be implemented
-	AdditionalState()
+	// AppendState need to be implemented
+	AppendState()
 
 	// Concurrency need to be implemented
 	Concurrency() int

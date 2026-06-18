@@ -16,7 +16,7 @@ func (t *transformer) Concurrency() int {
 	return runtime.NumCPU()
 }
 
-func (t *transformer) AdditionalState() {}
+func (t *transformer) AppendState() {}
 
 func (t *transformer) Summary() string {
 	return "test transformer"

@@ -16,7 +16,7 @@ func (b *batch) Concurrency() int {
 	return runtime.NumCPU()
 }
 
-func (b *batch) AdditionalState() {}
+func (b *batch) AppendState() {}
 
 func (b *batch) Summary() string {
 	return "test batch"
