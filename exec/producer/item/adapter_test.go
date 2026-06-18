@@ -71,7 +71,7 @@ func (m *mockItemPostBatchExecErr) PostBatchExec(items []storage.MapEntry) error
 	return errors.New("post batch exec err")
 }
 
-func TestAdapterNewRunner(t *testing.T) {
+func TestAdapter_NewRunner(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](&mockItem{ok: true})
 	if r == nil {
 		t.Error("NewRunner should not return nil")

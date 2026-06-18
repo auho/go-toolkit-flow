@@ -44,7 +44,7 @@ func (m *mockItemErr) Exec(item storage.MapEntry) (bool, error) {
 	return m.ok, errors.New("item err")
 }
 
-func TestAdapterNewRunner(t *testing.T) {
+func TestAdapter_NewRunner(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](&mockItem{ok: true})
 	if r == nil {
 		t.Error("NewRunner should not return nil")

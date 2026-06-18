@@ -72,7 +72,7 @@ func TestRunner_Prepare_BeforeExecError(t *testing.T) {
 	}
 }
 
-func TestRunner_Start_ReceiveAndExec(t *testing.T) {
+func TestRunner_ReceiveAndStart(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{
 		out:      []storage.MapEntry{{"key": "val"}},
 		amount:   1,
@@ -123,6 +123,35 @@ func TestRunner_Start_ExecError(t *testing.T) {
 	}
 	if !contains(err.Error(), "executor.Exec") {
 		t.Errorf("error should contain 'executor.Exec', got: %v", err)
+	}
+}
+
+func TestRunner_Finish_Success(t *testing.T) {
+	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
+	operator := &mockOperator[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+
+	ctx := context.Background()
+	err := r.Prepare(ctx)
+	if err != nil {
+		t.Fatalf("Prepare should succeed, got: %v", err)
+	}
+
+	r.Start()
+	r.Done()
+	err = r.Finish()
+	if err != nil {
+		t.Fatalf("Finish should succeed, got: %v", err)
+	}
+
+	if operator.afterExecCalled.Load() != 1 {
+		t.Errorf("afterExecCalled should be 1, got %d", operator.afterExecCalled.Load())
+	}
+
+	// OutChan should be closed after Finish
+	_, ok := <-r.OutChan()
+	if ok {
+		t.Error("OutChan should be closed after Finish")
 	}
 }
 
