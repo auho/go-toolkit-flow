@@ -1,3 +1,10 @@
+// Package exec is the execution layer between operator and flow.
+// It provides Runner (single task) and Runners (collection) that bind an
+// Executor adapter with an Operator, managing the lifecycle:
+//   Prepare → Start (worker goroutines) → Receive → Done → Finish → Close
+//
+// Data flow:
+//   inChan → [worker goroutines: executor.Exec] → outChan
 package exec
 
 import (
@@ -17,9 +24,9 @@ var _ Runner[string, string] = (*runner[string, string])(nil)
 // In the consumer path, out is nil (no data produced).
 // In the producer path, out carries the produced data forwarded to a destination.
 type Executor[SE, DE storage.Entry] interface {
-	// Exec
+	// Exec processes a batch of source items.
 	// out: produced data (producer path); nil (consumer path)
-	// amount: input amount
+	// amount: input amount (typically len(items))
 	// affected: output affected amount
 	Exec(items []SE) (out []DE, amount, affected int64, err error)
 }
@@ -38,6 +45,17 @@ type Runner[SE, DE storage.Entry] interface {
 	OutChan() <-chan []DE // produced data output channel (producer path)
 }
 
+// runner implements Runner. It binds an Executor (processing strategy) with
+// an Operator (lifecycle + state management) and manages concurrent workers
+// via errgroup.
+//
+// Concurrency model:
+//   - Start launches N worker goroutines (N = operator.Concurrency())
+//   - Workers read from inChan, call executor.Exec, and write to outChan
+//   - Done closes inChan, causing workers to exit
+//   - Finish waits for all workers (errgroup.Wait), then closes outChan
+//   - If any worker returns an error, the errgroup cancels the context,
+//     causing other workers to exit early
 type runner[SE, DE storage.Entry] struct {
 	total    int64
 	amount   int64
@@ -52,6 +70,8 @@ type runner[SE, DE storage.Entry] struct {
 	startCtx   context.Context
 }
 
+// NewRunner creates a Runner from the given Executor and Operator.
+// The inChan and outChan buffer sizes are set to operator.Concurrency().
 func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], o operator.Operator[SE]) Runner[SE, DE] {
 	r := &runner[SE, DE]{}
 	r.executor = e
@@ -62,6 +82,8 @@ func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], o operator.Operator[SE]
 	return r
 }
 
+// Prepare initializes the operator and creates the errgroup context.
+// Calls operator.Init → operator.Prepare → operator.BeforeExec in sequence.
 func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 	r.operator.Init()
 
@@ -80,6 +102,8 @@ func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 	return nil
 }
 
+// Receive sends items to the inChan. Non-blocking: if the context is cancelled
+// (e.g. due to a worker error), the items are dropped.
 func (r *runner[SE, DE]) Receive(items []SE) {
 	select {
 	case <-r.startCtx.Done():
@@ -87,6 +111,9 @@ func (r *runner[SE, DE]) Receive(items []SE) {
 	}
 }
 
+// Start launches worker goroutines that read from inChan, call executor.Exec,
+// and write produced data to outChan. The number of workers equals
+// operator.Concurrency().
 func (r *runner[SE, DE]) Start() {
 	for i := 0; i < r.operator.Concurrency(); i++ {
 		r.startGroup.Go(func() error {
@@ -121,10 +148,14 @@ func (r *runner[SE, DE]) Start() {
 	}
 }
 
+// Done closes inChan, signaling workers that no more data will be sent.
 func (r *runner[SE, DE]) Done() {
 	close(r.inChan)
 }
 
+// Finish waits for all workers to complete, closes outChan, and calls
+// operator.AfterExec. Returns an error if any worker failed or if
+// AfterExec returns an error.
 func (r *runner[SE, DE]) Finish() error {
 	err := r.startGroup.Wait()
 	if err != nil {

@@ -12,7 +12,7 @@ type insertMapFormat struct {
 	batchSize int
 }
 
-// NewInsertMapFormat 创建 MapEntry 插入格式处理器
+// NewInsertMapFormat creates a format handler that inserts MapEntry items.
 func NewInsertMapFormat(batchSize int) Format[storage.MapEntry] {
 	return &insertMapFormat{batchSize: batchSize}
 }

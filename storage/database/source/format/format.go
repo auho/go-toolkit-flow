@@ -1,3 +1,5 @@
+// Package format defines data format interfaces for converting and deep-copying
+// query results produced by the source package.
 package format
 
 import (
@@ -5,10 +7,10 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/database/source/dialect"
 )
 
-// Format Format[E] 数据格式接口，负责结果转换和深拷贝
+// Format is the data format interface for result conversion and deep copying.
 type Format[E storage.Entry] interface {
 	QueryByRange(dialect dialect.Dialect, startID, endID int64) ([]E, error)
 
-	// Copy 深拷贝数据
+	// Copy deep-copies the given items.
 	Copy(items []E) []E
 }

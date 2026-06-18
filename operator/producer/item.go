@@ -6,16 +6,16 @@ import (
 )
 
 // Item is a producer-path operator that processes items one by one and produces output.
-// Path two: source -> operator (produces data) -> destination persistence -> exec flow control.
+// Producer path: source → operator (produces data) → destination persistence → exec flow control.
 // Exec returns the produced data which is forwarded to a destination.
 type Item[SE, DE storage.Entry] interface {
 	operator.Operator[SE]
 
-	// Exec need to be implemented
-	// returns produced items and ok whether the item was processed
+	// Exec processes a single item.
+	// Returns the produced items and ok=true if the item was processed, false otherwise.
 	Exec(SE) ([]DE, bool, error)
 
-	// PostBatchExec need to be implemented
-	// batch post-processing on produced items before sending to destination
+	// PostBatchExec performs batch post-processing on produced items
+	// before they are sent to the destination.
 	PostBatchExec([]DE) error
 }

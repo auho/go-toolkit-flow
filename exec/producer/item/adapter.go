@@ -10,6 +10,8 @@ import (
 
 var _ exec.Executor[string, string] = (*adapter[string, string])(nil)
 
+// adapter adapts a producer.Item operator to the exec.Executor interface.
+// Producer path: processes data and produces output forwarded to a destination.
 type adapter[SE, DE storage.Entry] struct {
 	item producer.Item[SE, DE]
 }

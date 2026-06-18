@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// NewSectionMapWithGorm creates a Section that reads MapEntry data from a MySQL
+// database via gorm, using the given SectionConfig and ScanConfig.
 func NewSectionMapWithGorm(c SectionConfig, sc ScanConfig, db *gorm.DB) (*Section[storage.MapEntry], error) {
 	d, err := mysql.NewDialectGorm(sc, db)
 	if err != nil {

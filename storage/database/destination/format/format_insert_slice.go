@@ -13,7 +13,7 @@ type insertSliceFormat struct {
 	batchSize int
 }
 
-// NewInsertSliceFormat 创建 SliceEntry 插入格式处理器
+// NewInsertSliceFormat creates a format handler that inserts SliceEntry items.
 func NewInsertSliceFormat(fields []string, batchSize int) Format[storage.SliceEntry] {
 	return &insertSliceFormat{fields: fields, batchSize: batchSize}
 }

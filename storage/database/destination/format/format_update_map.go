@@ -12,7 +12,7 @@ type updateMapFormat struct {
 	idName string
 }
 
-// NewUpdateMapFormat 创建 MapEntry 更新格式处理器
+// NewUpdateMapFormat creates a format handler that updates MapEntry items.
 func NewUpdateMapFormat(idName string) Format[storage.MapEntry] {
 	return &updateMapFormat{idName: idName}
 }

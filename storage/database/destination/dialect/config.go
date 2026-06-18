@@ -1,6 +1,6 @@
 package dialect
 
-// WriteConfig 写入配置
+// WriteConfig holds the write configuration.
 type WriteConfig struct {
 	TableName string
 }

@@ -1,3 +1,4 @@
+// Package mysql provides the MySQL dialect implementation for the source package.
 package mysql
 
 import (
@@ -10,14 +11,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// gormMySQL MySQL 方言实现
+// gormMySQL is the MySQL dialect implementation backed by gorm.
 type gormMySQL struct {
 	db     *gorm.DB
 	sqlDB  *sql.DB
 	config dialect.ScanConfig
 }
 
-// newGormMySQL 创建 MySQL 方言
+// newGormMySQL creates a MySQL dialect backed by gorm.
 func newGormMySQL(config dialect.ScanConfig, db *gorm.DB) (*gormMySQL, error) {
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -32,7 +33,7 @@ func newGormMySQL(config dialect.ScanConfig, db *gorm.DB) (*gormMySQL, error) {
 	return &gormMySQL{db: db, sqlDB: sqlDB, config: config}, nil
 }
 
-// FetchIDBounds 实现 MapQuerier 接口，查询表的 ID 最小值和最大值边界
+// FetchIDBounds queries the minimum and maximum ID bounds of the table.
 func (g *gormMySQL) FetchIDBounds() (int64, int64, error) {
 	var row struct {
 		Max int64
@@ -48,7 +49,7 @@ func (g *gormMySQL) FetchIDBounds() (int64, int64, error) {
 	return row.Min, row.Max, nil
 }
 
-// QueryMapByRange 实现 MapQuerier 接口，查询指定 ID 范围内的 MapEntry 数据
+// QueryMapByRange queries MapEntry data within the given ID range.
 func (g *gormMySQL) QueryMapByRange(startID, endID int64) (storage.MapEntries, error) {
 	var rows storage.MapEntries
 
@@ -59,17 +60,17 @@ func (g *gormMySQL) QueryMapByRange(startID, endID int64) (storage.MapEntries, e
 	return rows, err
 }
 
-// DBName 实现 gormMySQL 接口
+// DBName returns the name of the underlying database.
 func (g *gormMySQL) DBName() string {
 	return g.db.Name()
 }
 
-// Close 实现 gormMySQL 接口
+// Close closes the underlying database connection.
 func (g *gormMySQL) Close() error {
 	return g.sqlDB.Close()
 }
 
-// buildSelectQuery 构建 SELECT 查询，使用 MySQL 反引号包裹字段名
+// buildSelectQuery builds a SELECT query with MySQL backtick-quoted field names.
 func (g *gormMySQL) buildSelectQuery() *gorm.DB {
 	tx := g.db.Table(g.config.TableName)
 	if len(g.config.SelectFields) > 0 {

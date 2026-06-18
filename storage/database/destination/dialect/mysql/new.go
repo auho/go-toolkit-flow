@@ -5,7 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// NewDialectGorm 创建基于 gorm 的 MySQL 方言
+// NewDialectGorm creates a MySQL dialect backed by gorm.
 func NewDialectGorm(db *gorm.DB, config dialect.WriteConfig) (dialect.Dialect, error) {
 	return newGormMySQL(db, config)
 }

@@ -6,12 +6,12 @@ import (
 )
 
 // Batch is a producer-path operator that processes items in bulk and produces output.
-// Path two: source -> operator (produces data) -> destination persistence -> exec flow control.
+// Producer path: source → operator (produces data) → destination persistence → exec flow control.
 // Exec returns the produced data which is forwarded to a destination.
 type Batch[SE, DE storage.Entry] interface {
 	operator.Operator[SE]
 
-	// Exec need to be implemented
-	// returns produced items and affected count
+	// Exec processes a batch of items and returns the produced items
+	// along with the affected count.
 	Exec([]SE) ([]DE, int64, error)
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/database/destination/dialect"
 )
 
-// Format 数据格式接口，负责写入和深拷贝
+// Format is the data format interface, responsible for writing and deep copying.
 type Format[E storage.Entry] interface {
 	Write(dialect dialect.Dialect, items []E) error
 	Copy(items []E) []E

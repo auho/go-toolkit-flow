@@ -29,7 +29,7 @@ type Bulk[E storage.Entry] struct {
 	itemsChan chan []E
 	state     *storage.State
 
-	// 并发与错误处理
+	// Concurrency and error handling
 	writeGroup *errgroup.Group
 	writeCtx   context.Context
 	writeErr   error

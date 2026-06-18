@@ -10,7 +10,7 @@ var _ Format[storage.MapEntry] = (*mapFormat)(nil)
 
 type mapFormat struct{}
 
-// NewMapFormat 创建 MapEntry 数据格式处理器
+// NewMapFormat creates a Format for MapEntry data.
 func NewMapFormat() Format[storage.MapEntry] {
 	return &mapFormat{}
 }

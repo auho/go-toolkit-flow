@@ -1,3 +1,6 @@
+// Package source defines database source implementations for reading data.
+// It wires together Dialect → Format → Section and manages the lifecycle:
+// Prepare → Scan → Finish → Close.
 package source
 
 import (
@@ -13,12 +16,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// ScanConfig 类型别名重导出，用户无需导入 dialect 包
+// ScanConfig is a type alias re-exported so callers need not import the dialect package.
 type ScanConfig = dialect.ScanConfig
 
 var _ storage.Source[storage.MapEntry] = (*Section[storage.MapEntry])(nil)
 
-// Section 分段查询编排器
+// Section is a segmented query orchestrator that scans a database table by
+// splitting the ID range into fixed-size pages and fetching them concurrently.
 type Section[E storage.Entry] struct {
 	storage.Storage
 	dialect dialect.Dialect
@@ -34,7 +38,7 @@ type Section[E storage.Entry] struct {
 	segmentChan chan []int64
 	state       *storage.PageState
 
-	// 并发与错误处理
+	// concurrency and error handling
 	scanGroup *errgroup.Group
 	scanCtx   context.Context
 	scanErr   error
@@ -101,7 +105,12 @@ func (s *Section[E]) Finish() error {
 	return err
 }
 
-// dispatchSegments 根据 start id, end id 分段并分发
+// dispatchSegments splits the [startID, endID] range into PageSize-sized
+// segments and sends them to segmentChan.
+// Concurrency model:
+//   - Runs in a single goroutine launched by Scan
+//   - Sends are cancelled when scanCtx is done
+//   - Closes segmentChan on exit
 func (s *Section[E]) dispatchSegments() {
 	defer close(s.segmentChan)
 
@@ -127,7 +136,11 @@ func (s *Section[E]) dispatchSegments() {
 	}
 }
 
-// scanRows 从 segmentChan 读取分段信息并查询数据
+// scanRows reads segment ranges from segmentChan and queries data for each.
+// Concurrency model:
+//   - Spawns Concurrency worker goroutines via scanGroup
+//   - Each worker ranges over segmentChan until it is closed
+//   - On error, the worker returns and errgroup cancels scanCtx
 func (s *Section[E]) scanRows() {
 	for i := 0; i < s.config.Concurrency; i++ {
 		s.scanGroup.Go(func() error {
@@ -178,7 +191,7 @@ func (s *Section[E]) initConfig(config SectionConfig) {
 	s.state.MarkAsConfigured()
 }
 
-// idRange 查询 ID 边界并计算分页信息
+// idRange queries the ID bounds from the dialect and computes pagination info.
 func (s *Section[E]) idRange() error {
 	if s.config.PageSize <= 0 {
 		return fmt.Errorf("page size[%d] is error", s.config.PageSize)

@@ -2,7 +2,7 @@ package dialect
 
 import "github.com/auho/go-toolkit-flow/storage"
 
-// Dialect 数据库方言接口
+// Dialect is the database dialect interface.
 type Dialect interface {
 	DBName() string
 	Ping() error

@@ -4,7 +4,7 @@ import "time"
 
 type KeyConfig struct {
 	Concurrency     int
-	Amount          int64 // 取的总数量，不是精确值
+	Amount          int64 // total amount to fetch; not an exact value
 	PageSize        int64
 	TimeoutDuration time.Duration
 	Key             string

@@ -9,14 +9,14 @@ import (
 	"gorm.io/gorm"
 )
 
-// gormMySQL MySQL 方言实现
+// gormMySQL is the MySQL dialect implementation backed by gorm.
 type gormMySQL struct {
 	db     *gorm.DB
 	sqlDB  *sql.DB
 	config dialect.WriteConfig
 }
 
-// newGormMySQL 创建 MySQL 方言
+// newGormMySQL creates a MySQL dialect.
 func newGormMySQL(db *gorm.DB, config dialect.WriteConfig) (*gormMySQL, error) {
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -31,34 +31,32 @@ func newGormMySQL(db *gorm.DB, config dialect.WriteConfig) (*gormMySQL, error) {
 	return &gormMySQL{db: db, sqlDB: sqlDB, config: config}, nil
 }
 
-// DBName 实现 Dialect 接口
+// DBName implements the Dialect interface.
 func (g *gormMySQL) DBName() string {
 	return g.db.Name()
 }
 
-// Ping 实现 Dialect 接口
+// Ping implements the Dialect interface.
 func (g *gormMySQL) Ping() error {
 	return g.sqlDB.Ping()
 }
 
-// Close 实现 Dialect 接口
+// Close implements the Dialect interface.
 func (g *gormMySQL) Close() error {
 	return g.sqlDB.Close()
 }
 
-// Truncate 实现 Dialect 接口
+// Truncate implements the Dialect interface.
 func (g *gormMySQL) Truncate() error {
 	return g.db.Exec(fmt.Sprintf("TRUNCATE TABLE %s", g.config.TableName)).Error
 }
 
-// BulkInsertMap 实现 Dialect 接口
-// 迁移 simpledb.BulkInsertFromSliceMap 逻辑，使用 gorm 的 CreateInBatches
+// BulkInsertMap implements the Dialect interface.
 func (g *gormMySQL) BulkInsertMap(items storage.MapEntries, batchSize int) error {
 	return g.db.Table(g.config.TableName).CreateInBatches(items, batchSize).Error
 }
 
-// BulkInsertSlice 实现 Dialect 接口
-// 迁移 simpledb.BulkInsertFromSliceSlice 逻辑，先转为 map 再调用 BulkInsertMap
+// BulkInsertSlice implements the Dialect interface.
 func (g *gormMySQL) BulkInsertSlice(fields []string, items storage.SliceEntries, batchSize int) error {
 	fieldsLen := len(fields)
 	sm := make(storage.MapEntries, 0, len(items))
@@ -74,8 +72,7 @@ func (g *gormMySQL) BulkInsertSlice(fields []string, items storage.SliceEntries,
 	return g.BulkInsertMap(sm, batchSize)
 }
 
-// BulkUpdateMap 实现 Dialect 接口
-// 迁移 simpledb.BulkUpdateFromSliceMapById 逻辑
+// BulkUpdateMap implements the Dialect interface.
 func (g *gormMySQL) BulkUpdateMap(idName string, items storage.MapEntries) error {
 	for _, item := range items {
 		_id, ok := item[idName]

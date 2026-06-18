@@ -10,6 +10,8 @@ import (
 
 var _ exec.Executor[string, string] = (*adapter[string, string])(nil)
 
+// adapter adapts a consumer.Batch operator to the exec.Executor interface.
+// Consumer path: processes data without producing output (out is always nil).
 type adapter[SE, DE storage.Entry] struct {
 	batch consumer.Batch[SE]
 }

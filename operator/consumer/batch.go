@@ -6,12 +6,11 @@ import (
 )
 
 // Batch is a consumer-path operator that processes items in bulk.
-// Path one: source -> operator (no data produced) -> exec flow control.
+// Consumer path: source → operator (no data produced) → exec flow control.
 // Exec does not return data; nothing is sent to a destination.
 type Batch[SE storage.Entry] interface {
 	operator.Operator[SE]
 
-	// Exec need to be implemented
-	// affected
+	// Exec processes a batch of items and returns the affected count.
 	Exec([]SE) (int64, error)
 }

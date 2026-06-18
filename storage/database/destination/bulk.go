@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// WriteConfig 类型别名重导出，用户无需导入 dialect 包
+// WriteConfig is a type alias re-exported so callers need not import the dialect package.
 type WriteConfig = dialect.WriteConfig
 
 var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
@@ -30,7 +30,7 @@ type Bulk[E storage.Entry] struct {
 	state     *storage.State
 	itemsChan chan []E
 
-	// 并发与错误处理
+	// Concurrency and error handling
 	writeGroup  *errgroup.Group
 	writeCtx    context.Context
 	writeCancel context.CancelFunc

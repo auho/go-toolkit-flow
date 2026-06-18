@@ -11,6 +11,19 @@ import (
 
 var _ storage.Destination[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
 
+// Destination is an in-memory Destination implementation for testing.
+// It counts the total number of items received via the amount field,
+// which can be accessed from the same package (white-box testing) or
+// via the State() method (returns "amount: <N>").
+//
+// Lifecycle:
+//   Prepare → Accept (starts counter goroutine) → Receive (writes to channel) → Done → Finish → Close
+//
+// Concurrency model:
+//   - Accept starts a single goroutine that drains itemsChan and increments amount
+//   - Receive is called serially by the output forwarder
+//   - Done closes itemsChan via CAS to ensure idempotency
+//   - Finish waits for the counter goroutine to exit
 type Destination[E storage.Entry] struct {
 	isDone    atomic.Bool
 	amount    int64
@@ -22,6 +35,8 @@ func (d *Destination[E]) Prepare(ctx context.Context) error {
 	return nil
 }
 
+// Accept creates the items channel and starts a goroutine that counts
+// received items by draining the channel.
 func (d *Destination[E]) Accept() {
 	d.itemsChan = make(chan []E)
 
@@ -40,6 +55,8 @@ func (d *Destination[E]) Receive(items []E) error {
 	return nil
 }
 
+// Done closes the items channel. Uses CAS to ensure idempotency:
+// subsequent calls are no-ops.
 func (d *Destination[E]) Done() {
 	if !d.isDone.CompareAndSwap(false, true) {
 		return
@@ -48,6 +65,7 @@ func (d *Destination[E]) Done() {
 	close(d.itemsChan)
 }
 
+// Finish waits for the counter goroutine to exit after the channel is closed.
 func (d *Destination[E]) Finish() error {
 	d.chanWg.Wait()
 

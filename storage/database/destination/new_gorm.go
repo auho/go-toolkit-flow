@@ -10,12 +10,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// NewBulkInsertMapWithGorm 创建基于 gorm 的 MapEntry 插入 Bulk
+// NewBulkInsertMapWithGorm creates a Bulk that inserts MapEntry items via gorm.
 func NewBulkInsertMapWithGorm(c BulkConfig, wc WriteConfig, db *gorm.DB) (*Bulk[storage.MapEntry], error) {
 	return newBulkWithGorm(format.NewInsertMapFormat(int(c.PageSize)), db, c, wc)
 }
 
-// NewBulkInsertSliceWithGorm 创建基于 gorm 的 SliceEntry 插入 Bulk
+// NewBulkInsertSliceWithGorm creates a Bulk that inserts SliceEntry items via gorm.
 func NewBulkInsertSliceWithGorm(c BulkConfig, wc WriteConfig, fields []string, db *gorm.DB) (*Bulk[storage.SliceEntry], error) {
 	if len(fields) <= 0 {
 		return nil, errors.New("fields is error")
@@ -24,7 +24,7 @@ func NewBulkInsertSliceWithGorm(c BulkConfig, wc WriteConfig, fields []string, d
 	return newBulkWithGorm(format.NewInsertSliceFormat(fields, int(c.PageSize)), db, c, wc)
 }
 
-// NewBulkUpdateMapWithGorm 创建基于 gorm 的 MapEntry 更新 Bulk
+// NewBulkUpdateMapWithGorm creates a Bulk that updates MapEntry items via gorm.
 func NewBulkUpdateMapWithGorm(c BulkConfig, wc WriteConfig, idName string, db *gorm.DB) (*Bulk[storage.MapEntry], error) {
 	return newBulkWithGorm(format.NewUpdateMapFormat(idName), db, c, wc)
 }
