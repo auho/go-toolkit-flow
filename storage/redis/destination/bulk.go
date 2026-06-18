@@ -104,8 +104,8 @@ func (b *Bulk[E]) Done() {
 func (b *Bulk[E]) Finish() error {
 	b.writeErr = b.writeGroup.Wait()
 
-	b.state.MarkAsFinished()
 	b.state.DurationStop()
+	b.state.MarkAsFinished()
 
 	return b.writeErr
 }
