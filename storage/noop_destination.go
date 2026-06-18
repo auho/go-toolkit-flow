@@ -7,6 +7,9 @@ import "context"
 // (path one: consumer mode), so that flow never needs nil checks.
 type NoopDestination[E Entry] struct{}
 
+// Compile-time interface conformance check.
+var _ Destination[string] = NoopDestination[string]{}
+
 func (NoopDestination[E]) Prepare(context.Context) error { return nil }
 func (NoopDestination[E]) Accept()                       {}
 func (NoopDestination[E]) Receive([]E) error             { return nil }

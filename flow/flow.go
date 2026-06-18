@@ -1,10 +1,12 @@
+// Package flow is the top-level orchestration layer.
+// It wires together Source → groups (runners + Destination) and manages the
+// full lifecycle: Prepare → Start → (async: transport | finish | output) → Finish → Close.
 package flow
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/exec"
@@ -14,47 +16,74 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Option configures a flow.
 type Option[SE, DE storage.Entry] func(*flow[SE, DE])
 
+// WithSource sets the data source for the flow.
 func WithSource[SE, DE storage.Entry](se storage.Source[SE]) Option[SE, DE] {
 	return func(f *flow[SE, DE]) {
 		f.source = se
 	}
 }
 
-func WithDestination[SE, DE storage.Entry](d storage.Destination[DE]) Option[SE, DE] {
-	return func(f *flow[SE, DE]) {
-		f.destination = d
-	}
-}
-
-func WithRunner[SE, DE storage.Entry](rs ...exec.Runner[SE, DE]) Option[SE, DE] {
-	return func(f *flow[SE, DE]) {
-		f.runners.Add(rs...)
-	}
-}
-
+// WithStateInterval sets the state refresh interval.
 func WithStateInterval[SE, DE storage.Entry](d time.Duration) Option[SE, DE] {
 	return func(f *flow[SE, DE]) {
 		f.stateInterval = d
 	}
 }
 
+// WithGroup registers a group of runners bound to one or more destinations.
+//   - 0 dests: destination defaults to NoopDestination (consumer path, no data produced)
+//   - 1 dest:   single destination
+//   - N dests:  wrapped as MultiDestination (fan-out to all destinations)
+//
+// Each group runs independently: runners' outputs are fan-in merged within the group,
+// then forwarded to the group's destination(s). Groups execute concurrently.
+func WithGroup[SE, DE storage.Entry](
+	runners []exec.Runner[SE, DE],
+	dests ...storage.Destination[DE],
+) Option[SE, DE] {
+	return func(f *flow[SE, DE]) {
+		rs := exec.NewRunners[SE, DE]()
+		rs.Add(runners...)
+
+		var dest storage.Destination[DE]
+		switch len(dests) {
+		case 0:
+			dest = storage.NoopDestination[DE]{}
+		case 1:
+			dest = dests[0]
+		default:
+			dest = storage.MultiDestination[DE](dests)
+		}
+
+		f.groups.Add(group[SE, DE]{
+			runners:     rs,
+			destination: dest,
+		})
+	}
+}
+
+// flow holds the source and groups, orchestrating the full lifecycle.
+// Data flows: Source → transport(fan-out) → [group1.runners, group2.runners, ...]
+//                                         → executor.Exec → runner.OutChan
+//                                         → per-group fan-in → group.destination
 type flow[SE, DE storage.Entry] struct {
 	source        storage.Source[SE]
-	destination   storage.Destination[DE]
+	groups        *groups[SE, DE]
 	refreshOutput *output.Refresh
-	runners       *exec.Runners[SE, DE]
 	stateInterval time.Duration
 }
 
+// RunFlow is the entry point. It validates options, executes the full lifecycle
+// (check → run → close), and returns any error encountered.
 func RunFlow[SE, DE storage.Entry](opts ...Option[SE, DE]) error {
 	d := timing.NewDuration()
 	d.Start()
 
 	f := &flow[SE, DE]{
-		runners:     exec.NewRunners[SE, DE](),
-		destination: storage.NoopDestination[DE]{},
+		groups: NewGroups[SE, DE](),
 	}
 	for _, o := range opts {
 		o(f)
@@ -80,13 +109,30 @@ func (f *flow[SE, DE]) check() error {
 		return errors.New("source not found")
 	}
 
-	if f.runners.Len() <= 0 {
-		return errors.New("runner not found")
+	if f.groups.Len() == 0 {
+		return errors.New("group not found")
 	}
 
 	return nil
 }
 
+// run executes the data processing lifecycle.
+//
+// Data flow:
+//   Source → transport(fan-out) → [group1.runners, group2.runners, ...]
+//                                    ↓ executor.Exec
+//                              [runner.OutChan, ...]
+//                                    ↓ per-group fan-in
+//                              group.destination.Receive
+//                                    ↓ (MultiDestination fan-out)
+//                              [sub-dest1, sub-dest2, ...]
+//
+// Lifecycle phases:
+//   1. Prepare: source.Prepare → groups.Prepare (runners + destination)
+//   2. Start:   source.Scan → groups.Start (runners) → groups.Accept (destination)
+//   3. Async:   errgroup { source.Finish, transport, groups.Finish, groups.OutputForward }
+//   4. Finish:  groups.DestinationFinish
+//   5. Close (deferred): source.Close → groups.Close (runners + destination)
 func (f *flow[SE, DE]) run() error {
 	defer f.close()
 
@@ -97,39 +143,35 @@ func (f *flow[SE, DE]) run() error {
 		}),
 	)
 
-	// 创建全局 context errgroup
+	// errgroup with cancel for coordinating async goroutines
 	g, ctx := errgroup.WithContext(context.Background())
 
-	// Prepare 阶段（同步，可能出错，传入 ctx 创建 errgroup）
+	// === Phase 1: Prepare ===
+	// All Prepare calls are synchronous so that errors are surfaced before any goroutines start.
 	err := f.source.Prepare(ctx)
 	if err != nil {
 		return fmt.Errorf("source.Prepare: %w", err)
 	}
 
-	err = f.runners.Prepare(ctx)
+	err = f.groups.Prepare(ctx)
 	if err != nil {
-		return fmt.Errorf("runners.Prepare: %w", err)
-	}
-
-	err = f.destination.Prepare(ctx)
-	if err != nil {
-		return fmt.Errorf("destination.Prepare: %w", err)
+		return fmt.Errorf("groups.Prepare: %w", err)
 	}
 
 	f.summary()
 
-	// 异步启动
+	// === Phase 2: Start ===
+	// Non-blocking: Scan/Start/Accept launch producer goroutines internally.
 	f.source.Scan()
-	f.runners.Start()
-	f.destination.Accept()
+	f.groups.Start()
+	f.groups.Accept()
 
 	f.refreshOutput.Start()
 
-	// errgroup 协调并发
+	// === Phase 3: Async concurrent processing ===
 	g.Go(func() error {
-		err1 := f.source.Finish()
-		if err1 != nil {
-			return fmt.Errorf("source.Finish: %w", err1)
+		if err := f.source.Finish(); err != nil {
+			return fmt.Errorf("source.Finish: %w", err)
 		}
 
 		return nil
@@ -141,138 +183,90 @@ func (f *flow[SE, DE]) run() error {
 	})
 
 	g.Go(func() error {
-		err1 := f.runners.Finish()
-		if err1 != nil {
-			return fmt.Errorf("runners.Finish: %w", err1)
+		if err := f.groups.Finish(); err != nil {
+			return fmt.Errorf("groups.Finish: %w", err)
 		}
 
 		return nil
 	})
 
 	g.Go(func() error {
-		err1 := f.outputForward(ctx)
-		if err1 != nil {
-			return fmt.Errorf("outputForward: %w", err1)
+		if err := f.groups.OutputForward(ctx); err != nil {
+			return fmt.Errorf("groups.OutputForward: %w", err)
 		}
 
 		return nil
 	})
 
-	// 等待全部退出
-	err = g.Wait()
-	if err != nil {
+	// Wait for all async goroutines to complete.
+	if err = g.Wait(); err != nil {
 		return err
 	}
 
-	err = f.destination.Finish()
+	// === Phase 4: Finish ===
+	// Destination persistence is finalized after all data has been forwarded and Done.
+	err = f.groups.DestinationFinish()
 	if err != nil {
-		return fmt.Errorf("destination.Finish: %w", err)
+		return fmt.Errorf("groups.DestinationFinish: %w", err)
 	}
 
 	return nil
 }
 
+// transport reads from the source channel and fans out data to all groups' runners.
+//
+// Concurrency model:
+//   - Single goroutine reading from source.ReceiveChan
+//   - For each batch: delegates fan-out (with Copy when needed) to groups.Receive
+//   - On source channel closed or ctx cancelled: signals all runners via groups.Done()
 func (f *flow[SE, DE]) transport(ctx context.Context) {
-	needCopy := f.runners.Len() > 1
-
 	for {
 		select {
 		case items, ok := <-f.source.ReceiveChan():
 			if !ok {
-				f.runners.Done()
+				f.groups.Done()
 				return
 			}
-			if needCopy {
-				for _, r := range f.runners.All() {
-					newItems := f.source.Copy(items)
-					r.Receive(newItems)
-				}
-			} else {
-				f.runners.Receive(items)
-			}
+
+			f.groups.Receive(items, f.source.Copy)
+
 		case <-ctx.Done():
-			f.runners.Done()
+			f.groups.Done()
 			return
 		}
 	}
 }
 
-// outputForward fans in data from all runners' OutChan and forwards it to the destination.
-// In the consumer path, OutChan carries no data (out is nil), so this drains and calls
-// destination.Receive zero times; NoopDestination.Receive is a no-op anyway.
-// In the producer path, produced data is forwarded to the destination for persistence.
-func (f *flow[SE, DE]) outputForward(ctx context.Context) error {
-	merged := make(chan []DE)
-	var wg sync.WaitGroup
-	for _, r := range f.runners.All() {
-		wg.Add(1)
-		go func(r exec.Runner[SE, DE]) {
-			defer wg.Done()
-			for out := range r.OutChan() {
-				select {
-				case <-ctx.Done():
-					return
-				case merged <- out:
-				}
-			}
-		}(r)
-	}
-	go func() { wg.Wait(); close(merged) }()
-
-	for out := range merged {
-		if err := f.destination.Receive(out); err != nil {
-			return err
-		}
-	}
-	f.destination.Done()
-	return nil
-}
-
+// close releases all resources in reverse preparation order.
 func (f *flow[SE, DE]) close() {
 	defer func() {
 		f.refreshOutput.Stop()
 		f.runnersOutput()
 	}()
 
-	err := f.source.Close()
-	if err != nil {
+	if err := f.source.Close(); err != nil {
 		f.refreshOutput.PrintNext(fmt.Errorf("source.Close: %w", err).Error())
 	}
 
-	err = f.runners.Close()
-	if err != nil {
-		f.refreshOutput.PrintNext(fmt.Errorf("runners.Close: %w", err).Error())
-	}
-
-	err = f.destination.Close()
-	if err != nil {
-		f.refreshOutput.PrintNext(fmt.Errorf("destination.Close: %w", err).Error())
+	for _, err := range f.groups.Close() {
+		f.refreshOutput.PrintNext(err.Error())
 	}
 }
 
 func (f *flow[SE, DE]) summary() {
 	lines := f.source.Summary()
-	lines = append(lines, "Runners: ")
-	for _, s := range f.runners.Summary() {
-		lines = append(lines, "  "+s)
-	}
-	lines = append(lines, "Destination: ")
-	lines = append(lines, f.destination.Summary()...)
+	lines = append(lines, f.groups.Summary()...)
 
 	for _, s := range lines {
 		fmt.Println(s)
 	}
-
 	fmt.Println("")
 }
 
 func (f *flow[SE, DE]) state() []string {
-	sourceLines := f.source.State()
-	lines := make([]string, len(sourceLines))
-	copy(lines, sourceLines)
-
-	lines = append(lines, f.runners.State()...)
-	lines = append(lines, f.destination.State()...)
+	lines := make([]string, 0)
+	lines = append(lines, f.source.State()...)
+	lines = append(lines, f.groups.State()...)
 
 	return lines
 }
@@ -280,7 +274,7 @@ func (f *flow[SE, DE]) state() []string {
 func (f *flow[SE, DE]) runnersOutput() {
 	fmt.Println("\nOutput: ")
 
-	for _, s := range f.runners.Output() {
+	for _, s := range f.groups.Output() {
 		fmt.Println(s)
 	}
 
