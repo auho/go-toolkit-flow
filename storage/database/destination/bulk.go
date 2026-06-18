@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/database"
 	"github.com/auho/go-toolkit-flow/storage/database/destination/dialect"
 	"github.com/auho/go-toolkit-flow/storage/database/destination/format"
 	"github.com/auho/go-toolkit/time/timing"
@@ -19,7 +18,6 @@ import (
 type WriteConfig = dialect.WriteConfig
 
 var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
-var _ database.Driver = (*Bulk[storage.MapEntry])(nil)
 
 type Bulk[E storage.Entry] struct {
 	storage.Storage
@@ -31,9 +29,9 @@ type Bulk[E storage.Entry] struct {
 	itemsChan chan []E
 
 	// Concurrency and error handling
-	writeGroup  *errgroup.Group
-	writeCtx    context.Context
-	writeError  error
+	writeGroup *errgroup.Group
+	writeCtx   context.Context
+	writeError error
 
 	isDone atomic.Bool
 }
@@ -52,14 +50,6 @@ func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfi
 	dest.initConfig()
 
 	return dest, nil
-}
-
-func (b *Bulk[E]) DB() *database.DB {
-	if driver, ok := b.dialect.(database.Driver); ok {
-		return driver.DB()
-	}
-
-	return nil
 }
 
 func (b *Bulk[E]) initConfig() {

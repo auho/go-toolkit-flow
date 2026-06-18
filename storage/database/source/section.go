@@ -10,7 +10,6 @@ import (
 	"runtime"
 
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/database"
 	"github.com/auho/go-toolkit-flow/storage/database/source/dialect"
 	"github.com/auho/go-toolkit-flow/storage/database/source/format"
 	"golang.org/x/sync/errgroup"
@@ -54,14 +53,6 @@ func newSection[E storage.Entry](f format.Format[E], d dialect.Dialect, c Sectio
 	s.initConfig(c)
 
 	return s
-}
-
-func (s *Section[E]) DB() *database.DB {
-	if driver, ok := s.dialect.(database.Driver); ok {
-		return driver.DB()
-	}
-
-	return nil
 }
 
 func (s *Section[E]) Copy(items []E) []E {
