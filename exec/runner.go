@@ -18,17 +18,17 @@ var _ Runner[string, string] = (*runner[string, string])(nil)
 // In the producer path, out carries the produced data forwarded to a destination.
 type Executor[SE, DE storage.Entry] interface {
 	// Exec
+	// out: produced data (producer path); nil (consumer path)
 	// amount: input amount
 	// affected: output affected amount
-	// out: produced data (producer path); nil (consumer path)
-	Exec(items []SE) (amount, affected int64, out []DE, err error)
+	Exec(items []SE) (out []DE, amount, affected int64, err error)
 }
 
 // Runner defines the lifecycle interface for an executable task.
 type Runner[SE, DE storage.Entry] interface {
 	Prepare(ctx context.Context) error // preparation before processing data
-	Receive([]SE)                       // receive data asynchronously
-	Start()                             // start processing data
+	Receive([]SE)                      // receive data asynchronously
+	Start()                            // start processing data
 	Done()                             // triggered after upstream data processing
 	Finish() error                     // data processing completed
 	Close() error
@@ -43,20 +43,20 @@ type runner[SE, DE storage.Entry] struct {
 	amount   int64
 	affected int64
 
-	itemsChan chan []SE
-	outChan   chan []DE
-	executor  Executor[SE, DE]
-	operator  operator.Operator[SE]
+	inChan   chan []SE
+	outChan  chan []DE
+	executor Executor[SE, DE]
+	operator operator.Operator[SE]
 
-	runGroup *errgroup.Group
-	runCtx   context.Context
+	startGroup *errgroup.Group
+	startCtx   context.Context
 }
 
 func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], o operator.Operator[SE]) Runner[SE, DE] {
 	r := &runner[SE, DE]{}
 	r.executor = e
 	r.operator = o
-	r.itemsChan = make(chan []SE, o.Concurrency())
+	r.inChan = make(chan []SE, o.Concurrency())
 	r.outChan = make(chan []DE, o.Concurrency())
 
 	return r
@@ -75,32 +75,32 @@ func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 		return fmt.Errorf("operator.BeforeExec: %w", err)
 	}
 
-	r.runGroup, r.runCtx = errgroup.WithContext(ctx)
+	r.startGroup, r.startCtx = errgroup.WithContext(ctx)
 
 	return nil
 }
 
 func (r *runner[SE, DE]) Receive(items []SE) {
 	select {
-	case <-r.runCtx.Done():
-	case r.itemsChan <- items:
+	case <-r.startCtx.Done():
+	case r.inChan <- items:
 	}
 }
 
 func (r *runner[SE, DE]) Start() {
 	for i := 0; i < r.operator.Concurrency(); i++ {
-		r.runGroup.Go(func() error {
+		r.startGroup.Go(func() error {
 			for {
 				select {
-				case <-r.runCtx.Done():
+				case <-r.startCtx.Done():
 					return nil
-				case items, ok := <-r.itemsChan:
+				case items, ok := <-r.inChan:
 					if !ok {
 						return nil
 					}
 
 					atomic.AddInt64(&r.total, int64(len(items)))
-					amount, affected, out, err1 := r.executor.Exec(items)
+					out, amount, affected, err1 := r.executor.Exec(items)
 					if err1 != nil {
 						return fmt.Errorf("executor.Exec: %w", err1)
 					}
@@ -110,7 +110,7 @@ func (r *runner[SE, DE]) Start() {
 
 					if len(out) > 0 {
 						select {
-						case <-r.runCtx.Done():
+						case <-r.startCtx.Done():
 							return nil
 						case r.outChan <- out:
 						}
@@ -122,11 +122,11 @@ func (r *runner[SE, DE]) Start() {
 }
 
 func (r *runner[SE, DE]) Done() {
-	close(r.itemsChan)
+	close(r.inChan)
 }
 
 func (r *runner[SE, DE]) Finish() error {
-	err := r.runGroup.Wait()
+	err := r.startGroup.Wait()
 	if err != nil {
 		return fmt.Errorf("runGroup.Wait: %w", err)
 	}

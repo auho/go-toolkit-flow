@@ -24,11 +24,11 @@ func NewRunner[SE, DE storage.Entry](b consumer.Batch[SE]) exec.Runner[SE, DE] {
 	return exec.NewRunner[SE, DE](a, a.batch)
 }
 
-func (a *adapter[SE, DE]) Exec(items []SE) (amount, affected int64, out []DE, err error) {
+func (a *adapter[SE, DE]) Exec(items []SE) (out []DE, amount, affected int64, err error) {
 	n, err := a.batch.Exec(items)
 	if err != nil {
-		return 0, 0, nil, fmt.Errorf("batch.Exec: %w", err)
+		return nil, 0, 0, fmt.Errorf("batch.Exec: %w", err)
 	}
 
-	return int64(len(items)), n, nil, nil
+	return nil, int64(len(items)), n, nil
 }

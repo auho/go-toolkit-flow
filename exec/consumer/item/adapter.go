@@ -24,11 +24,11 @@ func NewRunner[SE, DE storage.Entry](it consumer.Item[SE]) exec.Runner[SE, DE] {
 	return exec.NewRunner[SE, DE](a, a.item)
 }
 
-func (a *adapter[SE, DE]) Exec(items []SE) (amount, affected int64, out []DE, err error) {
+func (a *adapter[SE, DE]) Exec(items []SE) (out []DE, amount, affected int64, err error) {
 	for k := range items {
 		ok, err1 := a.item.Exec(items[k])
 		if err1 != nil {
-			return 0, 0, nil, fmt.Errorf("item.Exec: %w", err1)
+			return nil, 0, 0, fmt.Errorf("item.Exec: %w", err1)
 		}
 
 		if ok {
@@ -36,5 +36,5 @@ func (a *adapter[SE, DE]) Exec(items []SE) (amount, affected int64, out []DE, er
 		}
 	}
 
-	return amount, 0, nil, nil
+	return nil, amount, 0, nil
 }

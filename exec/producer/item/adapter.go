@@ -24,12 +24,12 @@ func NewRunner[SE, DE storage.Entry](it producer.Item[SE, DE]) exec.Runner[SE, D
 	return exec.NewRunner[SE, DE](a, a.item)
 }
 
-func (a *adapter[SE, DE]) Exec(items []SE) (amount, affected int64, out []DE, err error) {
+func (a *adapter[SE, DE]) Exec(items []SE) (out []DE, amount, affected int64, err error) {
 	newItems := make([]DE, 0, len(items))
 	for k := range items {
 		v, ok, err1 := a.item.Exec(items[k])
 		if err1 != nil {
-			return 0, 0, nil, fmt.Errorf("item.Exec: %w", err1)
+			return nil, 0, 0, fmt.Errorf("item.Exec: %w", err1)
 		}
 
 		if ok {
@@ -40,8 +40,8 @@ func (a *adapter[SE, DE]) Exec(items []SE) (amount, affected int64, out []DE, er
 
 	err = a.item.PostBatchExec(newItems)
 	if err != nil {
-		return amount, int64(len(newItems)), nil, fmt.Errorf("item.PostBatchExec: %w", err)
+		return nil, amount, int64(len(newItems)), fmt.Errorf("item.PostBatchExec: %w", err)
 	}
 
-	return amount, int64(len(newItems)), newItems, nil
+	return newItems, amount, int64(len(newItems)), nil
 }
