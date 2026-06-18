@@ -4,9 +4,10 @@ import (
 	"runtime"
 
 	"github.com/auho/go-toolkit-flow/operator"
+	"github.com/auho/go-toolkit-flow/operator/producer"
 )
 
-var _ operator.Transformer[map[string]any] = (*transformer)(nil)
+var _ producer.Item[map[string]any, map[string]any] = (*transformer)(nil)
 
 type transformer struct {
 	operator.BaseOperator

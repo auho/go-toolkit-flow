@@ -4,30 +4,31 @@ import (
 	"runtime"
 
 	"github.com/auho/go-toolkit-flow/operator"
+	"github.com/auho/go-toolkit-flow/operator/consumer"
 )
 
-var _ operator.Batch[map[string]any] = (*batch)(nil)
+var _ consumer.Batch[map[string]any] = (*batchOp)(nil)
 
-type batch struct {
+type batchOp struct {
 	operator.BaseOperator
 }
 
-func (b *batch) Concurrency() int {
+func (b *batchOp) Concurrency() int {
 	return runtime.NumCPU()
 }
 
-func (b *batch) AppendState() {}
+func (b *batchOp) AppendState() {}
 
-func (b *batch) Summary() string {
+func (b *batchOp) Summary() string {
 	return "test batch"
 }
 
-func (b *batch) Prepare() error {
+func (b *batchOp) Prepare() error {
 	b.SetStateLine(0, "prepare")
 	return nil
 }
 
-func (b *batch) Exec(items []map[string]any) (int64, error) {
+func (b *batchOp) Exec(items []map[string]any) (int64, error) {
 	for _, item := range items {
 		_ = item
 	}
@@ -35,18 +36,18 @@ func (b *batch) Exec(items []map[string]any) (int64, error) {
 	return int64(len(items)), nil
 }
 
-func (b *batch) BeforeExec() error {
+func (b *batchOp) BeforeExec() error {
 	b.SetStateLine(0, "pre do")
 	b.Outputln("pre do")
 
 	return nil
 }
 
-func (b *batch) AfterExec() error {
+func (b *batchOp) AfterExec() error {
 	b.SetStateLine(0, "post do")
 	b.Outputln("post do")
 
 	return nil
 }
 
-func (b *batch) Close() error { return nil }
+func (b *batchOp) Close() error { return nil }

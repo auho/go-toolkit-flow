@@ -10,52 +10,59 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var _ Runner[string] = (*runner[string])(nil)
+var _ Runner[string, string] = (*runner[string, string])(nil)
 
-// Processor unifies Transformer and Batch processing strategies.
-type Processor[E storage.Entry] interface {
-	// Run
+// Executor unifies consumer and producer processing strategies.
+// SE is the source element type; DE is the destination element type.
+// In the consumer path, out is nil (no data produced).
+// In the producer path, out carries the produced data forwarded to a destination.
+type Executor[SE, DE storage.Entry] interface {
+	// Exec
 	// amount: input amount
-	// effected: output effected amount
-	Run(items []E) (amount, effected int64, err error)
+	// affected: output affected amount
+	// out: produced data (producer path); nil (consumer path)
+	Exec(items []SE) (amount, affected int64, out []DE, err error)
 }
 
 // Runner defines the lifecycle interface for an executable task.
-type Runner[E storage.Entry] interface {
+type Runner[SE, DE storage.Entry] interface {
 	Prepare(ctx context.Context) error // preparation before processing data
-	Receive([]E)                       // receive data asynchronously
-	Run()                              // process data
+	Receive([]SE)                       // receive data asynchronously
+	Start()                             // start processing data
 	Done()                             // triggered after upstream data processing
 	Finish() error                     // data processing completed
 	Close() error
 	Summary() string
 	State() []string
 	Output() []string
+	OutChan() <-chan []DE // produced data output channel (producer path)
 }
 
-type runner[E storage.Entry] struct {
+type runner[SE, DE storage.Entry] struct {
 	total    int64
 	amount   int64
-	effected int64
+	affected int64
 
-	itemsChan chan []E
-	processor Processor[E]
-	operator  operator.Operator[E]
+	itemsChan chan []SE
+	outChan   chan []DE
+	executor  Executor[SE, DE]
+	operator  operator.Operator[SE]
 
 	runGroup *errgroup.Group
 	runCtx   context.Context
 }
 
-func NewRunner[E storage.Entry](p Processor[E], o operator.Operator[E]) Runner[E] {
-	r := &runner[E]{}
-	r.processor = p
+func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], o operator.Operator[SE]) Runner[SE, DE] {
+	r := &runner[SE, DE]{}
+	r.executor = e
 	r.operator = o
-	r.itemsChan = make(chan []E, o.Concurrency())
+	r.itemsChan = make(chan []SE, o.Concurrency())
+	r.outChan = make(chan []DE, o.Concurrency())
 
 	return r
 }
 
-func (r *runner[E]) Prepare(ctx context.Context) error {
+func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 	r.operator.Init()
 
 	err := r.operator.Prepare()
@@ -73,14 +80,14 @@ func (r *runner[E]) Prepare(ctx context.Context) error {
 	return nil
 }
 
-func (r *runner[E]) Receive(items []E) {
+func (r *runner[SE, DE]) Receive(items []SE) {
 	select {
 	case <-r.runCtx.Done():
 	case r.itemsChan <- items:
 	}
 }
 
-func (r *runner[E]) Run() {
+func (r *runner[SE, DE]) Start() {
 	for i := 0; i < r.operator.Concurrency(); i++ {
 		r.runGroup.Go(func() error {
 			for {
@@ -93,28 +100,38 @@ func (r *runner[E]) Run() {
 					}
 
 					atomic.AddInt64(&r.total, int64(len(items)))
-					amount, effected, err1 := r.processor.Run(items)
+					amount, affected, out, err1 := r.executor.Exec(items)
 					if err1 != nil {
-						return fmt.Errorf("processor.Run: %w", err1)
+						return fmt.Errorf("executor.Exec: %w", err1)
 					}
 
 					atomic.AddInt64(&r.amount, amount)
-					atomic.AddInt64(&r.effected, effected)
+					atomic.AddInt64(&r.affected, affected)
+
+					if len(out) > 0 {
+						select {
+						case <-r.runCtx.Done():
+							return nil
+						case r.outChan <- out:
+						}
+					}
 				}
 			}
 		})
 	}
 }
 
-func (r *runner[E]) Done() {
+func (r *runner[SE, DE]) Done() {
 	close(r.itemsChan)
 }
 
-func (r *runner[E]) Finish() error {
+func (r *runner[SE, DE]) Finish() error {
 	err := r.runGroup.Wait()
 	if err != nil {
 		return fmt.Errorf("runGroup.Wait: %w", err)
 	}
+
+	close(r.outChan)
 
 	err = r.operator.AfterExec()
 	if err != nil {
@@ -124,19 +141,23 @@ func (r *runner[E]) Finish() error {
 	return nil
 }
 
-func (r *runner[E]) Close() error {
+func (r *runner[SE, DE]) Close() error {
 	return r.operator.Close()
 }
 
-func (r *runner[E]) Summary() string {
+func (r *runner[SE, DE]) Summary() string {
 	return r.operator.Summary()
 }
 
-func (r *runner[E]) State() []string {
+func (r *runner[SE, DE]) State() []string {
 	r.operator.AppendState()
-	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Effected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.effected))}, r.operator.State()...)
+	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.operator.State()...)
 }
 
-func (r *runner[E]) Output() []string {
+func (r *runner[SE, DE]) Output() []string {
 	return r.operator.Output()
+}
+
+func (r *runner[SE, DE]) OutChan() <-chan []DE {
+	return r.outChan
 }

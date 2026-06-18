@@ -9,18 +9,18 @@ import (
 
 // Runners 是 Runner 的集合类型，封装了对 []Runner 的遍历操作。
 // 后续可扩展为并发执行，调用方无需感知。
-type Runners[E storage.Entry] []Runner[E]
+type Runners[SE, DE storage.Entry] []Runner[SE, DE]
 
-func NewRunners[E storage.Entry]() *Runners[E] {
-	r := make(Runners[E], 0)
+func NewRunners[SE, DE storage.Entry]() *Runners[SE, DE] {
+	r := make(Runners[SE, DE], 0)
 	return &r
 }
 
-func (rs *Runners[E]) Add(r ...Runner[E]) {
+func (rs *Runners[SE, DE]) Add(r ...Runner[SE, DE]) {
 	*rs = append(*rs, r...)
 }
 
-func (rs *Runners[E]) Prepare(ctx context.Context) error {
+func (rs *Runners[SE, DE]) Prepare(ctx context.Context) error {
 	for _, r := range *rs {
 		if err := r.Prepare(ctx); err != nil {
 			return fmt.Errorf("prepare: %w", err)
@@ -30,25 +30,25 @@ func (rs *Runners[E]) Prepare(ctx context.Context) error {
 	return nil
 }
 
-func (rs *Runners[E]) Run() {
+func (rs *Runners[SE, DE]) Start() {
 	for _, r := range *rs {
-		r.Run()
+		r.Start()
 	}
 }
 
-func (rs *Runners[E]) Receive(items []E) {
+func (rs *Runners[SE, DE]) Receive(items []SE) {
 	for _, r := range *rs {
 		r.Receive(items)
 	}
 }
 
-func (rs *Runners[E]) Done() {
+func (rs *Runners[SE, DE]) Done() {
 	for _, r := range *rs {
 		r.Done()
 	}
 }
 
-func (rs *Runners[E]) Finish() error {
+func (rs *Runners[SE, DE]) Finish() error {
 	for _, r := range *rs {
 		if err := r.Finish(); err != nil {
 			return fmt.Errorf("finish: %w", err)
@@ -58,7 +58,7 @@ func (rs *Runners[E]) Finish() error {
 	return nil
 }
 
-func (rs *Runners[E]) Close() error {
+func (rs *Runners[SE, DE]) Close() error {
 	for _, r := range *rs {
 		if err := r.Close(); err != nil {
 			return fmt.Errorf("close: %w", err)
@@ -68,7 +68,7 @@ func (rs *Runners[E]) Close() error {
 	return nil
 }
 
-func (rs *Runners[E]) Summary() []string {
+func (rs *Runners[SE, DE]) Summary() []string {
 	lines := make([]string, 0, len(*rs))
 	for _, r := range *rs {
 		lines = append(lines, r.Summary())
@@ -77,7 +77,7 @@ func (rs *Runners[E]) Summary() []string {
 	return lines
 }
 
-func (rs *Runners[E]) State() []string {
+func (rs *Runners[SE, DE]) State() []string {
 	lines := make([]string, 0)
 	for _, r := range *rs {
 		lines = append(lines, r.Summary())
@@ -89,7 +89,7 @@ func (rs *Runners[E]) State() []string {
 	return lines
 }
 
-func (rs *Runners[E]) Output() []string {
+func (rs *Runners[SE, DE]) Output() []string {
 	lines := make([]string, 0)
 	for _, r := range *rs {
 		lines = append(lines, r.Output()...)
@@ -98,10 +98,10 @@ func (rs *Runners[E]) Output() []string {
 	return lines
 }
 
-func (rs *Runners[E]) Len() int {
+func (rs *Runners[SE, DE]) Len() int {
 	return len(*rs)
 }
 
-func (rs *Runners[E]) All() []Runner[E] {
+func (rs *Runners[SE, DE]) All() []Runner[SE, DE] {
 	return *rs
 }
