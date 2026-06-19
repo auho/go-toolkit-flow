@@ -7,7 +7,7 @@ import (
 )
 
 func TestMock_Copy(t *testing.T) {
-	m := NewSliceMap(Config{Total: 10, PageSize: 5})
+	m := NewMap(Config{Total: 10, PageSize: 5})
 
 	original := []storage.MapEntry{
 		{"id": 1, "name": "foo"},
@@ -27,7 +27,7 @@ func TestMock_Copy(t *testing.T) {
 }
 
 func TestMock_Close(t *testing.T) {
-	m := NewSliceMap(Config{Total: 10, PageSize: 5})
+	m := NewMap(Config{Total: 10, PageSize: 5})
 	err := m.Close()
 	if err != nil {
 		t.Errorf("Close() returned error: %v", err)
@@ -35,7 +35,7 @@ func TestMock_Close(t *testing.T) {
 }
 
 func TestMock_ConfigDefaults(t *testing.T) {
-	m := NewSliceMap(Config{})
+	m := NewMap(Config{})
 
 	if m.total != 100 {
 		t.Errorf("default total = %d, want 100", m.total)
@@ -52,7 +52,7 @@ func TestMock_ConfigDefaults(t *testing.T) {
 }
 
 func TestMock_SummaryContent(t *testing.T) {
-	m := NewSliceMap(Config{Total: 50, PageSize: 10})
+	m := NewMap(Config{Total: 50, PageSize: 10})
 	summary := m.Summary()
 	if len(summary) == 0 {
 		t.Fatal("Summary() returned empty slice")
@@ -60,7 +60,7 @@ func TestMock_SummaryContent(t *testing.T) {
 }
 
 func TestMock_StateContent(t *testing.T) {
-	m := NewSliceMap(Config{Total: 50, PageSize: 10})
+	m := NewMap(Config{Total: 50, PageSize: 10})
 	state := m.State()
 	if len(state) == 0 {
 		t.Fatal("State() returned empty slice")

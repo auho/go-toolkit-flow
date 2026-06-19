@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-func TestInsertSliceMap(t *testing.T) {
+func TestInsertSlice(t *testing.T) {
 	page = rand.Intn(49) + 1
 	pageSize = (rand.Intn(9) + 1) * pageSize
 
-	d, err := NewInsertSliceMap()
+	d, err := NewInsertSlice()
 	if err != nil {
 		t.Error(err)
 	}
@@ -24,14 +24,14 @@ func TestInsertSliceMap(t *testing.T) {
 
 	go func() {
 		for i := 0; i < page; i++ {
-			var sliceMap []map[string]any
+			var sliceSlice [][]any
 			for j := 0; j < pageSize; j++ {
-				m := make(map[string]any)
-				m[idName] = i*page + j
-				sliceMap = append(sliceMap, m)
+				m := make([]any, 0)
+				m = append(m, i*page+j)
+				sliceSlice = append(sliceSlice, m)
 			}
 
-			d.Receive(sliceMap)
+			d.Receive(sliceSlice)
 		}
 
 		d.Done()

@@ -4,17 +4,18 @@ import (
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/storage/mock/destination/format"
 )
 
 func TestDestination_Done_Idempotent(t *testing.T) {
-	d := &Destination[storage.MapEntry]{}
+	d := NewDestination(format.NewInsertMapFormat())
 	d.Accept()
 	d.Done()
 	d.Done()
 }
 
 func TestDestination_Close(t *testing.T) {
-	d := &Destination[storage.MapEntry]{}
+	d := NewDestination(format.NewInsertMapFormat())
 	err := d.Close()
 	if err != nil {
 		t.Errorf("Close() returned error: %v", err)
@@ -22,7 +23,7 @@ func TestDestination_Close(t *testing.T) {
 }
 
 func TestDestination_State_Format(t *testing.T) {
-	d := &Destination[storage.MapEntry]{}
+	d := NewDestination(format.NewInsertMapFormat())
 	d.Accept()
 	_ = d.Receive([]storage.MapEntry{{"id": 1}})
 	d.Done()
@@ -40,7 +41,7 @@ func TestDestination_State_Format(t *testing.T) {
 }
 
 func TestDestination_SummaryContent(t *testing.T) {
-	d := &Destination[storage.MapEntry]{}
+	d := NewDestination(format.NewInsertMapFormat())
 	summary := d.Summary()
 	if len(summary) == 0 {
 		t.Fatal("Summary() returned empty slice")
@@ -48,7 +49,7 @@ func TestDestination_SummaryContent(t *testing.T) {
 }
 
 func TestDestination_Amount_PrivateField(t *testing.T) {
-	d := &Destination[storage.MapEntry]{}
+	d := NewDestination(format.NewInsertMapFormat())
 	d.Accept()
 	_ = d.Receive([]storage.MapEntry{{"id": 1}, {"id": 2}})
 	d.Done()

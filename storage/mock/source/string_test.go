@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-func TestSliceString(t *testing.T) {
+func TestString(t *testing.T) {
 	_testMock[string](t, func(config Config) *Mock[string] {
-		return NewSliceString(config)
+		return NewString(config)
 	})
 }

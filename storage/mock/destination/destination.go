@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/storage/mock/destination/format"
 )
 
 var _ storage.Destination[storage.MapEntry] = (*Destination[storage.MapEntry])(nil)
@@ -25,10 +26,17 @@ var _ storage.Destination[storage.MapEntry] = (*Destination[storage.MapEntry])(n
 //   - Done closes itemsChan via CAS to ensure idempotency
 //   - Finish waits for the counter goroutine to exit
 type Destination[E storage.Entry] struct {
+	format format.Format[E]
+
 	isDone    atomic.Bool
 	amount    int64
 	itemsChan chan []E
 	chanWg    sync.WaitGroup
+}
+
+// NewDestination creates a Destination with the given format.
+func NewDestination[E storage.Entry](f format.Format[E]) *Destination[E] {
+	return &Destination[E]{format: f}
 }
 
 func (d *Destination[E]) Prepare(ctx context.Context) error {
@@ -85,5 +93,5 @@ func (d *Destination[E]) Close() error {
 }
 
 func (d *Destination[E]) title() string {
-	return "Mock:desc"
+	return fmt.Sprintf("Mock:desc[%s]", d.format.Type())
 }

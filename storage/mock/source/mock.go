@@ -8,23 +8,10 @@ import (
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/storage/mock/source/format"
 )
 
 var _ storage.Source[storage.MapEntry] = (*Mock[storage.MapEntry])(nil)
-
-// generator is the strategy interface for generating and duplicating mock data.
-// Each concrete generator produces items of a specific entry type (e.g. MapEntry,
-// string) and knows how to deep-copy them.
-type generator[E storage.Entry] interface {
-	// scan generates a batch of items.
-	// idName: the name of the ID field; id: pointer to the current ID counter;
-	// amount: number of items to generate in this batch.
-	// Returns the updated id pointer and the generated items.
-	scan(string, *int64, int64) (*int64, []E)
-
-	// duplicate creates a deep copy of the given items.
-	duplicate([]E) []E
-}
 
 // Mock is an in-memory Source implementation for testing.
 // It generates synthetic data in batches and sends it through a channel,
@@ -40,6 +27,8 @@ type generator[E storage.Entry] interface {
 //   - Finish waits for the scan goroutine to complete, then closes itemsChan
 type Mock[E storage.Entry] struct {
 	storage.Storage
+	format format.Format[E]
+
 	id          int64
 	total       int64 // maximum number of items to generate
 	page        int64
@@ -49,20 +38,19 @@ type Mock[E storage.Entry] struct {
 	concurrency int
 	idName      string
 	itemsChan   chan []E
-	generator   generator[E]
 	scanCtx     context.Context
 	scanWg      sync.WaitGroup
 }
 
-// newMock creates a Mock with the given config and generator.
+// NewMock creates a Mock with the given config and format.
 // Applies defaults: total=100, pageSize=10, concurrency=1, idName="id".
-func newMock[E storage.Entry](config Config, generator generator[E]) *Mock[E] {
+func NewMock[E storage.Entry](config Config, f format.Format[E]) *Mock[E] {
 	m := &Mock[E]{}
 	m.idName = config.IDName
 	m.total = config.Total
 	m.pageSize = config.PageSize
 	m.concurrency = config.Concurrency
-	m.generator = generator
+	m.format = f
 
 	if m.total <= 0 {
 		m.total = 1e2
@@ -105,7 +93,7 @@ func (m *Mock[E]) Scan() {
 				size = m.total - i
 			}
 
-			_, items := m.generator.scan(m.idName, &m.id, size)
+			_, items := m.format.Scan(m.idName, &m.id, size)
 			select {
 			case m.itemsChan <- items:
 			case <-m.scanCtx.Done():
@@ -139,13 +127,13 @@ func (m *Mock[E]) State() []string {
 	return []string{fmt.Sprintf("amount: %d/%d, page: %d/%d(%d)", atomic.LoadInt64(&m.amount), m.total, atomic.LoadInt64(&m.page), m.totalPage, m.pageSize)}
 }
 
-// Copy creates a deep copy of the items via the generator's duplicate method.
+// Copy creates a deep copy of the items via the format's Copy method.
 func (m *Mock[E]) Copy(items []E) []E {
-	return m.generator.duplicate(items)
+	return m.format.Copy(items)
 }
 
 func (m *Mock[E]) Title() string {
-	return "Source mock"
+	return fmt.Sprintf("Mock:source[%s]", m.format.Type())
 }
 
 func (m *Mock[E]) Close() error {

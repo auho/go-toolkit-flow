@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-func TestUpdateSliceMap(t *testing.T) {
+func TestInsertMap(t *testing.T) {
 	page = rand.Intn(49) + 1
 	pageSize = (rand.Intn(9) + 1) * pageSize
 
-	d, err := NewUpdateSliceMap()
+	d, err := NewInsertMap()
 	if err != nil {
 		t.Error(err)
 	}

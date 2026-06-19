@@ -6,8 +6,8 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-func TestSliceMapString(t *testing.T) {
+func TestMapOfString(t *testing.T) {
 	_testMock[storage.MapOfStringsEntry](t, func(config Config) *Mock[storage.MapOfStringsEntry] {
-		return NewSliceMapOfString(config)
+		return NewMapOfString(config)
 	})
 }
