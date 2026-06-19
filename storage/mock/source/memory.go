@@ -11,9 +11,9 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/mock/source/format"
 )
 
-var _ storage.Source[storage.MapEntry] = (*Mock[storage.MapEntry])(nil)
+var _ storage.Source[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 
-// Mock is an in-memory Source implementation for testing.
+// Memory is an in-memory Source implementation for testing.
 // It generates synthetic data in batches and sends it through a channel,
 // mimicking the behavior of real sources (e.g. database, file) without
 // any external dependencies.
@@ -25,7 +25,7 @@ var _ storage.Source[storage.MapEntry] = (*Mock[storage.MapEntry])(nil)
 //   - Scan runs in a single goroutine that writes to itemsChan
 //   - ReceiveChan is read by the transport goroutine
 //   - Finish waits for the scan goroutine to complete, then closes itemsChan
-type Mock[E storage.Entry] struct {
+type Memory[E storage.Entry] struct {
 	storage.Storage
 	format format.Format[E]
 
@@ -42,10 +42,10 @@ type Mock[E storage.Entry] struct {
 	scanWg      sync.WaitGroup
 }
 
-// NewMock creates a Mock with the given config and format.
+// NewMemory creates a Memory with the given config and format.
 // Applies defaults: total=100, pageSize=10, concurrency=1, idName="id".
-func NewMock[E storage.Entry](config Config, f format.Format[E]) *Mock[E] {
-	m := &Mock[E]{}
+func NewMemory[E storage.Entry](config Config, f format.Format[E]) *Memory[E] {
+	m := &Memory[E]{}
 	m.idName = config.IDName
 	m.total = config.Total
 	m.pageSize = config.PageSize
@@ -73,7 +73,7 @@ func NewMock[E storage.Entry](config Config, f format.Format[E]) *Mock[E] {
 	return m
 }
 
-func (m *Mock[E]) Prepare(ctx context.Context) error {
+func (m *Memory[E]) Prepare(ctx context.Context) error {
 	m.scanCtx = ctx
 	m.itemsChan = make(chan []E, m.concurrency)
 
@@ -82,7 +82,7 @@ func (m *Mock[E]) Prepare(ctx context.Context) error {
 
 // Scan launches a goroutine that generates data in batches and writes to itemsChan.
 // Respects scanCtx cancellation for early termination.
-func (m *Mock[E]) Scan() {
+func (m *Memory[E]) Scan() {
 	m.scanWg.Add(1)
 	go func() {
 		defer m.scanWg.Done()
@@ -106,12 +106,12 @@ func (m *Mock[E]) Scan() {
 	}()
 }
 
-func (m *Mock[E]) ReceiveChan() <-chan []E {
+func (m *Memory[E]) ReceiveChan() <-chan []E {
 	return m.itemsChan
 }
 
 // Finish waits for the scan goroutine to complete and closes itemsChan.
-func (m *Mock[E]) Finish() error {
+func (m *Memory[E]) Finish() error {
 	m.scanWg.Wait()
 
 	close(m.itemsChan)
@@ -119,23 +119,33 @@ func (m *Mock[E]) Finish() error {
 	return nil
 }
 
-func (m *Mock[E]) Summary() []string {
+func (m *Memory[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s: total: %d, pageSize: %d", m.Title(), m.total, m.pageSize)}
 }
 
-func (m *Mock[E]) State() []string {
+func (m *Memory[E]) State() []string {
 	return []string{fmt.Sprintf("amount: %d/%d, page: %d/%d(%d)", atomic.LoadInt64(&m.amount), m.total, atomic.LoadInt64(&m.page), m.totalPage, m.pageSize)}
 }
 
 // Copy creates a deep copy of the items via the format's Copy method.
-func (m *Mock[E]) Copy(items []E) []E {
+func (m *Memory[E]) Copy(items []E) []E {
 	return m.format.Copy(items)
 }
 
-func (m *Mock[E]) Title() string {
+// Total returns the configured total number of items to generate.
+func (m *Memory[E]) Total() int64 {
+	return m.total
+}
+
+// Amount returns the number of items actually generated so far.
+func (m *Memory[E]) Amount() int64 {
+	return atomic.LoadInt64(&m.amount)
+}
+
+func (m *Memory[E]) Title() string {
 	return fmt.Sprintf("Mock:source[%s]", m.format.Type())
 }
 
-func (m *Mock[E]) Close() error {
+func (m *Memory[E]) Close() error {
 	return nil
 }

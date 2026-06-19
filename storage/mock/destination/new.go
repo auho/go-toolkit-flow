@@ -5,20 +5,20 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/mock/destination/format"
 )
 
-// NewInsertMap creates a Destination that receives MapEntry items
+// NewInsertMap creates a Memory destination that receives MapEntry items
 // in insert mode.
-func NewInsertMap() (*Destination[storage.MapEntry], error) {
-	return NewDestination[storage.MapEntry](format.NewInsertMapFormat()), nil
+func NewInsertMap() (*Memory[storage.MapEntry], error) {
+	return NewMemory[storage.MapEntry](format.NewInsertMapFormat()), nil
 }
 
-// NewInsertSlice creates a Destination that receives SliceEntry items
+// NewInsertSlice creates a Memory destination that receives SliceEntry items
 // in insert mode.
-func NewInsertSlice() (*Destination[storage.SliceEntry], error) {
-	return NewDestination[storage.SliceEntry](format.NewInsertSliceFormat()), nil
+func NewInsertSlice() (*Memory[storage.SliceEntry], error) {
+	return NewMemory[storage.SliceEntry](format.NewInsertSliceFormat()), nil
 }
 
-// NewUpdateMap creates a Destination that receives MapEntry items
+// NewUpdateMap creates a Memory destination that receives MapEntry items
 // in update mode.
-func NewUpdateMap() (*Destination[storage.MapEntry], error) {
-	return NewDestination[storage.MapEntry](format.NewUpdateMapFormat()), nil
+func NewUpdateMap() (*Memory[storage.MapEntry], error) {
+	return NewMemory[storage.MapEntry](format.NewUpdateMapFormat()), nil
 }
