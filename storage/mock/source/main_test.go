@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
 func _testMock[E storage.Entry](t *testing.T, buildMock func(Config) *Mock[E]) {
-	rand.Seed(time.Now().UnixNano())
 	factor := rand.Intn(10) + 1
 	total := factor * 100
 	pageSize := factor*factor + 1

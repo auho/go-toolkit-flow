@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	goredis "github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v8"
 )
 
 var _setsKey = "test:source:sets"
 
 func _buildSetsData(t *testing.T) {
 	ctx := context.Background()
-	c := goredis.NewClient(&_redisOptions)
+	c := redis.NewClient(&_redisOptions)
 	c.Del(ctx, _setsKey)
 
 	amount := _randAmount()
@@ -38,7 +38,7 @@ func TestNewSets(t *testing.T) {
 		_setsKey,
 		NewSetsWithGoRedisV8,
 		c,
-		func(ctx context.Context, c *goredis.Client) (int64, error) {
+		func(ctx context.Context, c *redis.Client) (int64, error) {
 			return c.SCard(ctx, _setsKey).Result()
 		},
 	)

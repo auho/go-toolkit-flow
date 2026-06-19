@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"os"
 	"testing"
-	"time"
 
 	testredis "github.com/auho/go-toolkit-flow/internal/testutil/redis"
 	"github.com/auho/go-toolkit-flow/storage"
@@ -25,7 +24,6 @@ func TestMain(m *testing.M) {
 
 func setUp() {
 	log.Println("set up")
-	rand.Seed(time.Now().UnixNano())
 }
 
 func tearDown() {

@@ -6,9 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"testing"
-	"time"
-
-	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 )
 
 func TestBulkInsertSliceMapGorm(t *testing.T) {
@@ -18,7 +15,7 @@ func TestBulkInsertSliceMapGorm(t *testing.T) {
 		PageSize:    337,
 	}, WriteConfig{
 		TableName: tableName,
-	}, mysql.DB.GormDB())
+	}, gormDB)
 
 	if err != nil {
 		log.Fatal(err)
@@ -30,7 +27,6 @@ func TestBulkInsertSliceMapGorm(t *testing.T) {
 	}
 	iss.Accept()
 
-	rand.Seed(time.Now().UnixNano())
 	page := int64(rand.Intn(10)) + 10
 	pageSize := int64((rand.Intn(4) + 1) * 1000)
 
@@ -44,13 +40,19 @@ func TestBulkInsertSliceMapGorm(t *testing.T) {
 				}
 			}
 
-			iss.Receive(data)
+			err1 := iss.Receive(data)
+			if err1 != nil {
+				log.Fatal(err1)
+			}
 		}
 
 		iss.Done()
 	}()
 
-	iss.Finish()
+	err = iss.Finish()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Println(iss.Summary())
 	fmt.Println(iss.State())
@@ -60,7 +62,7 @@ func TestBulkInsertSliceMapGorm(t *testing.T) {
 	}
 
 	var dbAmount int64
-	err = iss.DB().Table(tableName).Count(&dbAmount).Error
+	err = gormDB.Table(tableName).Count(&dbAmount).Error
 	if err != nil {
 		t.Error("db amount ", err)
 	}

@@ -21,8 +21,20 @@ func TestMain(m *testing.M) {
 }
 
 func setUp() {
-	var err error
+	mysql.CreateTable(mysql.SourceTable)
+	mysql.CreateTable(mysql.DestinationTable)
+	mysql.BuildData(mysql.SourceTable)
+}
 
+func tearDown() {
+	mysql.CleanData(mysql.SourceTable)
+	mysql.CleanData(mysql.DestinationTable)
+}
+
+func buildDataSource() {
+	gormDB, _ := mysql.InitDB()
+
+	var err error
 	dataSource, err = source.NewSectionMapWithGorm(
 		source.SectionConfig{
 			Concurrency: 0,
@@ -33,18 +45,9 @@ func setUp() {
 			SegmentIDName: mysql.IDName,
 			SelectFields:  []string{mysql.NameName, mysql.ValueName},
 		},
-		mysql.DB.GormDB(),
+		gormDB,
 	)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	mysql.CreateTable(mysql.SourceTable)
-	mysql.CreateTable(mysql.DestinationTable)
-	mysql.BuildData(mysql.SourceTable)
-}
-
-func tearDown() {
-	mysql.CleanData(mysql.SourceTable)
-	mysql.CleanData(mysql.DestinationTable)
 }

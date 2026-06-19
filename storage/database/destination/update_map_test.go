@@ -6,12 +6,8 @@ import (
 	"log"
 	"math/rand"
 	"testing"
-	"time"
 
-	simpledb "github.com/auho/go-simple-db/v2"
-	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/database"
 )
 
 var ussItemsChan = make(chan storage.MapEntries)
@@ -25,13 +21,12 @@ func TestBilkUpdateMapFormatGorm(t *testing.T) {
 		PageSize:    7,
 	}, WriteConfig{
 		TableName: tableName,
-	}, idName, mysql.DB.GormDB())
+	}, idName, gormDB)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	page := int64(rand.Intn(10)) + 10
 	pageSize := int64((rand.Intn(4) + 1) * 10)
 
@@ -44,12 +39,18 @@ func TestBilkUpdateMapFormatGorm(t *testing.T) {
 	uss.Accept()
 
 	for items := range ussItemsChan {
-		uss.Receive(items)
+		err = uss.Receive(items)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	uss.Done()
 
-	uss.Finish()
+	err = uss.Finish()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	fmt.Println(uss.Summary())
 	fmt.Println(uss.State())
@@ -59,7 +60,7 @@ func TestBilkUpdateMapFormatGorm(t *testing.T) {
 	}
 
 	var dbAmount int64
-	err = uss.DB().Table(tableName).Count(&dbAmount).Error
+	err = gormDB.Table(tableName).Count(&dbAmount).Error
 	if err != nil {
 		t.Error(err)
 	}
@@ -70,13 +71,7 @@ func TestBilkUpdateMapFormatGorm(t *testing.T) {
 }
 
 func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
-	d, err := database.BuildDB(func() (*simpledb.SimpleDB, error) {
-		return simpledb.NewMysql(mysqlDsn)
-	})
-	if err != nil {
-		t.Error(err)
-	}
-
+	var err error
 	for i := int64(0); i < page; i++ {
 		rows := make([][]any, pageSize)
 		for j := int64(0); j < pageSize; j++ {
@@ -86,7 +81,7 @@ func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
 			}
 		}
 
-		err = d.BulkInsertFromSliceSlice(tableName, []string{"name", "value"}, rows, 100)
+		err = simpleDB.BulkInsertFromSliceSlice(tableName, []string{"name", "value"}, rows, 100)
 		if err != nil {
 			t.Error(err)
 		}
@@ -94,7 +89,7 @@ func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
 
 	for k := int64(0); k < page*pageSize; k += pageSize {
 		var rows []map[string]any
-		err = d.Table(tableName).
+		err = gormDB.Table(tableName).
 			Select([]string{"id", "name", "value"}).
 			Where(fmt.Sprintf("%s > ?", idName), k).
 			Order(fmt.Sprintf("%s asc", idName)).

@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	goredis "github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v8"
 )
 
 var _listsKey = "test:source:lists"
 
 func _buildListsData(t *testing.T) {
 	ctx := context.Background()
-	c := goredis.NewClient(&_redisOptions)
+	c := redis.NewClient(&_redisOptions)
 	c.Del(ctx, _listsKey)
 
 	amount := _randAmount()
@@ -38,7 +38,7 @@ func TestNewLists(t *testing.T) {
 		_listsKey,
 		NewListsWithGoRedisV8,
 		c,
-		func(ctx context.Context, c *goredis.Client) (int64, error) {
+		func(ctx context.Context, c *redis.Client) (int64, error) {
 			return c.LLen(ctx, _listsKey).Result()
 		},
 	)

@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
-	"time"
 )
 
 func TestInsertSliceMap(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-
 	page = rand.Intn(49) + 1
 	pageSize = (rand.Intn(9) + 1) * pageSize
 

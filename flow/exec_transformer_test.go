@@ -8,6 +8,8 @@ import (
 )
 
 func TestExecTransformer(t *testing.T) {
+	buildDataSource()
+
 	opts := []Option[map[string]any, map[string]any]{
 		WithSource[map[string]any, map[string]any](dataSource),
 		WithGroup[map[string]any, map[string]any](

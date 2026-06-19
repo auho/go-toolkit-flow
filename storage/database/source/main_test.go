@@ -9,13 +9,14 @@ import (
 
 	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/storage"
+	"gorm.io/gorm"
 )
 
-var mysqlDsn = mysql.Dsn
 var tableName = mysql.SourceTable
 var idName = mysql.IDName
 var nameName = mysql.NameName
 var valueName = mysql.ValueName
+var gormDB *gorm.DB
 
 func TestMain(m *testing.M) {
 	setUp()
@@ -25,6 +26,8 @@ func TestMain(m *testing.M) {
 }
 
 func setUp() {
+	gormDB, _ = mysql.InitDB()
+
 	mysql.CreateTable(tableName)
 	mysql.BuildData(tableName)
 }
@@ -32,6 +35,7 @@ func setUp() {
 func _testSection[E storage.Entry](
 	t *testing.T,
 	s *Section[E],
+	db *gorm.DB,
 ) {
 	err := s.Prepare(context.Background())
 	if err != nil {
@@ -61,7 +65,6 @@ func _testSection[E storage.Entry](
 		t.Error(fmt.Sprintf("total != amount != actual %d != %d != %d", s.total, s.state.Amount(), amount))
 	}
 	var dbAmount int64
-	db := s.DB()
 	if db == nil {
 		t.Error("db is nil")
 		return

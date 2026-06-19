@@ -8,7 +8,7 @@ import (
 	"time"
 
 	simpledb "github.com/auho/go-simple-db/v2"
-	"github.com/auho/go-toolkit-flow/storage/database"
+	mysqlgorm "github.com/auho/go-simple-db/v2/driver/mysql/gorm"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -22,11 +22,19 @@ var IDName = "id"
 var NameName = "name"
 var ValueName = "value"
 var Dsn = _dsn + dbName
-var DB *database.DB
+var _gormDB *gorm.DB
+var _simpleDB *simpledb.SimpleDB
 
 func init() {
-	var err error
+	_gormDB, _simpleDB = InitDB()
 
+	err := _gormDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET `utf8mb4` COLLATE `utf8mb4_general_ci`;", dbName)).Error
+	if err != nil {
+		log.Fatal("create database ", err)
+	}
+}
+
+func InitDB() (*gorm.DB, *simpledb.SimpleDB) {
 	dbc := &gorm.Config{
 		Logger: logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer（日志输出的目标，前缀和日志包含的内容——译者注）
@@ -38,16 +46,17 @@ func init() {
 		),
 	}
 
-	DB, err = database.BuildDB(func() (*simpledb.SimpleDB, error) {
-		return simpledb.NewMysql(Dsn, dbc)
-	})
+	// First connect without specifying database name
+	_mysql, err := mysqlgorm.NewMySQL(Dsn, dbc)
 	if err != nil {
-		log.Fatal("new DB create table ", err)
+		log.Fatal("mysqlgorm.NewMySQL ", err)
 	}
+
+	return _mysql.GormDB(), simpledb.NewSimple(_mysql)
 }
 
 func CreateTable(table string) {
-	err := DB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET `utf8mb4` COLLATE `utf8mb4_general_ci`;", dbName)).Error
+	err := _gormDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET `utf8mb4` COLLATE `utf8mb4_general_ci`;", dbName)).Error
 	if err != nil {
 		log.Fatal("create database ", err)
 	}
@@ -59,19 +68,18 @@ func CreateTable(table string) {
 		"`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP," +
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
-	err = DB.Exec(query).Error
+	err = _gormDB.Exec(query).Error
 	if err != nil {
 		log.Fatal("create table ", err)
 	}
 }
 
 func BuildData(table string) {
-	err := DB.Exec(fmt.Sprintf("TRUNCATE TABLE %s", table)).Error
+	err := _gormDB.Exec(fmt.Sprintf("TRUNCATE TABLE %s", table)).Error
 	if err != nil {
 		log.Fatal("build data", err)
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	page := int64(rand.Intn(10)) + 10
 	pageSize := int64((rand.Intn(4) + 1) * 1000)
 
@@ -84,14 +92,14 @@ func BuildData(table string) {
 			}
 		}
 
-		err = DB.Table(table).Create(data).Error
+		err = _gormDB.Table(table).Create(data).Error
 		if err != nil {
 			log.Fatal("bulk insert ", err, data)
 		}
 	}
 
 	var count int64
-	err = DB.Table(table).Count(&count).Error
+	err = _gormDB.Table(table).Count(&count).Error
 	if err != nil {
 		log.Fatal("build data count ", err)
 	}
@@ -102,7 +110,7 @@ func BuildData(table string) {
 }
 
 func CleanData(table string) {
-	err := DB.Truncate(table)
+	err := _simpleDB.Truncate(table)
 	if err != nil {
 		log.Fatal("clean data", err)
 	}

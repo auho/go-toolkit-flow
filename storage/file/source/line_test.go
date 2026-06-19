@@ -6,13 +6,11 @@ import (
 	"os"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/auho/go-toolkit-flow/internal/testutil/file"
 )
 
 func TestNewLine(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
 	_max := rand.Intn(50) + 50
 	_buildFile(t, _max)
 
