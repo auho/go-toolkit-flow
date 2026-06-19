@@ -7,7 +7,7 @@ import (
 )
 
 func TestMapOfString(t *testing.T) {
-	_testMock[storage.MapOfStringsEntry](t, func(config Config) *Mock[storage.MapOfStringsEntry] {
+	_testMemory[storage.MapOfStringsEntry](t, func(config Config) *Memory[storage.MapOfStringsEntry] {
 		return NewMapOfString(config)
 	})
 }

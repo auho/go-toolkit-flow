@@ -9,11 +9,11 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-func _testMock[E storage.Entry](t *testing.T, buildMock func(Config) *Mock[E]) {
+func _testMemory[E storage.Entry](t *testing.T, buildMemory func(Config) *Memory[E]) {
 	factor := rand.Intn(10) + 1
 	total := factor * 100
 	pageSize := factor*factor + 1
-	m := buildMock(Config{
+	m := buildMemory(Config{
 		PageSize: int64(pageSize),
 		Total:    int64(total),
 	})

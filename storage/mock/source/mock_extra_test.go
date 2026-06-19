@@ -6,7 +6,7 @@ import (
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-func TestMock_Copy(t *testing.T) {
+func TestMemory_Copy(t *testing.T) {
 	m := NewMap(Config{Total: 10, PageSize: 5})
 
 	original := []storage.MapEntry{
@@ -26,7 +26,7 @@ func TestMock_Copy(t *testing.T) {
 	}
 }
 
-func TestMock_Close(t *testing.T) {
+func TestMemory_Close(t *testing.T) {
 	m := NewMap(Config{Total: 10, PageSize: 5})
 	err := m.Close()
 	if err != nil {
@@ -34,7 +34,7 @@ func TestMock_Close(t *testing.T) {
 	}
 }
 
-func TestMock_ConfigDefaults(t *testing.T) {
+func TestMemory_ConfigDefaults(t *testing.T) {
 	m := NewMap(Config{})
 
 	if m.total != 100 {
@@ -51,7 +51,7 @@ func TestMock_ConfigDefaults(t *testing.T) {
 	}
 }
 
-func TestMock_SummaryContent(t *testing.T) {
+func TestMemory_SummaryContent(t *testing.T) {
 	m := NewMap(Config{Total: 50, PageSize: 10})
 	summary := m.Summary()
 	if len(summary) == 0 {
@@ -59,7 +59,7 @@ func TestMock_SummaryContent(t *testing.T) {
 	}
 }
 
-func TestMock_StateContent(t *testing.T) {
+func TestMemory_StateContent(t *testing.T) {
 	m := NewMap(Config{Total: 50, PageSize: 10})
 	state := m.State()
 	if len(state) == 0 {

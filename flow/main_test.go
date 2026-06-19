@@ -11,37 +11,34 @@ import (
 	"github.com/auho/go-toolkit-flow/storage/database/source"
 )
 
-var dataSource storage.Source[map[string]any]
-
 func TestMain(m *testing.M) {
-	setUp()
 	code := m.Run()
-	tearDown()
 	os.Exit(code)
 }
 
-func setUp() {
-	mysql.CreateTable(mysql.SourceTable)
-	mysql.CreateTable(mysql.DestinationTable)
-	mysql.BuildData(mysql.SourceTable)
+// setupMySQLTable creates a table and builds test data for MySQL-based tests.
+// Each test uses its own table to avoid concurrency contention.
+func setupMySQLTable(table string) {
+	mysql.CreateTable(table)
+	mysql.BuildData(table)
 }
 
-func tearDown() {
-	mysql.CleanData(mysql.SourceTable)
-	mysql.CleanData(mysql.DestinationTable)
+// teardownMySQLTable cleans up MySQL test data for the given table.
+func teardownMySQLTable(table string) {
+	mysql.CleanData(table)
 }
 
-func buildDataSource() {
+// buildDataSource creates a database source reading from the given table.
+func buildDataSource(table string) storage.Source[map[string]any] {
 	gormDB, _ := mysql.InitDB()
 
-	var err error
-	dataSource, err = source.NewSectionMapWithGorm(
+	dataSrc, err := source.NewSectionMapWithGorm(
 		source.SectionConfig{
 			Concurrency: 0,
 			PageSize:    rand.Int63n(177) + 93,
 		},
 		source.ScanConfig{
-			TableName:     mysql.SourceTable,
+			TableName:     table,
 			SegmentIDName: mysql.IDName,
 			SelectFields:  []string{mysql.NameName, mysql.ValueName},
 		},
@@ -50,4 +47,6 @@ func buildDataSource() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return dataSrc
 }

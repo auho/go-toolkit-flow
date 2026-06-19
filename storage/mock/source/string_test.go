@@ -5,7 +5,7 @@ import (
 )
 
 func TestString(t *testing.T) {
-	_testMock[string](t, func(config Config) *Mock[string] {
+	_testMemory[string](t, func(config Config) *Memory[string] {
 		return NewString(config)
 	})
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func TestMap(t *testing.T) {
-	_testMock[storage.MapEntry](t, func(config Config) *Mock[storage.MapEntry] {
+	_testMemory[storage.MapEntry](t, func(config Config) *Memory[storage.MapEntry] {
 		return NewMap(config)
 	})
 }
