@@ -83,7 +83,7 @@ func RunFlow[SE, DE storage.Entry](opts ...Option[SE, DE]) error {
 	d.Start()
 
 	f := &flow[SE, DE]{
-		groups: NewGroups[SE, DE](),
+		groups: newGroups[SE, DE](),
 	}
 	for _, o := range opts {
 		o(f)

@@ -19,7 +19,7 @@ import (
 // changing call sites in flow.go.
 type groups[SE, DE storage.Entry] []group[SE, DE]
 
-func NewGroups[SE, DE storage.Entry]() *groups[SE, DE] {
+func newGroups[SE, DE storage.Entry]() *groups[SE, DE] {
 	gs := make(groups[SE, DE], 0)
 	return &gs
 }

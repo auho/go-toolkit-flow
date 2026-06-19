@@ -24,7 +24,8 @@ func (b *batchOp) Summary() string {
 }
 
 func (b *batchOp) Prepare() error {
-	b.SetStateLine(0, "prepare")
+	b.Outputln("prepare")
+
 	return nil
 }
 
@@ -37,15 +38,13 @@ func (b *batchOp) Exec(items []map[string]any) (int64, error) {
 }
 
 func (b *batchOp) BeforeExec() error {
-	b.SetStateLine(0, "pre do")
-	b.Outputln("pre do")
+	b.Outputln("BeforeExec")
 
 	return nil
 }
 
 func (b *batchOp) AfterExec() error {
-	b.SetStateLine(0, "post do")
-	b.Outputln("post do")
+	b.Outputln("AfterExec")
 
 	return nil
 }

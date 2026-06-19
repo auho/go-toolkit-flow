@@ -24,7 +24,8 @@ func (t *transformer) Summary() string {
 }
 
 func (t *transformer) Prepare() error {
-	t.SetStateLine(0, "prepare")
+	t.Outputln("Prepare")
+
 	return nil
 }
 
@@ -41,15 +42,13 @@ func (t *transformer) PostBatchExec(items []map[string]any) error {
 }
 
 func (t *transformer) BeforeExec() error {
-	t.SetStateLine(0, "pre do")
-	t.Outputln("pre do")
+	t.Outputln("BeforeExec")
 
 	return nil
 }
 
 func (t *transformer) AfterExec() error {
-	t.SetStateLine(0, "post do")
-	t.Outputln("post do")
+	t.Outputln("AfterExec")
 
 	return nil
 }
