@@ -7,20 +7,21 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-var ussItemsChan = make(chan storage.MapEntries)
-var uss *Bulk[storage.MapEntry]
+var updateItemsChan = make(chan storage.MapEntries)
+var updateBulk *Bulk[storage.MapEntry]
 
-func TestBilkUpdateMapFormatGorm(t *testing.T) {
+func TestBulkUpdateMapFormatGorm(t *testing.T) {
 	var err error
-	uss, err = NewBulkUpdateMapWithGorm(BulkConfig{
+	updateBulk, err = NewBulkUpdateMapWithGorm(BulkConfig{
 		IsTruncate:  true,
 		Concurrency: 4,
 		PageSize:    7,
 	}, WriteConfig{
-		TableName: tableName,
+		TableName: updateMapTable,
 	}, idName, gormDB)
 
 	if err != nil {
@@ -32,42 +33,44 @@ func TestBilkUpdateMapFormatGorm(t *testing.T) {
 
 	go _buildDataForUpdateMap(t, page, pageSize)
 
-	err = uss.Prepare(context.Background())
+	err = updateBulk.Prepare(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
-	uss.Accept()
+	updateBulk.Accept()
 
-	for items := range ussItemsChan {
-		err = uss.Receive(items)
+	for items := range updateItemsChan {
+		err = updateBulk.Receive(items)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	uss.Done()
+	updateBulk.Done()
 
-	err = uss.Finish()
+	err = updateBulk.Finish()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fmt.Println(uss.Summary())
-	fmt.Println(uss.State())
+	fmt.Println(updateBulk.Summary())
+	fmt.Println(updateBulk.State())
 
-	if uss.state.Amount() != page*pageSize {
-		t.Error(fmt.Sprintf("actual != expected %d != %d", uss.state.Amount(), page*pageSize))
+	if updateBulk.state.Amount() != page*pageSize {
+		t.Error(fmt.Sprintf("actual != expected %d != %d", updateBulk.state.Amount(), page*pageSize))
 	}
 
 	var dbAmount int64
-	err = gormDB.Table(tableName).Count(&dbAmount).Error
+	err = gormDB.Table(updateMapTable).Count(&dbAmount).Error
 	if err != nil {
 		t.Error(err)
 	}
 
-	if uss.state.Amount() != dbAmount {
-		t.Error(fmt.Sprintf("total != db amount %d != %d", uss.state.Amount(), dbAmount))
+	if updateBulk.state.Amount() != dbAmount {
+		t.Error(fmt.Sprintf("total != db amount %d != %d", updateBulk.state.Amount(), dbAmount))
 	}
+
+	mysql.CleanData(updateMapTable)
 }
 
 func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
@@ -81,7 +84,7 @@ func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
 			}
 		}
 
-		err = simpleDB.BulkInsertFromSliceSlice(tableName, []string{"name", "value"}, rows, 100)
+		err = simpleDB.BulkInsertFromSliceSlice(updateMapTable, []string{"name", "value"}, rows, 100)
 		if err != nil {
 			t.Error(err)
 		}
@@ -89,7 +92,7 @@ func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
 
 	for k := int64(0); k < page*pageSize; k += pageSize {
 		var rows []map[string]any
-		err = gormDB.Table(tableName).
+		err = gormDB.Table(updateMapTable).
 			Select([]string{"id", "name", "value"}).
 			Where(fmt.Sprintf("%s > ?", idName), k).
 			Order(fmt.Sprintf("%s asc", idName)).
@@ -104,8 +107,8 @@ func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
 			rows[index] = v
 		}
 
-		ussItemsChan <- rows
+		updateItemsChan <- rows
 	}
 
-	close(ussItemsChan)
+	close(updateItemsChan)
 }

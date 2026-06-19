@@ -10,7 +10,9 @@ import (
 	"gorm.io/gorm"
 )
 
-var tableName = mysql.DestinationTable
+var insertMapTable = "destination_insert_map"
+var insertSliceTable = "destination_insert_slice"
+var updateMapTable = "destination_update_map"
 var idName = mysql.IDName
 var nameName = mysql.NameName
 var valueName = mysql.ValueName
@@ -27,12 +29,18 @@ func TestMain(m *testing.M) {
 func setUp() {
 	gormDB, simpleDB = mysql.InitDB()
 
-	mysql.CreateTable(tableName)
-	mysql.CleanData(tableName)
+	mysql.CreateTable(insertMapTable)
+	mysql.CleanData(insertMapTable)
+	mysql.CreateTable(insertSliceTable)
+	mysql.CleanData(insertSliceTable)
+	mysql.CreateTable(updateMapTable)
+	mysql.CleanData(updateMapTable)
 }
 
 func tearDown() {
-	mysql.CleanData(tableName)
+	mysql.CleanData(insertMapTable)
+	mysql.CleanData(insertSliceTable)
+	mysql.CleanData(updateMapTable)
 
 	err := simpleDB.Close()
 	if err != nil {
