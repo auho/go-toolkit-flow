@@ -6,7 +6,8 @@ import "context"
 // It is the upstream entry point: data flows from Source → exec → Destination.
 //
 // Lifecycle:
-//   Prepare → Scan → (async: ReceiveChan consumed by transport) → Finish → Close
+//
+//	Prepare → Scan → (async: ReceiveChan consumed by transport) → Finish → Close
 //
 // Implementations must be safe for the goroutine that calls Scan and the
 // goroutine that ranges over ReceiveChan (they may be different).
@@ -31,8 +32,11 @@ type Source[E Entry] interface {
 	// Summary returns human-readable summary lines for display.
 	Summary() []string
 
-	// StateInfo returns structured state info for external consumers.
-	StateInfo() StateInfo
+	// State returns structured state info for external consumers.
+	State() State
+
+	// StateString returns a human-readable state string for display.
+	StateString() string
 
 	// Copy creates a deep copy of the given items slice.
 	// Used by flow when fan-out to multiple runners requires independent copies

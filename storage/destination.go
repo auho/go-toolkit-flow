@@ -6,7 +6,8 @@ import "context"
 // It is the downstream exit point: data flows from Source → exec → Destination.
 //
 // Lifecycle:
-//   Prepare → Accept → (async: Receive called by output forwarder) → Done → Finish → Close
+//
+//	Prepare → Accept → (async: Receive called by output forwarder) → Done → Finish → Close
 //
 // Thread safety: each Destination is called serially by a single output-forwarder
 // goroutine (one per group). Implementations do not need to be safe for concurrent
@@ -26,7 +27,7 @@ type Destination[E Entry] interface {
 	// After Done, the destination should finish processing any buffered data.
 	Done()
 
-	// Finalizes persistence (e.g. flushes remaining buffered data to the database).
+	// Finish Finalizes persistence (e.g. flushes remaining buffered data to the database).
 	// Called after Done, once all data has been forwarded.
 	Finish() error
 
@@ -36,6 +37,9 @@ type Destination[E Entry] interface {
 	// Summary returns human-readable summary lines for display.
 	Summary() []string
 
-	// StateInfo returns structured state info for external consumers.
-	StateInfo() StateInfo
+	// State returns structured state info for external consumers.
+	StateInfo() State
+
+	// StateString returns a human-readable state string for display.
+	StateString() string
 }

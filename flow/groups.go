@@ -231,9 +231,7 @@ func (gs *groups[SE, DE]) State() []string {
 
 	for _, g := range *gs {
 		lines = append(lines, g.runners.State()...)
-		if si := g.destination.StateInfo(); si != nil {
-			lines = append(lines, si.Overview())
-		}
+		lines = append(lines, g.destination.StateString())
 	}
 
 	return lines

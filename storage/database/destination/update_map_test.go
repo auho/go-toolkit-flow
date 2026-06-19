@@ -54,7 +54,7 @@ func TestBulkUpdateMapFormatGorm(t *testing.T) {
 	}
 
 	fmt.Println(updateBulk.Summary())
-	fmt.Println(updateBulk.StateInfo().Overview())
+	fmt.Println(updateBulk.StateString())
 
 	if updateBulk.state.Amount() != page*pageSize {
 		t.Error(fmt.Sprintf("actual != expected %d != %d", updateBulk.state.Amount(), page*pageSize))

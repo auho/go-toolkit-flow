@@ -25,7 +25,7 @@ type Bulk[E storage.Entry] struct {
 	format  format.Format[E]
 	config  BulkConfig
 
-	state     *storage.State
+	state     *storage.StateInfo
 	itemsChan chan []E
 
 	// Concurrency and error handling
@@ -57,7 +57,7 @@ func (b *Bulk[E]) initConfig() {
 		b.config.Concurrency = runtime.NumCPU()
 	}
 
-	b.state = storage.NewState()
+	b.state = storage.NewStateInfo()
 	b.state.SetConcurrency(b.config.Concurrency)
 	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()
@@ -181,8 +181,12 @@ func (b *Bulk[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s Concurrency:%d", b.title(), b.config.Concurrency)}
 }
 
-func (b *Bulk[E]) StateInfo() storage.StateInfo {
+func (b *Bulk[E]) StateInfo() storage.State {
 	return b.state
+}
+
+func (b *Bulk[E]) StateString() string {
+	return b.state.Overview()
 }
 
 func (b *Bulk[E]) Close() error {

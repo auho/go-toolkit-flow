@@ -71,7 +71,7 @@ func _testKey[E storage.Entry](
 	}
 
 	fmt.Println(k.Summary())
-	fmt.Println(k.StateInfo().Overview())
+	fmt.Println(k.StateString())
 
 	if k.state.Amount() != amount {
 		t.Error(fmt.Sprintf("actual != expected %d != %d", k.state.Amount(), amount))

@@ -39,9 +39,9 @@ func _testMemory[E storage.Entry](t *testing.T, buildMemory func(Config) *Memory
 	}
 
 	fmt.Println(m.Summary())
-	fmt.Println(m.StateInfo().Overview())
+	fmt.Println(m.StateString())
 
-	if m.StateInfo().Amount() != int64(amount) {
+	if m.State().Amount() != int64(amount) {
 		t.Error(" amount ")
 	}
 }

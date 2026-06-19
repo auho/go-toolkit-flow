@@ -35,7 +35,7 @@ type Section[E storage.Entry] struct {
 
 	itemsChan   chan []E
 	segmentChan chan []int64
-	state       *storage.PageState
+	state       *storage.PageStateInfo
 
 	// concurrency and error handling
 	scanGroup *errgroup.Group
@@ -243,8 +243,12 @@ func (s *Section[E]) Summary() []string {
 		s.endID)}
 }
 
-func (s *Section[E]) StateInfo() storage.StateInfo {
+func (s *Section[E]) State() storage.State {
 	return s.state
+}
+
+func (s *Section[E]) StateString() string {
+	return s.state.Overview()
 }
 
 func (s *Section[E]) Close() error {

@@ -18,7 +18,7 @@ type Line struct {
 	isDone atomic.Bool
 	f      *os.File
 	b      *bufio.Writer
-	state  *storage.State
+	state  *storage.StateInfo
 	wg     sync.WaitGroup
 }
 
@@ -31,7 +31,7 @@ func NewLine(c Config) (*Line, error) {
 	d := &Line{
 		f:     f,
 		b:     bufio.NewWriter(f),
-		state: storage.NewState(),
+		state: storage.NewStateInfo(),
 	}
 
 	d.state.SetTitle(d.title())
@@ -96,8 +96,12 @@ func (l *Line) Summary() []string {
 	return []string{l.title()}
 }
 
-func (l *Line) StateInfo() storage.StateInfo {
+func (l *Line) StateInfo() storage.State {
 	return l.state
+}
+
+func (l *Line) StateString() string {
+	return l.state.Overview()
 }
 
 func (l *Line) title() string {

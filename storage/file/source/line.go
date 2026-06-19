@@ -18,7 +18,7 @@ type Line struct {
 	config    Config
 	file      *os.File
 	scanner   *bufio.Scanner
-	state     *storage.State
+	state     *storage.StateInfo
 	itemsChan chan []string
 	scanCtx   context.Context
 	scanWg    sync.WaitGroup
@@ -37,7 +37,7 @@ func NewLine(c Config) (*Line, error) {
 	}
 
 	l.scanner = bufio.NewScanner(l.file)
-	l.state = storage.NewState()
+	l.state = storage.NewStateInfo()
 	l.state.MarkAsConfigured()
 
 	if l.config.Concurrency <= 0 {
@@ -124,8 +124,12 @@ func (l *Line) Summary() []string {
 	return []string{l.title()}
 }
 
-func (l *Line) StateInfo() storage.StateInfo {
+func (l *Line) State() storage.State {
 	return l.state
+}
+
+func (l *Line) StateString() string {
+	return l.state.Overview()
 }
 
 func (l *Line) Copy(items []string) []string {

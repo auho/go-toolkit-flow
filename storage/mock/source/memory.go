@@ -35,7 +35,7 @@ type Memory[E storage.Entry] struct {
 	totalPage   int64
 	concurrency int
 	idName      string
-	state       *storage.PageState
+	state       *storage.PageStateInfo
 	itemsChan   chan []E
 	scanCtx     context.Context
 	scanWg      sync.WaitGroup
@@ -136,8 +136,12 @@ func (m *Memory[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s: total: %d, pageSize: %d", m.title(), m.total, m.pageSize)}
 }
 
-func (m *Memory[E]) StateInfo() storage.StateInfo {
+func (m *Memory[E]) State() storage.State {
 	return m.state
+}
+
+func (m *Memory[E]) StateString() string {
+	return m.state.Overview()
 }
 
 // Copy creates a deep copy of the items via the format's Copy method.

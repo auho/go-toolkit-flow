@@ -59,7 +59,7 @@ func _testSection[E storage.Entry](
 	}
 
 	fmt.Println(s.Summary())
-	fmt.Println(s.StateInfo().Overview())
+	fmt.Println(s.StateString())
 
 	if s.total != s.state.Amount() && s.state.Amount() != int64(amount) {
 		t.Error(fmt.Sprintf("total != amount != actual %d != %d != %d", s.total, s.state.Amount(), amount))

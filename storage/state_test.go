@@ -6,14 +6,14 @@ import (
 )
 
 func TestState_New(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	if s == nil {
 		t.Fatal("NewState() == nil")
 	}
 }
 
 func TestState_Status(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.SetStatus("running")
 	if s.Status() != "running" {
 		t.Errorf("Status() = %q, want %q", s.Status(), "running")
@@ -21,7 +21,7 @@ func TestState_Status(t *testing.T) {
 }
 
 func TestState_MarkAsConfigured(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.MarkAsConfigured()
 	if s.Status() != StatusConfig {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusConfig)
@@ -29,7 +29,7 @@ func TestState_MarkAsConfigured(t *testing.T) {
 }
 
 func TestState_MarkAsPrepare(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.MarkAsPrepare()
 	if s.Status() != StatusPrepare {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusPrepare)
@@ -37,7 +37,7 @@ func TestState_MarkAsPrepare(t *testing.T) {
 }
 
 func TestState_MarkAsAccepted(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.MarkAsAccepted()
 	if s.Status() != StatusAccept {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusAccept)
@@ -45,7 +45,7 @@ func TestState_MarkAsAccepted(t *testing.T) {
 }
 
 func TestState_MarkAsScanning(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.MarkAsScanning()
 	if s.Status() != StatusScan {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusScan)
@@ -53,7 +53,7 @@ func TestState_MarkAsScanning(t *testing.T) {
 }
 
 func TestState_MarkAsDone(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.MarkAsDone()
 	if s.Status() != StatusDone {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusDone)
@@ -61,7 +61,7 @@ func TestState_MarkAsDone(t *testing.T) {
 }
 
 func TestState_MarkAsFinished(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.MarkAsFinished()
 	if s.Status() != StatusFinish {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusFinish)
@@ -69,7 +69,7 @@ func TestState_MarkAsFinished(t *testing.T) {
 }
 
 func TestState_Amount(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.SetAmount(100)
 	if s.Amount() != 100 {
 		t.Errorf("Amount() = %d, want %d", s.Amount(), 100)
@@ -82,7 +82,7 @@ func TestState_Amount(t *testing.T) {
 }
 
 func TestState_Duration(t *testing.T) {
-	s := NewState()
+	s := NewStateInfo()
 	s.DurationStart()
 	s.DurationStop()
 }

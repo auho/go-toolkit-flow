@@ -30,7 +30,7 @@ func TestMemory_State_Format(t *testing.T) {
 	d.Done()
 	_ = d.Finish()
 
-	overview := d.StateInfo().Overview()
+	overview := d.StateString()
 	if overview == "" {
 		t.Fatal("expected non-empty overview, got empty string")
 	}

@@ -24,7 +24,7 @@ type Iterator[E storage.Entry] struct {
 	total           int64
 	timeoutDuration time.Duration
 
-	state     *storage.TotalState
+	state     *storage.TotalStateInfo
 	itemsChan chan []E
 	scanCtx   context.Context
 	scanWg    sync.WaitGroup
@@ -154,8 +154,12 @@ func (i *Iterator[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s: total: %d", i.title(), i.total)}
 }
 
-func (i *Iterator[E]) StateInfo() storage.StateInfo {
+func (i *Iterator[E]) State() storage.State {
 	return i.state
+}
+
+func (i *Iterator[E]) StateString() string {
+	return i.state.Overview()
 }
 
 func (i *Iterator[E]) Copy(items []E) []E {

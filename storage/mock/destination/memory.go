@@ -17,7 +17,8 @@ var _ storage.Destination[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 // which can be accessed via the StateInfo() method.
 //
 // Lifecycle:
-//   Prepare → Accept (starts counter goroutine) → Receive (writes to channel) → Done → Finish → Close
+//
+//	Prepare → Accept (starts counter goroutine) → Receive (writes to channel) → Done → Finish → Close
 //
 // Concurrency model:
 //   - Accept starts a single goroutine that drains itemsChan and increments amount
@@ -28,7 +29,7 @@ type Memory[E storage.Entry] struct {
 	format format.Format[E]
 
 	isDone    atomic.Bool
-	state     *storage.State
+	state     *storage.StateInfo
 	items     []E
 	itemsChan chan []E
 	chanWg    sync.WaitGroup
@@ -37,7 +38,7 @@ type Memory[E storage.Entry] struct {
 // NewMemory creates a Memory with the given format.
 func NewMemory[E storage.Entry](f format.Format[E]) *Memory[E] {
 	d := &Memory[E]{format: f}
-	d.state = storage.NewState()
+	d.state = storage.NewStateInfo()
 	d.state.SetTitle(d.title())
 	d.state.MarkAsConfigured()
 	return d
@@ -97,8 +98,12 @@ func (d *Memory[E]) Summary() []string {
 	return []string{d.title()}
 }
 
-func (d *Memory[E]) StateInfo() storage.StateInfo {
+func (d *Memory[E]) StateInfo() storage.State {
 	return d.state
+}
+
+func (d *Memory[E]) StateString() string {
+	return d.state.Overview()
 }
 
 // Items returns all received items. Must be called after Finish() to ensure

@@ -32,8 +32,8 @@ func TestMockFlow_Batch(t *testing.T) {
 	}
 
 	// Verify all source data was generated
-	if src.StateInfo().Amount() != total {
-		t.Errorf("source amount = %d, want %d", src.StateInfo().Amount(), total)
+	if src.State().Amount() != total {
+		t.Errorf("source amount = %d, want %d", src.State().Amount(), total)
 	}
 }
 
@@ -64,8 +64,8 @@ func TestMockFlow_Transformer_Count(t *testing.T) {
 	}
 
 	// Count consistency: source generated == configured total
-	if src.StateInfo().Amount() != total {
-		t.Errorf("source amount = %d, want %d", src.StateInfo().Amount(), total)
+	if src.State().Amount() != total {
+		t.Errorf("source amount = %d, want %d", src.State().Amount(), total)
 	}
 	// Count consistency: destination received == source generated
 	if dest.StateInfo().Amount() != total {

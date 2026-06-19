@@ -4,14 +4,14 @@ import (
 	"strings"
 )
 
-// MultiState aggregates multiple StateInfo into a single StateInfo.
+// MultiState aggregates multiple State into a single State.
 // Used by MultiDestination to present a unified state view.
 type MultiState struct {
-	states []StateInfo
+	states []State
 }
 
 // NewMultiState creates a MultiState from the given sub-states.
-func NewMultiState(states []StateInfo) *MultiState {
+func NewMultiState(states []State) *MultiState {
 	return &MultiState{states: states}
 }
 
@@ -57,4 +57,4 @@ func (m *MultiState) Concurrency() int {
 }
 
 // Compile-time interface conformance check.
-var _ StateInfo = (*MultiState)(nil)
+var _ State = (*MultiState)(nil)

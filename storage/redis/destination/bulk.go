@@ -27,7 +27,7 @@ type Bulk[E storage.Entry] struct {
 
 	isDone    atomic.Bool
 	itemsChan chan []E
-	state     *storage.State
+	state     *storage.StateInfo
 
 	// Concurrency and error handling
 	writeGroup *errgroup.Group
@@ -114,8 +114,12 @@ func (b *Bulk[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s Concurrency:%d; page size:%d", b.title(), b.concurrency, b.pageSize)}
 }
 
-func (b *Bulk[E]) StateInfo() storage.StateInfo {
+func (b *Bulk[E]) StateInfo() storage.State {
 	return b.state
+}
+
+func (b *Bulk[E]) StateString() string {
+	return b.state.Overview()
 }
 
 func (b *Bulk[E]) title() string {
@@ -147,7 +151,7 @@ func (b *Bulk[E]) config(config BulkConfig) error {
 		b.pageSize = 20
 	}
 
-	b.state = storage.NewState()
+	b.state = storage.NewStateInfo()
 	b.state.SetConcurrency(b.concurrency)
 	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()

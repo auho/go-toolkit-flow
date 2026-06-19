@@ -66,9 +66,10 @@ func WithGroup[SE, DE storage.Entry](
 }
 
 // flow holds the source and groups, orchestrating the full lifecycle.
-// Data flows: Source → transport(fan-out) → [group1.runners, group2.runners, ...]
-//                                         → executor.Exec → runner.OutChan
-//                                         → per-group fan-in → group.destination
+//
+//	Data flows: Source → transport(fan-out) → [group1.runners, group2.runners, ...]
+//	  									    → executor.Exec → runner.OutChan
+//										    → per-group fan-in → group.destination
 type flow[SE, DE storage.Entry] struct {
 	source        storage.Source[SE]
 	groups        *groups[SE, DE]
@@ -119,20 +120,21 @@ func (f *flow[SE, DE]) check() error {
 // run executes the data processing lifecycle.
 //
 // Data flow:
-//   Source → transport(fan-out) → [group1.runners, group2.runners, ...]
-//                                    ↓ executor.Exec
-//                              [runner.OutChan, ...]
-//                                    ↓ per-group fan-in
-//                              group.destination.Receive
-//                                    ↓ (MultiDestination fan-out)
-//                              [sub-dest1, sub-dest2, ...]
+//
+//	Source → transport(fan-out) → [group1.runners, group2.runners, ...]
+//	                                 ↓ executor.Exec
+//	                           [runner.OutChan, ...]
+//	                                 ↓ per-group fan-in
+//	                           group.destination.Receive
+//	                                 ↓ (MultiDestination fan-out)
+//	                           [sub-dest1, sub-dest2, ...]
 //
 // Lifecycle phases:
-//   1. Prepare: source.Prepare → groups.Prepare (runners + destination)
-//   2. Start:   source.Scan → groups.Start (runners) → groups.Accept (destination)
-//   3. Async:   errgroup { source.Finish, transport, groups.Finish, groups.OutputForward }
-//   4. Finish:  groups.DestinationFinish
-//   5. Close (deferred): source.Close → groups.Close (runners + destination)
+//  1. Prepare: source.Prepare → groups.Prepare (runners + destination)
+//  2. Start:   source.Scan → groups.Start (runners) → groups.Accept (destination)
+//  3. Async:   errgroup { source.Finish, transport, groups.Finish, groups.OutputForward }
+//  4. Finish:  groups.DestinationFinish
+//  5. Close (deferred): source.Close → groups.Close (runners + destination)
 func (f *flow[SE, DE]) run() error {
 	defer f.close()
 
@@ -265,9 +267,7 @@ func (f *flow[SE, DE]) summary() {
 
 func (f *flow[SE, DE]) state() []string {
 	lines := make([]string, 0)
-	if si := f.source.StateInfo(); si != nil {
-		lines = append(lines, si.Overview())
-	}
+	lines = append(lines, f.source.StateString())
 	lines = append(lines, f.groups.State()...)
 
 	return lines

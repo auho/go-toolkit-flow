@@ -17,25 +17,25 @@ const (
 	StatusFinish  = "finish"
 )
 
-// StateInfo is the base state info interface for all sources and destinations.
+// State is the base state info interface for all sources and destinations.
 // It provides structured access to runtime state for external consumers.
-type StateInfo interface {
+type State interface {
 	Overview() string
 	Amount() int64
 	Title() string
 	Concurrency() int
 }
 
-// TotalStateInfo extends StateInfo with total tracking.
+// TotalState extends State with total tracking.
 // Sources that know the total number of items implement this.
-type TotalStateInfo interface {
-	StateInfo
+type TotalState interface {
+	State
 	Total() int64
 }
 
-// PageStateInfo extends TotalStateInfo with pagination tracking.
-type PageStateInfo interface {
-	TotalStateInfo
+// PageState extends TotalState with pagination tracking.
+type PageState interface {
+	TotalState
 	Page() int64
 	PageSize() int64
 	TotalPage() int64
@@ -131,19 +131,19 @@ func (s *baseState) DurationStop() {
 	s.duration.Stop()
 }
 
-// State is a basic state tracker with status, amount, and duration.
+// StateInfo is a basic state tracker with status, amount, and duration.
 // Suitable for destinations that do not need pagination or total tracking.
-type State struct {
+type StateInfo struct {
 	baseState
 }
 
-// NewState creates a new State.
-func NewState() *State {
-	return &State{}
+// NewStateInfo creates a new StateInfo.
+func NewStateInfo() *StateInfo {
+	return &StateInfo{}
 }
 
 // Overview returns a formatted string summarizing the current state.
-func (s *State) Overview() string {
+func (s *StateInfo) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d, Duration: %s",
 		s.Status(),
 		s.Concurrency(),
@@ -151,29 +151,29 @@ func (s *State) Overview() string {
 		s.duration.StringStartToStop())
 }
 
-// TotalState extends State with a Total field for tracking progress against
+// TotalStateInfo extends StateInfo with a Total field for tracking progress against
 // a known total. Suitable for sources that know the total number of items.
-type TotalState struct {
+type TotalStateInfo struct {
 	baseState
 	total int64
 }
 
-// NewTotalState creates a new TotalState.
-func NewTotalState() *TotalState {
-	return &TotalState{}
+// NewTotalState creates a new TotalStateInfo.
+func NewTotalState() *TotalStateInfo {
+	return &TotalStateInfo{}
 }
 
-func (t *TotalState) Total() int64 {
+func (t *TotalStateInfo) Total() int64 {
 	return t.total
 }
 
-func (t *TotalState) SetTotal(n int64) {
+func (t *TotalStateInfo) SetTotal(n int64) {
 	t.total = n
 }
 
 // Overview returns a formatted string summarizing the current state with
 // progress (Amount/Total).
-func (t *TotalState) Overview() string {
+func (t *TotalStateInfo) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Duration: %s",
 		t.Status(),
 		t.Concurrency(),
@@ -182,9 +182,9 @@ func (t *TotalState) Overview() string {
 		t.duration.StringStartToStop())
 }
 
-// PageState extends TotalState with pagination tracking (Page, PageSize,
+// PageStateInfo extends TotalStateInfo with pagination tracking (Page, PageSize,
 // TotalPage). Suitable for paged database sources.
-type PageState struct {
+type PageStateInfo struct {
 	baseState
 	page      int64
 	pageSize  int64
@@ -192,47 +192,47 @@ type PageState struct {
 	total     int64
 }
 
-// NewPageState creates a new PageState.
-func NewPageState() *PageState {
-	return &PageState{}
+// NewPageState creates a new PageStateInfo.
+func NewPageState() *PageStateInfo {
+	return &PageStateInfo{}
 }
 
-func (p *PageState) Page() int64 {
+func (p *PageStateInfo) Page() int64 {
 	return atomic.LoadInt64(&p.page)
 }
 
 // AddPage atomically increments the page counter by n.
-func (p *PageState) AddPage(n int64) {
+func (p *PageStateInfo) AddPage(n int64) {
 	atomic.AddInt64(&p.page, n)
 }
 
-func (p *PageState) PageSize() int64 {
+func (p *PageStateInfo) PageSize() int64 {
 	return p.pageSize
 }
 
-func (p *PageState) SetPageSize(n int64) {
+func (p *PageStateInfo) SetPageSize(n int64) {
 	p.pageSize = n
 }
 
-func (p *PageState) TotalPage() int64 {
+func (p *PageStateInfo) TotalPage() int64 {
 	return p.totalPage
 }
 
-func (p *PageState) SetTotalPage(n int64) {
+func (p *PageStateInfo) SetTotalPage(n int64) {
 	p.totalPage = n
 }
 
-func (p *PageState) Total() int64 {
+func (p *PageStateInfo) Total() int64 {
 	return p.total
 }
 
-func (p *PageState) SetTotal(n int64) {
+func (p *PageStateInfo) SetTotal(n int64) {
 	p.total = n
 }
 
 // Overview returns a formatted string summarizing the current state with
 // pagination progress (Page/TotalPage, Amount/Total).
-func (p *PageState) Overview() string {
+func (p *PageStateInfo) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Page: %d/%d(%d), Duration: %s",
 		p.Status(),
 		p.Concurrency(),
@@ -246,10 +246,10 @@ func (p *PageState) Overview() string {
 
 // Compile-time interface conformance checks.
 var (
-	_ StateInfo       = (*State)(nil)
-	_ TotalStateInfo  = (*TotalState)(nil)
-	_ PageStateInfo   = (*PageState)(nil)
-	_ TotalStateInfo  = (*PageState)(nil)
-	_ StateInfo       = (*TotalState)(nil)
-	_ StateInfo       = (*PageState)(nil)
+	_ State      = (*StateInfo)(nil)
+	_ TotalState = (*TotalStateInfo)(nil)
+	_ PageState  = (*PageStateInfo)(nil)
+	_ TotalState = (*PageStateInfo)(nil)
+	_ State      = (*TotalStateInfo)(nil)
+	_ State      = (*PageStateInfo)(nil)
 )
