@@ -58,8 +58,8 @@ func (b *Bulk[E]) initConfig() {
 	}
 
 	b.state = storage.NewState()
-	b.state.Concurrency = b.config.Concurrency
-	b.state.Title = b.Title()
+	b.state.SetConcurrency(b.config.Concurrency)
+	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()
 }
 
@@ -173,16 +173,16 @@ loop:
 	return nil
 }
 
-func (b *Bulk[E]) Title() string {
+func (b *Bulk[E]) title() string {
 	return fmt.Sprintf("Destination driver[%s]", b.dialect.DBName())
 }
 
 func (b *Bulk[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s Concurrency:%d", b.Title(), b.config.Concurrency)}
+	return []string{fmt.Sprintf("%s Concurrency:%d", b.title(), b.config.Concurrency)}
 }
 
-func (b *Bulk[E]) State() []string {
-	return []string{b.state.Overview()}
+func (b *Bulk[E]) StateInfo() storage.StateInfo {
+	return b.state
 }
 
 func (b *Bulk[E]) Close() error {

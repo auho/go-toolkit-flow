@@ -1,6 +1,7 @@
 package destination
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/storage"
@@ -29,14 +30,13 @@ func TestMemory_State_Format(t *testing.T) {
 	d.Done()
 	_ = d.Finish()
 
-	state := d.State()
-	if len(state) != 1 {
-		t.Fatalf("expected 1 state line, got %d", len(state))
+	overview := d.StateInfo().Overview()
+	if overview == "" {
+		t.Fatal("expected non-empty overview, got empty string")
 	}
 
-	expected := "amount: 1"
-	if state[0] != expected {
-		t.Errorf("expected %q, got %q", expected, state[0])
+	if !strings.Contains(overview, "Amount: 1") {
+		t.Errorf("expected overview to contain %q, got %q", "Amount: 1", overview)
 	}
 }
 
@@ -48,14 +48,14 @@ func TestMemory_SummaryContent(t *testing.T) {
 	}
 }
 
-func TestMemory_Amount_PrivateField(t *testing.T) {
+func TestMemory_Amount(t *testing.T) {
 	d := NewMemory(format.NewInsertMapFormat())
 	d.Accept()
 	_ = d.Receive([]storage.MapEntry{{"id": 1}, {"id": 2}})
 	d.Done()
 	_ = d.Finish()
 
-	if d.amount != 2 {
-		t.Errorf("amount = %d, want 2", d.amount)
+	if d.StateInfo().Amount() != 2 {
+		t.Errorf("amount = %d, want 2", d.StateInfo().Amount())
 	}
 }

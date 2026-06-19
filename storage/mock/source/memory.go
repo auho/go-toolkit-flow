@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"sync"
-	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/mock/source/format"
@@ -19,7 +18,8 @@ var _ storage.Source[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 // any external dependencies.
 //
 // Lifecycle:
-//   Prepare → Scan (goroutine generates data) → ReceiveChan (consumed by transport) → Finish → Close
+//
+//	Prepare → Scan (goroutine generates data) → ReceiveChan (consumed by transport) → Finish → Close
 //
 // Concurrency model:
 //   - Scan runs in a single goroutine that writes to itemsChan
@@ -31,12 +31,11 @@ type Memory[E storage.Entry] struct {
 
 	id          int64
 	total       int64 // maximum number of items to generate
-	page        int64
 	pageSize    int64
 	totalPage   int64
-	amount      int64
 	concurrency int
 	idName      string
+	state       *storage.PageState
 	itemsChan   chan []E
 	scanCtx     context.Context
 	scanWg      sync.WaitGroup
@@ -47,10 +46,10 @@ type Memory[E storage.Entry] struct {
 func NewMemory[E storage.Entry](config Config, f format.Format[E]) *Memory[E] {
 	m := &Memory[E]{}
 	m.idName = config.IDName
+	m.format = f
 	m.total = config.Total
 	m.pageSize = config.PageSize
 	m.concurrency = config.Concurrency
-	m.format = f
 
 	if m.total <= 0 {
 		m.total = 1e2
@@ -70,10 +69,19 @@ func NewMemory[E storage.Entry](config Config, f format.Format[E]) *Memory[E] {
 
 	m.totalPage = int64(math.Ceil(float64(m.total) / float64(m.pageSize)))
 
+	m.state = storage.NewPageState()
+	m.state.SetTotal(m.total)
+	m.state.SetPageSize(m.pageSize)
+	m.state.SetTotalPage(m.totalPage)
+	m.state.SetConcurrency(m.concurrency)
+	m.state.SetTitle(m.title())
+	m.state.MarkAsConfigured()
+
 	return m
 }
 
 func (m *Memory[E]) Prepare(ctx context.Context) error {
+	m.state.MarkAsPrepare()
 	m.scanCtx = ctx
 	m.itemsChan = make(chan []E, m.concurrency)
 
@@ -83,6 +91,9 @@ func (m *Memory[E]) Prepare(ctx context.Context) error {
 // Scan launches a goroutine that generates data in batches and writes to itemsChan.
 // Respects scanCtx cancellation for early termination.
 func (m *Memory[E]) Scan() {
+	m.state.MarkAsScanning()
+	m.state.DurationStart()
+
 	m.scanWg.Add(1)
 	go func() {
 		defer m.scanWg.Done()
@@ -100,8 +111,8 @@ func (m *Memory[E]) Scan() {
 				return
 			}
 
-			atomic.AddInt64(&m.page, 1)
-			atomic.AddInt64(&m.amount, int64(len(items)))
+			m.state.AddPage(1)
+			m.state.AddAmount(int64(len(items)))
 		}
 	}()
 }
@@ -115,16 +126,18 @@ func (m *Memory[E]) Finish() error {
 	m.scanWg.Wait()
 
 	close(m.itemsChan)
+	m.state.DurationStop()
+	m.state.MarkAsFinished()
 
 	return nil
 }
 
 func (m *Memory[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s: total: %d, pageSize: %d", m.Title(), m.total, m.pageSize)}
+	return []string{fmt.Sprintf("%s: total: %d, pageSize: %d", m.title(), m.total, m.pageSize)}
 }
 
-func (m *Memory[E]) State() []string {
-	return []string{fmt.Sprintf("amount: %d/%d, page: %d/%d(%d)", atomic.LoadInt64(&m.amount), m.total, atomic.LoadInt64(&m.page), m.totalPage, m.pageSize)}
+func (m *Memory[E]) StateInfo() storage.StateInfo {
+	return m.state
 }
 
 // Copy creates a deep copy of the items via the format's Copy method.
@@ -132,17 +145,7 @@ func (m *Memory[E]) Copy(items []E) []E {
 	return m.format.Copy(items)
 }
 
-// Total returns the configured total number of items to generate.
-func (m *Memory[E]) Total() int64 {
-	return m.total
-}
-
-// Amount returns the number of items actually generated so far.
-func (m *Memory[E]) Amount() int64 {
-	return atomic.LoadInt64(&m.amount)
-}
-
-func (m *Memory[E]) Title() string {
+func (m *Memory[E]) title() string {
 	return fmt.Sprintf("Mock:source[%s]", m.format.Type())
 }
 

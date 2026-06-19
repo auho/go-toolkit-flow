@@ -31,8 +31,8 @@ type Source[E Entry] interface {
 	// Summary returns human-readable summary lines for display.
 	Summary() []string
 
-	// State returns human-readable state lines for live status display.
-	State() []string
+	// StateInfo returns structured state info for external consumers.
+	StateInfo() StateInfo
 
 	// Copy creates a deep copy of the given items slice.
 	// Used by flow when fan-out to multiple runners requires independent copies

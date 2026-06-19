@@ -38,6 +38,7 @@ func NewLine(c Config) (*Line, error) {
 
 	l.scanner = bufio.NewScanner(l.file)
 	l.state = storage.NewState()
+	l.state.MarkAsConfigured()
 
 	if l.config.Concurrency <= 0 {
 		l.config.Concurrency = runtime.NumCPU()
@@ -52,7 +53,7 @@ func NewLine(c Config) (*Line, error) {
 
 func (l *Line) Prepare(ctx context.Context) error {
 	l.state.MarkAsPrepare()
-	l.state.Title = l.Title()
+	l.state.SetTitle(l.title())
 	l.scanCtx = ctx
 	l.itemsChan = make(chan []string, l.config.Concurrency)
 
@@ -120,11 +121,11 @@ func (l *Line) Close() error {
 }
 
 func (l *Line) Summary() []string {
-	return []string{l.Title()}
+	return []string{l.title()}
 }
 
-func (l *Line) State() []string {
-	return []string{l.state.Overview()}
+func (l *Line) StateInfo() storage.StateInfo {
+	return l.state
 }
 
 func (l *Line) Copy(items []string) []string {
@@ -133,6 +134,6 @@ func (l *Line) Copy(items []string) []string {
 	return ns
 }
 
-func (l *Line) Title() string {
+func (l *Line) title() string {
 	return fmt.Sprintf("Source file[%s]", l.file.Name())
 }

@@ -37,11 +37,11 @@ func TestMemory_Close(t *testing.T) {
 func TestMemory_ConfigDefaults(t *testing.T) {
 	m := NewMap(Config{})
 
-	if m.total != 100 {
-		t.Errorf("default total = %d, want 100", m.total)
+	if m.state.Total() != 100 {
+		t.Errorf("default total = %d, want 100", m.state.Total())
 	}
-	if m.pageSize != 10 {
-		t.Errorf("default pageSize = %d, want 10", m.pageSize)
+	if m.state.PageSize() != 10 {
+		t.Errorf("default pageSize = %d, want 10", m.state.PageSize())
 	}
 	if m.concurrency != 1 {
 		t.Errorf("default concurrency = %d, want 1", m.concurrency)
@@ -61,8 +61,8 @@ func TestMemory_SummaryContent(t *testing.T) {
 
 func TestMemory_StateContent(t *testing.T) {
 	m := NewMap(Config{Total: 50, PageSize: 10})
-	state := m.State()
-	if len(state) == 0 {
-		t.Fatal("State() returned empty slice")
+	overview := m.StateInfo().Overview()
+	if overview == "" {
+		t.Fatal("StateInfo().Overview() returned empty string")
 	}
 }

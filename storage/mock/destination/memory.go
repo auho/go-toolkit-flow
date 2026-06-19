@@ -13,9 +13,8 @@ import (
 var _ storage.Destination[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 
 // Memory is an in-memory Destination implementation for testing.
-// It counts the total number of items received via the amount field,
-// which can be accessed from the same package (white-box testing) or
-// via the State() method (returns "amount: <N>").
+// It counts the total number of items received via the state's amount field,
+// which can be accessed via the StateInfo() method.
 //
 // Lifecycle:
 //   Prepare → Accept (starts counter goroutine) → Receive (writes to channel) → Done → Finish → Close
@@ -29,7 +28,7 @@ type Memory[E storage.Entry] struct {
 	format format.Format[E]
 
 	isDone    atomic.Bool
-	amount    int64
+	state     *storage.State
 	items     []E
 	itemsChan chan []E
 	chanWg    sync.WaitGroup
@@ -37,22 +36,29 @@ type Memory[E storage.Entry] struct {
 
 // NewMemory creates a Memory with the given format.
 func NewMemory[E storage.Entry](f format.Format[E]) *Memory[E] {
-	return &Memory[E]{format: f}
+	d := &Memory[E]{format: f}
+	d.state = storage.NewState()
+	d.state.SetTitle(d.title())
+	d.state.MarkAsConfigured()
+	return d
 }
 
 func (d *Memory[E]) Prepare(ctx context.Context) error {
+	d.state.MarkAsPrepare()
 	return nil
 }
 
 // Accept creates the items channel and starts a goroutine that counts
 // received items by draining the channel.
 func (d *Memory[E]) Accept() {
+	d.state.MarkAsAccepted()
+	d.state.DurationStart()
 	d.itemsChan = make(chan []E)
 
 	d.chanWg.Add(1)
 	go func() {
 		for items := range d.itemsChan {
-			atomic.AddInt64(&d.amount, int64(len(items)))
+			d.state.AddAmount(int64(len(items)))
 			d.items = append(d.items, items...)
 		}
 
@@ -72,6 +78,8 @@ func (d *Memory[E]) Done() {
 		return
 	}
 
+	d.state.MarkAsDone()
+
 	close(d.itemsChan)
 }
 
@@ -79,20 +87,18 @@ func (d *Memory[E]) Done() {
 func (d *Memory[E]) Finish() error {
 	d.chanWg.Wait()
 
+	d.state.DurationStop()
+	d.state.MarkAsFinished()
+
 	return nil
 }
 
 func (d *Memory[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s", d.title())}
+	return []string{d.title()}
 }
 
-func (d *Memory[E]) State() []string {
-	return []string{fmt.Sprintf("amount: %d", d.amount)}
-}
-
-// Amount returns the total number of items received.
-func (d *Memory[E]) Amount() int64 {
-	return atomic.LoadInt64(&d.amount)
+func (d *Memory[E]) StateInfo() storage.StateInfo {
+	return d.state
 }
 
 // Items returns all received items. Must be called after Finish() to ensure

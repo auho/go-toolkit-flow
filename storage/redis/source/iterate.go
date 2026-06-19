@@ -65,8 +65,8 @@ func (i *Iterator[E]) config(c KeyConfig) error {
 
 	i.state = storage.NewTotalState()
 	i.state.MarkAsConfigured()
-	i.state.Concurrency = i.concurrency
-	i.state.Title = i.Title()
+	i.state.SetConcurrency(i.concurrency)
+	i.state.SetTitle(i.title())
 
 	return nil
 }
@@ -89,7 +89,7 @@ func (i *Iterator[E]) Prepare(ctx context.Context) error {
 		i.total = i.amount
 	}
 
-	i.state.Total = i.total
+	i.state.SetTotal(i.total)
 
 	return nil
 }
@@ -151,18 +151,18 @@ func (i *Iterator[E]) Finish() error {
 }
 
 func (i *Iterator[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s: total: %d", i.Title(), i.total)}
+	return []string{fmt.Sprintf("%s: total: %d", i.title(), i.total)}
 }
 
-func (i *Iterator[E]) State() []string {
-	return []string{i.state.Overview()}
+func (i *Iterator[E]) StateInfo() storage.StateInfo {
+	return i.state
 }
 
 func (i *Iterator[E]) Copy(items []E) []E {
 	return i.format.Copy(items)
 }
 
-func (i *Iterator[E]) Title() string {
+func (i *Iterator[E]) title() string {
 	return fmt.Sprintf("Source redis[%s]:[%d:%s]:", i.format.Key(), i.dialect.DB(), i.format.Type())
 }
 

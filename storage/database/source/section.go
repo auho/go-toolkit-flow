@@ -177,8 +177,8 @@ func (s *Section[E]) initConfig(config SectionConfig) {
 	}
 
 	s.state = storage.NewPageState()
-	s.state.Concurrency = s.config.Concurrency
-	s.state.Title = s.Title()
+	s.state.SetConcurrency(s.config.Concurrency)
+	s.state.SetTitle(s.title())
 	s.state.MarkAsConfigured()
 }
 
@@ -222,20 +222,20 @@ func (s *Section[E]) idRange() error {
 
 	s.totalPage = int64(math.Ceil(float64(s.total) / float64(s.config.PageSize)))
 
-	s.state.PageSize = s.config.PageSize
-	s.state.TotalPage = s.totalPage
-	s.state.Total = s.total
+	s.state.SetPageSize(s.config.PageSize)
+	s.state.SetTotalPage(s.totalPage)
+	s.state.SetTotal(s.total)
 
 	return nil
 }
 
-func (s *Section[E]) Title() string {
+func (s *Section[E]) title() string {
 	return fmt.Sprintf("Source db[%s]", s.dialect.DBName())
 }
 
 func (s *Section[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s: total: %d, total page: %d, page size: %d, start id: %d, end id: %d ",
-		s.Title(),
+		s.title(),
 		s.total,
 		s.totalPage,
 		s.config.PageSize,
@@ -243,8 +243,8 @@ func (s *Section[E]) Summary() []string {
 		s.endID)}
 }
 
-func (s *Section[E]) State() []string {
-	return []string{s.state.Overview()}
+func (s *Section[E]) StateInfo() storage.StateInfo {
+	return s.state
 }
 
 func (s *Section[E]) Close() error {

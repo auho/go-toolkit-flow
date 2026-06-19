@@ -74,11 +74,10 @@ func (md MultiDestination[E]) Summary() []string {
 	return lines
 }
 
-func (md MultiDestination[E]) State() []string {
-	lines := make([]string, 0)
+func (md MultiDestination[E]) StateInfo() StateInfo {
+	states := make([]StateInfo, 0, len(md))
 	for _, d := range md {
-		lines = append(lines, d.State()...)
+		states = append(states, d.StateInfo())
 	}
-
-	return lines
+	return NewMultiState(states)
 }

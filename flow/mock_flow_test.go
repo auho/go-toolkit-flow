@@ -32,8 +32,8 @@ func TestMockFlow_Batch(t *testing.T) {
 	}
 
 	// Verify all source data was generated
-	if src.Amount() != total {
-		t.Errorf("source amount = %d, want %d", src.Amount(), total)
+	if src.StateInfo().Amount() != total {
+		t.Errorf("source amount = %d, want %d", src.StateInfo().Amount(), total)
 	}
 }
 
@@ -64,12 +64,12 @@ func TestMockFlow_Transformer_Count(t *testing.T) {
 	}
 
 	// Count consistency: source generated == configured total
-	if src.Amount() != total {
-		t.Errorf("source amount = %d, want %d", src.Amount(), total)
+	if src.StateInfo().Amount() != total {
+		t.Errorf("source amount = %d, want %d", src.StateInfo().Amount(), total)
 	}
 	// Count consistency: destination received == source generated
-	if dest.Amount() != total {
-		t.Errorf("destination amount = %d, want %d", dest.Amount(), total)
+	if dest.StateInfo().Amount() != total {
+		t.Errorf("destination amount = %d, want %d", dest.StateInfo().Amount(), total)
 	}
 }
 
@@ -166,11 +166,11 @@ func TestMockFlow_MultiDestination(t *testing.T) {
 	}
 
 	// Both destinations must have received the full dataset
-	if dest1.Amount() != total {
-		t.Errorf("dest1 amount = %d, want %d", dest1.Amount(), total)
+	if dest1.StateInfo().Amount() != total {
+		t.Errorf("dest1 amount = %d, want %d", dest1.StateInfo().Amount(), total)
 	}
-	if dest2.Amount() != total {
-		t.Errorf("dest2 amount = %d, want %d", dest2.Amount(), total)
+	if dest2.StateInfo().Amount() != total {
+		t.Errorf("dest2 amount = %d, want %d", dest2.StateInfo().Amount(), total)
 	}
 
 	// Both destinations must have identical items (same IDs in the same order)

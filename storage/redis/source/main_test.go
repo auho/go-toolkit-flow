@@ -75,7 +75,7 @@ func _testKey[E storage.Entry](
 	}
 
 	fmt.Println(k.Summary())
-	fmt.Println(k.State())
+	fmt.Println(k.StateInfo().Overview())
 
 	if k.total != k.state.Amount() || k.state.Amount() != int64(amount) {
 		t.Error(fmt.Sprintf("total != statusAmount != actual %d != %d != %d", k.total, k.state.Amount(), amount))

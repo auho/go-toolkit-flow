@@ -98,8 +98,8 @@ func TestTotalState_Overview(t *testing.T) {
 	ts := NewTotalState()
 	ts.SetStatus(StatusDone)
 	ts.SetAmount(50)
-	ts.Total = 100
-	ts.Concurrency = 2
+	ts.SetTotal(100)
+	ts.SetConcurrency(2)
 
 	overview := ts.Overview()
 	if overview == "" {
@@ -130,13 +130,13 @@ func TestPageState_New(t *testing.T) {
 func TestPageState_AddPage(t *testing.T) {
 	ps := NewPageState()
 	ps.AddPage(1)
-	if ps.GetPage() != 1 {
-		t.Errorf("GetPage() = %d, want %d", ps.GetPage(), 1)
+	if ps.Page() != 1 {
+		t.Errorf("GetPage() = %d, want %d", ps.Page(), 1)
 	}
 
 	ps.AddPage(2)
-	if ps.GetPage() != 3 {
-		t.Errorf("GetPage() after AddPage(2) = %d, want %d", ps.GetPage(), 3)
+	if ps.Page() != 3 {
+		t.Errorf("Page() after AddPage(2) = %d, want %d", ps.Page(), 3)
 	}
 }
 
@@ -144,9 +144,9 @@ func TestPageState_Overview(t *testing.T) {
 	ps := NewPageState()
 	ps.SetStatus(StatusDone)
 	ps.SetAmount(50)
-	ps.Total = 100
-	ps.PageSize = 10
-	ps.TotalPage = 10
+	ps.SetTotal(100)
+	ps.SetPageSize(10)
+	ps.SetTotalPage(10)
 	ps.AddPage(5)
 
 	overview := ps.Overview()

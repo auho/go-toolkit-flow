@@ -111,14 +111,14 @@ func (b *Bulk[E]) Finish() error {
 }
 
 func (b *Bulk[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s Concurrency:%d; page size:%d", b.Title(), b.concurrency, b.pageSize)}
+	return []string{fmt.Sprintf("%s Concurrency:%d; page size:%d", b.title(), b.concurrency, b.pageSize)}
 }
 
-func (b *Bulk[E]) State() []string {
-	return []string{b.state.Overview()}
+func (b *Bulk[E]) StateInfo() storage.StateInfo {
+	return b.state
 }
 
-func (b *Bulk[E]) Title() string {
+func (b *Bulk[E]) title() string {
 	return fmt.Sprintf("Destination redis[%s][%d:%s]", b.format.Key(), b.dialect.DB(), b.format.Type())
 }
 
@@ -148,8 +148,8 @@ func (b *Bulk[E]) config(config BulkConfig) error {
 	}
 
 	b.state = storage.NewState()
-	b.state.Concurrency = b.concurrency
-	b.state.Title = b.Title()
+	b.state.SetConcurrency(b.concurrency)
+	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()
 
 	return nil

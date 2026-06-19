@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -52,8 +53,10 @@ func (s *spyDestination) Summary() []string {
 	return []string{s.name}
 }
 
-func (s *spyDestination) State() []string {
-	return []string{s.name}
+func (s *spyDestination) StateInfo() StateInfo {
+	st := NewState()
+	st.SetStatus(s.name)
+	return st
 }
 
 func TestMultiDestination_Prepare_AllSuccess(t *testing.T) {
@@ -252,12 +255,15 @@ func TestMultiDestination_State(t *testing.T) {
 	d3 := &spyDestination{name: "s3"}
 	md := MultiDestination[string]{d1, d2, d3}
 
-	state := md.State()
-	if len(state) != 3 {
-		t.Fatalf("State() length = %d, want 3", len(state))
+	si := md.StateInfo()
+	if si == nil {
+		t.Fatal("StateInfo() returned nil")
 	}
-	if state[0] != "s1" || state[1] != "s2" || state[2] != "s3" {
-		t.Errorf("State() = %v, want [s1 s2 s3]", state)
+	overview := si.Overview()
+	for _, name := range []string{"s1", "s2", "s3"} {
+		if !strings.Contains(overview, name) {
+			t.Errorf("StateInfo().Overview() = %q, missing %q", overview, name)
+		}
 	}
 }
 
@@ -271,5 +277,5 @@ func TestMultiDestination_Empty(t *testing.T) {
 	_ = md.Finish()
 	_ = md.Close()
 	_ = md.Summary()
-	_ = md.State()
+	_ = md.StateInfo()
 }

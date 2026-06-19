@@ -44,7 +44,7 @@ func TestNewScan(t *testing.T) {
 	}
 
 	fmt.Println(s.Summary())
-	fmt.Println(s.State())
+	fmt.Println(s.StateInfo().Overview())
 
 	if s.state.Amount() != int64(amount) {
 		t.Error(fmt.Sprintf("statusAmount != actual %d != %d", s.state.Amount(), amount))

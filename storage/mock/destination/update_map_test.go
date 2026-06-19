@@ -41,9 +41,9 @@ func TestUpdateMap(t *testing.T) {
 
 	fmt.Printf("page: %d, pageSize: %d, amount: %d \n", page, pageSize, page*pageSize)
 	fmt.Println(d.Summary())
-	fmt.Println(d.State())
+	fmt.Println(d.StateInfo().Overview())
 
-	if d.amount != int64(page*pageSize) {
+	if d.StateInfo().Amount() != int64(page*pageSize) {
 		t.Error(" amount ")
 	}
 }

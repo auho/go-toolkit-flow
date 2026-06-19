@@ -32,7 +32,7 @@ func TestNoopDestination_All(t *testing.T) {
 		t.Errorf("Summary() = %v, want nil", summary)
 	}
 
-	if state := d.State(); state != nil {
+	if state := d.StateInfo(); state != nil {
 		t.Errorf("State() = %v, want nil", state)
 	}
 }

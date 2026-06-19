@@ -34,7 +34,8 @@ func NewLine(c Config) (*Line, error) {
 		state: storage.NewState(),
 	}
 
-	d.state.Title = d.Title()
+	d.state.SetTitle(d.title())
+	d.state.MarkAsConfigured()
 
 	return d, nil
 }
@@ -92,13 +93,13 @@ func (l *Line) Close() error {
 }
 
 func (l *Line) Summary() []string {
-	return []string{l.Title()}
+	return []string{l.title()}
 }
 
-func (l *Line) State() []string {
-	return []string{l.state.Overview()}
+func (l *Line) StateInfo() storage.StateInfo {
+	return l.state
 }
 
-func (l *Line) Title() string {
+func (l *Line) title() string {
 	return fmt.Sprintf("Line file[%s]", l.f.Name())
 }

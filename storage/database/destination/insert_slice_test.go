@@ -62,7 +62,7 @@ func TestBulkInsertSliceGorm(t *testing.T) {
 	}
 
 	fmt.Println(bulk.Summary())
-	fmt.Println(bulk.State())
+	fmt.Println(bulk.StateInfo().Overview())
 
 	if bulk.state.Amount() != page*pageSize {
 		t.Error(fmt.Sprintf("actual != expected %d != %d", bulk.state.Amount(), page*pageSize))
