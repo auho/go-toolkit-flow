@@ -1,7 +1,6 @@
 package format
 
 import (
-	"log"
 	"strconv"
 	"time"
 
@@ -19,14 +18,10 @@ func NewMapOfStringFormat() Format[storage.MapOfStringsEntry] {
 }
 
 func (f *mapOfStringFormat) Type() string {
-	log.Println("[format] mapOfString.Type() -> mapOfString")
 	return "mapOfString"
 }
 
 func (f *mapOfStringFormat) Scan(idName string, id *int64, amount int64) (*int64, storage.MapOfStringsEntries) {
-	startID := *id
-	log.Printf("[format] mapOfString.Scan: start id=%d, idName=%s, amount=%d", startID, idName, amount)
-
 	items := make(storage.MapOfStringsEntries, amount)
 
 	startString := time.Now().String()
@@ -38,7 +33,6 @@ func (f *mapOfStringFormat) Scan(idName string, id *int64, amount int64) (*int64
 		items[i] = item
 	}
 
-	log.Printf("[format] mapOfString.Scan: generated %d items, end id=%d", len(items), *id)
 	return id, items
 }
 
