@@ -118,8 +118,8 @@ func (b *Bulk[E]) StateInfo() storage.State {
 	return b.state
 }
 
-func (b *Bulk[E]) StateString() string {
-	return b.state.Overview()
+func (b *Bulk[E]) StateString() []string {
+	return []string{b.state.Overview()}
 }
 
 func (b *Bulk[E]) title() string {

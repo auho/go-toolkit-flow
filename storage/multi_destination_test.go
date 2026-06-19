@@ -59,8 +59,8 @@ func (s *spyDestination) StateInfo() State {
 	return st
 }
 
-func (s *spyDestination) StateString() string {
-	return s.StateInfo().Overview()
+func (s *spyDestination) StateString() []string {
+	return []string{s.StateInfo().Overview()}
 }
 
 func TestMultiDestination_Prepare_AllSuccess(t *testing.T) {

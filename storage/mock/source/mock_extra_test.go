@@ -62,7 +62,7 @@ func TestMemory_SummaryContent(t *testing.T) {
 func TestMemory_StateContent(t *testing.T) {
 	m := NewMap(Config{Total: 50, PageSize: 10})
 	overview := m.StateString()
-	if overview == "" {
+	if len(overview) <= 0 {
 		t.Fatal("StateString() returned empty string")
 	}
 }

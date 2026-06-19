@@ -140,8 +140,8 @@ func (m *Memory[E]) State() storage.State {
 	return m.state
 }
 
-func (m *Memory[E]) StateString() string {
-	return m.state.Overview()
+func (m *Memory[E]) StateString() []string {
+	return []string{m.state.Overview()}
 }
 
 // Copy creates a deep copy of the items via the format's Copy method.

@@ -31,11 +31,11 @@ func TestMemory_State_Format(t *testing.T) {
 	_ = d.Finish()
 
 	overview := d.StateString()
-	if overview == "" {
+	if len(overview) <= 0 {
 		t.Fatal("expected non-empty overview, got empty string")
 	}
 
-	if !strings.Contains(overview, "Amount: 1") {
+	if !strings.Contains(overview[0], "Amount: 1") {
 		t.Errorf("expected overview to contain %q, got %q", "Amount: 1", overview)
 	}
 }

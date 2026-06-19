@@ -267,7 +267,7 @@ func (f *flow[SE, DE]) summary() {
 
 func (f *flow[SE, DE]) state() []string {
 	lines := make([]string, 0)
-	lines = append(lines, f.source.StateString())
+	lines = append(lines, f.source.StateString()...)
 	lines = append(lines, f.groups.State()...)
 
 	return lines

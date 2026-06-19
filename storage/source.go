@@ -36,7 +36,7 @@ type Source[E Entry] interface {
 	State() State
 
 	// StateString returns a human-readable state string for display.
-	StateString() string
+	StateString() []string
 
 	// Copy creates a deep copy of the given items slice.
 	// Used by flow when fan-out to multiple runners requires independent copies

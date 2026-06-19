@@ -158,8 +158,8 @@ func (i *Iterator[E]) State() storage.State {
 	return i.state
 }
 
-func (i *Iterator[E]) StateString() string {
-	return i.state.Overview()
+func (i *Iterator[E]) StateString() []string {
+	return []string{i.state.Overview()}
 }
 
 func (i *Iterator[E]) Copy(items []E) []E {

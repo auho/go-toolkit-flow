@@ -37,9 +37,9 @@ type Destination[E Entry] interface {
 	// Summary returns human-readable summary lines for display.
 	Summary() []string
 
-	// State returns structured state info for external consumers.
+	// StateInfo returns structured state info for external consumers.
 	StateInfo() State
 
 	// StateString returns a human-readable state string for display.
-	StateString() string
+	StateString() []string
 }

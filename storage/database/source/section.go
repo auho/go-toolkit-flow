@@ -247,8 +247,8 @@ func (s *Section[E]) State() storage.State {
 	return s.state
 }
 
-func (s *Section[E]) StateString() string {
-	return s.state.Overview()
+func (s *Section[E]) StateString() []string {
+	return []string{s.state.Overview()}
 }
 
 func (s *Section[E]) Close() error {

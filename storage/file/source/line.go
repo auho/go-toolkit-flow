@@ -128,8 +128,8 @@ func (l *Line) State() storage.State {
 	return l.state
 }
 
-func (l *Line) StateString() string {
-	return l.state.Overview()
+func (l *Line) StateString() []string {
+	return []string{l.state.Overview()}
 }
 
 func (l *Line) Copy(items []string) []string {

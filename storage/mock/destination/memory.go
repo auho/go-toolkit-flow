@@ -102,8 +102,8 @@ func (d *Memory[E]) StateInfo() storage.State {
 	return d.state
 }
 
-func (d *Memory[E]) StateString() string {
-	return d.state.Overview()
+func (d *Memory[E]) StateString() []string {
+	return []string{d.state.Overview()}
 }
 
 // Items returns all received items. Must be called after Finish() to ensure

@@ -82,6 +82,6 @@ func (md MultiDestination[E]) StateInfo() State {
 	return NewMultiState(states)
 }
 
-func (md MultiDestination[E]) StateString() string {
-	return md.StateInfo().Overview()
+func (md MultiDestination[E]) StateString() []string {
+	return []string{md.StateInfo().Overview()}
 }
