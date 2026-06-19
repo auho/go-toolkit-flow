@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/storage"
@@ -23,7 +22,6 @@ type Iterator[E storage.Entry] struct {
 	pageSize        int64
 	amount          int64
 	total           int64
-	scanned         int64
 	timeoutDuration time.Duration
 
 	state     *storage.TotalState
@@ -116,7 +114,7 @@ func (i *Iterator[E]) Scan() {
 			}
 
 			if len(items) > 0 {
-				atomic.AddInt64(&i.scanned, int64(len(items)))
+				i.state.AddAmount(int64(len(items)))
 
 				select {
 				case i.itemsChan <- items:
@@ -129,7 +127,7 @@ func (i *Iterator[E]) Scan() {
 				break
 			}
 
-			if i.amount > 0 && atomic.LoadInt64(&i.scanned) >= i.amount {
+			if i.amount > 0 && i.state.Amount() >= i.amount {
 				break
 			}
 
@@ -157,7 +155,6 @@ func (i *Iterator[E]) Summary() []string {
 }
 
 func (i *Iterator[E]) State() []string {
-	i.state.SetAmount(atomic.LoadInt64(&i.scanned))
 	return []string{i.state.Overview()}
 }
 
