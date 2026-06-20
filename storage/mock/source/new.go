@@ -10,6 +10,11 @@ func NewMap(config Config) *Memory[storage.MapEntry] {
 	return NewMemory[storage.MapEntry](config, format.NewMapFormat())
 }
 
+// NewSlice creates a Memory source that generates SliceEntry items.
+func NewSlice(config Config) *Memory[storage.SliceEntry] {
+	return NewMemory[storage.SliceEntry](config, format.NewSliceFormat())
+}
+
 // NewString creates a Memory source that generates string items.
 func NewString(config Config) *Memory[string] {
 	return NewMemory[string](config, format.NewStringFormat())
