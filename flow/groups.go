@@ -43,32 +43,23 @@ func (gs *groups[SE, DE]) TotalRunners() int {
 }
 
 // Prepare prepares all groups' runners and destinations.
-// Runners are prepared first, then destinations.
 func (gs *groups[SE, DE]) Prepare(ctx context.Context) error {
 	for _, g := range *gs {
-		if err := g.runners.Prepare(ctx); err != nil {
-			return fmt.Errorf("runners.Prepare: %w", err)
-		}
-	}
-
-	for _, g := range *gs {
-		if err := g.destination.Prepare(ctx); err != nil {
-			return fmt.Errorf("destination.Prepare: %w", err)
+		if err := g.Prepare(ctx); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// Start launches all groups' runner goroutines.
+// Start launches the groups' processing pipeline: first all runners'
+// worker goroutines, then all destinations' accept signal.
 func (gs *groups[SE, DE]) Start() {
 	for _, g := range *gs {
 		g.runners.Start()
 	}
-}
 
-// Accept signals all groups' destinations to begin accepting data.
-func (gs *groups[SE, DE]) Accept() {
 	for _, g := range *gs {
 		g.destination.Accept()
 	}
@@ -195,13 +186,7 @@ func (gs *groups[SE, DE]) Close() []error {
 	var errs []error
 
 	for _, g := range *gs {
-		if err := g.runners.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("runners.Close: %w", err))
-		}
-
-		if err := g.destination.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("destination.Close: %w", err))
-		}
+		errs = append(errs, g.Close()...)
 	}
 
 	return errs
@@ -214,12 +199,7 @@ func (gs *groups[SE, DE]) Summary() []string {
 
 	for i, g := range *gs {
 		lines = append(lines, fmt.Sprintf("  Group %d:", i+1))
-		lines = append(lines, "    Runners: ")
-		for _, s := range g.runners.Summary() {
-			lines = append(lines, "      "+s)
-		}
-		lines = append(lines, "    Destination: ")
-		lines = append(lines, g.destination.Summary()...)
+		lines = append(lines, g.Summary()...)
 	}
 
 	return lines
@@ -230,8 +210,7 @@ func (gs *groups[SE, DE]) State() []string {
 	lines := make([]string, 0)
 
 	for _, g := range *gs {
-		lines = append(lines, g.runners.State()...)
-		lines = append(lines, g.destination.StateString()...)
+		lines = append(lines, g.State()...)
 	}
 
 	return lines

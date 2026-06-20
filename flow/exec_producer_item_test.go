@@ -18,7 +18,7 @@ func TestExecProducerItem(t *testing.T) {
 		WithSource[map[string]any, map[string]any](src),
 		WithGroup[map[string]any, map[string]any](
 			[]exec.Runner[map[string]any, map[string]any]{
-				item.NewRunner[map[string]any, map[string]any](&transformer{}),
+				item.NewRunner[map[string]any, map[string]any](&itemOp{}),
 			},
 		),
 	}

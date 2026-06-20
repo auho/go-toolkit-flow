@@ -163,10 +163,9 @@ func (f *flow[SE, DE]) run() error {
 	f.summary()
 
 	// === Phase 2: Start ===
-	// Non-blocking: Scan/Start/Accept launch producer goroutines internally.
+	// Non-blocking: Scan/Start launch producer goroutines internally.
 	f.source.Scan()
 	f.groups.Start()
-	f.groups.Accept()
 
 	f.refreshOutput.Start()
 

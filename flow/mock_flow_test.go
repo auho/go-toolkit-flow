@@ -37,10 +37,10 @@ func TestMockFlow_Batch(t *testing.T) {
 	}
 }
 
-// TestMockFlow_Transformer_Count verifies count consistency through the full pipeline:
-// mock source → transformer (1:1 passthrough) → mock destination.
+// TestMockFlow_Item_Count verifies count consistency through the full pipeline:
+// mock source → itemOp (1:1 passthrough) → mock destination.
 // Asserts: source total == source generated == destination received.
-func TestMockFlow_Transformer_Count(t *testing.T) {
+func TestMockFlow_Item_Count(t *testing.T) {
 	total := int64(500)
 	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 50})
 
@@ -53,7 +53,7 @@ func TestMockFlow_Transformer_Count(t *testing.T) {
 		WithSource[map[string]any, map[string]any](src),
 		WithGroup[map[string]any, map[string]any](
 			[]exec.Runner[map[string]any, map[string]any]{
-				item.NewRunner[map[string]any, map[string]any](&transformer{}),
+				item.NewRunner[map[string]any, map[string]any](&itemOp{}),
 			},
 			dest,
 		),
@@ -73,10 +73,10 @@ func TestMockFlow_Transformer_Count(t *testing.T) {
 	}
 }
 
-// TestMockFlow_Transformer_Content verifies field content integrity:
+// TestMockFlow_Item_Content verifies field content integrity:
 // each received item must have an "id" field with a unique value in [1, total],
 // and a non-zero "content" field.
-func TestMockFlow_Transformer_Content(t *testing.T) {
+func TestMockFlow_Item_Content(t *testing.T) {
 	total := int64(100)
 	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 10})
 
@@ -89,7 +89,7 @@ func TestMockFlow_Transformer_Content(t *testing.T) {
 		WithSource[map[string]any, map[string]any](src),
 		WithGroup[map[string]any, map[string]any](
 			[]exec.Runner[map[string]any, map[string]any]{
-				item.NewRunner[map[string]any, map[string]any](&transformer{}),
+				item.NewRunner[map[string]any, map[string]any](&itemOp{}),
 			},
 			dest,
 		),
@@ -136,7 +136,7 @@ func TestMockFlow_Transformer_Content(t *testing.T) {
 	}
 }
 
-// TestMockFlow_MultiDestination verifies fan-out: mock source → transformer → 2 destinations.
+// TestMockFlow_MultiDestination verifies fan-out: mock source → itemOp → 2 destinations.
 // Both destinations must receive the same complete data (count + content).
 func TestMockFlow_MultiDestination(t *testing.T) {
 	total := int64(200)
@@ -155,7 +155,7 @@ func TestMockFlow_MultiDestination(t *testing.T) {
 		WithSource[map[string]any, map[string]any](src),
 		WithGroup[map[string]any, map[string]any](
 			[]exec.Runner[map[string]any, map[string]any]{
-				item.NewRunner[map[string]any, map[string]any](&transformer{}),
+				item.NewRunner[map[string]any, map[string]any](&itemOp{}),
 			},
 			dest1, dest2, // WithGroup wraps multiple dests as MultiDestination
 		),
