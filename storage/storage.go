@@ -5,23 +5,23 @@
 package storage
 
 type SliceEntry = []any
-type SliceOfStringsEntry = []string
+type StringSliceEntry = []string
 
 type MapEntry = map[string]any
-type MapOfStringsEntry = map[string]string
+type StringMapEntry = map[string]string
 type ScoreMapEntry = map[any]float64
 
 type SliceEntries = []SliceEntry
-type SliceOfStringsEntries = []SliceOfStringsEntry
+type StringSliceEntries = []StringSliceEntry
 type MapEntries = []MapEntry
-type MapOfStringsEntries = []MapOfStringsEntry
+type StringMapEntries = []StringMapEntry
 type ScoreMapEntries = []ScoreMapEntry
 
 // Entry is the type constraint for all supported data element types.
 // It is used as the generic parameter for Source, Destination, and other
 // pipeline components to ensure type safety across the data flow.
 type Entry interface {
-	SliceEntry | SliceOfStringsEntry | MapEntry | MapOfStringsEntry | ScoreMapEntry | string
+	SliceEntry | StringSliceEntry | MapEntry | StringMapEntry | ScoreMapEntry | string
 }
 
 // Storage is an empty struct embedded by implementations to share package identity.

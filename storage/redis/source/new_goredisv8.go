@@ -12,7 +12,7 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-func NewHashesWithGoRedisV8(client *redis.Client, c KeyConfig) (*Iterator[storage.MapOfStringsEntry], error) {
+func NewHashesWithGoRedisV8(client *redis.Client, c KeyConfig) (*Iterator[storage.StringMapEntry], error) {
 	return newIteratorWithGoRedisV8(format.NewHashesFormat(c.Key), client, c)
 }
 
@@ -24,7 +24,7 @@ func NewSetsWithGoRedisV8(client *redis.Client, c KeyConfig) (*Iterator[string],
 	return newIteratorWithGoRedisV8(format.NewSetsFormat(c.Key), client, c)
 }
 
-func NewSortedSetsWithGoRedisV8(client *redis.Client, c KeyConfig) (*Iterator[storage.MapOfStringsEntry], error) {
+func NewSortedSetsWithGoRedisV8(client *redis.Client, c KeyConfig) (*Iterator[storage.StringMapEntry], error) {
 	return newIteratorWithGoRedisV8(format.NewSortedSetsFormat(c.Key), client, c)
 }
 

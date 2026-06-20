@@ -15,7 +15,7 @@ func NewString(config Config) *Memory[string] {
 	return NewMemory[string](config, format.NewStringFormat())
 }
 
-// NewMapOfString creates a Memory source that generates MapOfStringsEntry items.
-func NewMapOfString(config Config) *Memory[storage.MapOfStringsEntry] {
-	return NewMemory[storage.MapOfStringsEntry](config, format.NewMapOfStringFormat())
+// NewStringMap creates a Memory source that generates StringMapEntry items.
+func NewStringMap(config Config) *Memory[storage.StringMapEntry] {
+	return NewMemory[storage.StringMapEntry](config, format.NewStringMapFormat())
 }

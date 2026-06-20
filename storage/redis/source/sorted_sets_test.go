@@ -37,7 +37,7 @@ func TestNewSortedSets(t *testing.T) {
 	_buildSortedSetsData(t)
 
 	c := _newRedisClient()
-	_testKey[storage.MapOfStringsEntry](
+	_testKey[storage.StringMapEntry](
 		t,
 		_sortedSetsKey,
 		NewSortedSetsWithGoRedisV8,

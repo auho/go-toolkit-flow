@@ -35,7 +35,7 @@ func TestNewHashes(t *testing.T) {
 	_buildHashesData(t)
 
 	c := _newRedisClient()
-	_testKey[storage.MapOfStringsEntry](
+	_testKey[storage.StringMapEntry](
 		t,
 		_hashesKey,
 		NewHashesWithGoRedisV8,
