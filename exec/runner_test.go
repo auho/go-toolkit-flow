@@ -37,8 +37,8 @@ func TestRunner_Prepare_Success(t *testing.T) {
 	if p.prepareCalled.Load() != 1 {
 		t.Errorf("prepareCalled should be 1, got %d", p.prepareCalled.Load())
 	}
-	if p.beforeExecCalled.Load() != 1 {
-		t.Errorf("beforeExecCalled should be 1, got %d", p.beforeExecCalled.Load())
+	if p.beforeRunCalled.Load() != 1 {
+		t.Errorf("beforeRunCalled should be 1, got %d", p.beforeRunCalled.Load())
 	}
 }
 
@@ -57,9 +57,9 @@ func TestRunner_Prepare_ProcessorPrepareError(t *testing.T) {
 	}
 }
 
-func TestRunner_Prepare_BeforeExecError(t *testing.T) {
+func TestRunner_Prepare_BeforeRunError(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	p := &mockProcessor[storage.MapEntry]{beforeExecErr: errors.New("before fail")}
+	p := &mockProcessor[storage.MapEntry]{beforeRunErr: errors.New("before fail")}
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
@@ -67,8 +67,8 @@ func TestRunner_Prepare_BeforeExecError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
-	if !contains(err.Error(), "processor.BeforeExec") {
-		t.Errorf("error should contain 'processor.BeforeExec', got: %v", err)
+	if !contains(err.Error(), "processor.BeforeRun") {
+		t.Errorf("error should contain 'processor.BeforeRun', got: %v", err)
 	}
 }
 
@@ -144,8 +144,8 @@ func TestRunner_Finish_Success(t *testing.T) {
 		t.Fatalf("Finish should succeed, got: %v", err)
 	}
 
-	if p.afterExecCalled.Load() != 1 {
-		t.Errorf("afterExecCalled should be 1, got %d", p.afterExecCalled.Load())
+	if p.afterRunCalled.Load() != 1 {
+		t.Errorf("afterRunCalled should be 1, got %d", p.afterRunCalled.Load())
 	}
 
 	// OutChan should be closed after Finish
@@ -176,9 +176,9 @@ func TestRunner_Done(t *testing.T) {
 	}
 }
 
-func TestRunner_Finish_AfterExecError(t *testing.T) {
+func TestRunner_Finish_AfterRunError(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	p := &mockProcessor[storage.MapEntry]{afterExecErr: errors.New("after fail")}
+	p := &mockProcessor[storage.MapEntry]{afterRunErr: errors.New("after fail")}
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
@@ -193,8 +193,8 @@ func TestRunner_Finish_AfterExecError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Finish should return error")
 	}
-	if !contains(err.Error(), "processor.AfterExec") {
-		t.Errorf("error should contain 'processor.AfterExec', got: %v", err)
+	if !contains(err.Error(), "processor.AfterRun") {
+		t.Errorf("error should contain 'processor.AfterRun', got: %v", err)
 	}
 }
 

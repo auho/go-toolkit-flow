@@ -24,13 +24,13 @@ type mockProcessor[E storage.Entry] struct {
 	processor.BaseProcessor
 	concurrency    int
 	prepareErr     error
-	beforeExecErr  error
-	afterExecErr   error
+	beforeRunErr   error
+	afterRunErr    error
 	closeErr       error
 	summaryStr     string
 	prepareCalled    atomic.Int64
-	beforeExecCalled atomic.Int64
-	afterExecCalled  atomic.Int64
+	beforeRunCalled  atomic.Int64
+	afterRunCalled   atomic.Int64
 	closeCalled      atomic.Int64
 }
 
@@ -45,9 +45,9 @@ func (m *mockProcessor[E]) Summary() string { return m.summaryStr }
 
 func (m *mockProcessor[E]) Prepare() error { m.prepareCalled.Add(1); return m.prepareErr }
 
-func (m *mockProcessor[E]) BeforeExec() error { m.beforeExecCalled.Add(1); return m.beforeExecErr }
+func (m *mockProcessor[E]) BeforeRun() error { m.beforeRunCalled.Add(1); return m.beforeRunErr }
 
-func (m *mockProcessor[E]) AfterExec() error { m.afterExecCalled.Add(1); return m.afterExecErr }
+func (m *mockProcessor[E]) AfterRun() error { m.afterRunCalled.Add(1); return m.afterRunErr }
 
 func (m *mockProcessor[E]) Close() error { m.closeCalled.Add(1); return m.closeErr }
 

@@ -1,6 +1,6 @@
 // Package processor defines the business logic layer of the pipeline.
 // A Processor wraps the user's processing logic (Exec) with lifecycle hooks
-// (Prepare, BeforeExec, AfterExec, Close) and state/output tracking.
+// (Prepare, BeforeRun, AfterRun, Close) and state/output tracking.
 //
 // There are two processing paths:
 //   - Consumer path (processor/consumer): processes data without producing output.
@@ -9,6 +9,11 @@
 //
 // BaseProcessor provides zero-value-usable defaults for state/output/log
 // management via sync.Once lazy initialization.
+//
+// Optional capabilities (discovered via type assertion, like DestinationHolder):
+//   - AfterBatcher[T]: post-batch processing hook, called after each batch's
+//     Exec completes. Producer-path instances process produced data (DE);
+//     consumer-path instances process the input batch (SE).
 package processor
 
 import (
@@ -30,11 +35,11 @@ type Processor[E storage.Entry] interface {
 	// Prepare initializes the processor before processing begins.
 	Prepare() error
 
-	// BeforeExec is called once before the first batch is processed.
-	BeforeExec() error
+	// BeforeRun is called once before the first batch is processed.
+	BeforeRun() error
 
-	// AfterExec is called once after all batches have been processed.
-	AfterExec() error
+	// AfterRun is called once after all batches have been processed.
+	AfterRun() error
 
 	// Close releases resources held by the processor.
 	Close() error
@@ -53,6 +58,16 @@ type Processor[E storage.Entry] interface {
 
 	// Output returns the output lines for display.
 	Output() []string
+}
+
+// AfterBatcher is optionally implemented by processors that need post-batch
+// processing. The pipeline discovers this via type assertion (like
+// DestinationHolder) and calls AfterBatch after each batch's Exec completes.
+//
+// Producer-path instances are parameterized by DE (processing produced data);
+// consumer-path instances are parameterized by SE (processing the input batch).
+type AfterBatcher[T storage.Entry] interface {
+	AfterBatch([]T) error
 }
 
 // BaseProcessor provides default implementations for state, output, and log

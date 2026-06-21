@@ -14,13 +14,13 @@ type mockBatch struct {
 	processor.BaseProcessor
 }
 
-func (m *mockBatch) Summary() string                         { return "mock-batch" }
-func (m *mockBatch) Prepare() error                          { return nil }
-func (m *mockBatch) BeforeExec() error                       { return nil }
-func (m *mockBatch) AfterExec() error                        { return nil }
-func (m *mockBatch) Close() error                            { return nil }
-func (m *mockBatch) AppendState()                            {}
-func (m *mockBatch) Concurrency() int                        { return 1 }
+func (m *mockBatch) Summary() string  { return "mock-batch" }
+func (m *mockBatch) Prepare() error   { return nil }
+func (m *mockBatch) BeforeRun() error { return nil }
+func (m *mockBatch) AfterRun() error  { return nil }
+func (m *mockBatch) Close() error     { return nil }
+func (m *mockBatch) AppendState()     {}
+func (m *mockBatch) Concurrency() int { return 1 }
 func (m *mockBatch) Exec(items []storage.MapEntry) (int64, error) {
 	return int64(len(items)), nil
 }
@@ -33,13 +33,13 @@ type mockConsumerItem struct {
 	processor.BaseProcessor
 }
 
-func (m *mockConsumerItem) Summary() string            { return "mock-consumer-item" }
-func (m *mockConsumerItem) Prepare() error             { return nil }
-func (m *mockConsumerItem) BeforeExec() error          { return nil }
-func (m *mockConsumerItem) AfterExec() error           { return nil }
-func (m *mockConsumerItem) Close() error               { return nil }
-func (m *mockConsumerItem) AppendState()               {}
-func (m *mockConsumerItem) Concurrency() int           { return 1 }
+func (m *mockConsumerItem) Summary() string  { return "mock-consumer-item" }
+func (m *mockConsumerItem) Prepare() error   { return nil }
+func (m *mockConsumerItem) BeforeRun() error { return nil }
+func (m *mockConsumerItem) AfterRun() error  { return nil }
+func (m *mockConsumerItem) Close() error     { return nil }
+func (m *mockConsumerItem) AppendState()     {}
+func (m *mockConsumerItem) Concurrency() int { return 1 }
 func (m *mockConsumerItem) Exec(item storage.MapEntry) (bool, error) {
 	return true, nil
 }
@@ -51,15 +51,13 @@ type mockProducerBatch struct {
 	processor.BaseProcessor
 }
 
-func (m *mockProducerBatch) Summary() string { return "mock-producer-batch" }
-func (m *mockProducerBatch) Prepare() error  { return nil }
-func (m *mockProducerBatch) BeforeExec() error {
-	return nil
-}
-func (m *mockProducerBatch) AfterExec() error  { return nil }
-func (m *mockProducerBatch) Close() error      { return nil }
-func (m *mockProducerBatch) AppendState()      {}
-func (m *mockProducerBatch) Concurrency() int  { return 1 }
+func (m *mockProducerBatch) Summary() string  { return "mock-producer-batch" }
+func (m *mockProducerBatch) Prepare() error   { return nil }
+func (m *mockProducerBatch) BeforeRun() error { return nil }
+func (m *mockProducerBatch) AfterRun() error  { return nil }
+func (m *mockProducerBatch) Close() error     { return nil }
+func (m *mockProducerBatch) AppendState()     {}
+func (m *mockProducerBatch) Concurrency() int { return 1 }
 func (m *mockProducerBatch) Exec(items []storage.MapEntry) ([]storage.MapEntry, int64, error) {
 	return items, int64(len(items)), nil
 }
@@ -71,20 +69,15 @@ type mockProducerItem struct {
 	processor.BaseProcessor
 }
 
-func (m *mockProducerItem) Summary() string { return "mock-producer-item" }
-func (m *mockProducerItem) Prepare() error  { return nil }
-func (m *mockProducerItem) BeforeExec() error {
-	return nil
-}
-func (m *mockProducerItem) AfterExec() error { return nil }
+func (m *mockProducerItem) Summary() string  { return "mock-producer-item" }
+func (m *mockProducerItem) Prepare() error   { return nil }
+func (m *mockProducerItem) BeforeRun() error { return nil }
+func (m *mockProducerItem) AfterRun() error  { return nil }
 func (m *mockProducerItem) Close() error     { return nil }
 func (m *mockProducerItem) AppendState()     {}
 func (m *mockProducerItem) Concurrency() int { return 1 }
 func (m *mockProducerItem) Exec(item storage.MapEntry) ([]storage.MapEntry, bool, error) {
 	return []storage.MapEntry{item}, true, nil
-}
-func (m *mockProducerItem) PostBatchExec(items []storage.MapEntry) error {
-	return nil
 }
 
 var _ producer.Item[storage.MapEntry, storage.MapEntry] = (*mockProducerItem)(nil)

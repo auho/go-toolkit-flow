@@ -97,7 +97,7 @@ func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], p processor.Processor[S
 }
 
 // Prepare initializes the processor and creates the errgroup context.
-// Calls processor.Init → processor.Prepare → processor.BeforeExec in sequence.
+// Calls processor.Init → processor.Prepare → processor.BeforeRun in sequence.
 func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 	r.processor.Init()
 
@@ -106,9 +106,9 @@ func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 		return fmt.Errorf("processor.Prepare: %w", err)
 	}
 
-	err = r.processor.BeforeExec()
+	err = r.processor.BeforeRun()
 	if err != nil {
-		return fmt.Errorf("processor.BeforeExec: %w", err)
+		return fmt.Errorf("processor.BeforeRun: %w", err)
 	}
 
 	r.startGroup, r.startCtx = errgroup.WithContext(ctx)
@@ -168,8 +168,8 @@ func (r *runner[SE, DE]) Done() {
 }
 
 // Finish waits for all workers to complete, closes outChan, and calls
-// processor.AfterExec. Returns an error if any worker failed or if
-// AfterExec returns an error.
+// processor.AfterRun. Returns an error if any worker failed or if
+// AfterRun returns an error.
 func (r *runner[SE, DE]) Finish() error {
 	err := r.startGroup.Wait()
 	if err != nil {
@@ -178,9 +178,9 @@ func (r *runner[SE, DE]) Finish() error {
 
 	close(r.outChan)
 
-	err = r.processor.AfterExec()
+	err = r.processor.AfterRun()
 	if err != nil {
-		return fmt.Errorf("processor.AfterExec: %w", err)
+		return fmt.Errorf("processor.AfterRun: %w", err)
 	}
 
 	return nil

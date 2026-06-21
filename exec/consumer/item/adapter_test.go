@@ -12,16 +12,16 @@ type mockItem struct {
 	err error
 }
 
-func (m *mockItem) Summary() string  { return "mock" }
-func (m *mockItem) Prepare() error   { return nil }
-func (m *mockItem) BeforeExec() error { return nil }
-func (m *mockItem) AfterExec() error { return nil }
-func (m *mockItem) Close() error     { return nil }
-func (m *mockItem) AppendState()     {}
-func (m *mockItem) Concurrency() int { return 1 }
-func (m *mockItem) Init()            {}
-func (m *mockItem) State() []string  { return nil }
-func (m *mockItem) Output() []string { return nil }
+func (m *mockItem) Summary() string   { return "mock" }
+func (m *mockItem) Prepare() error    { return nil }
+func (m *mockItem) BeforeRun() error  { return nil }
+func (m *mockItem) AfterRun() error   { return nil }
+func (m *mockItem) Close() error      { return nil }
+func (m *mockItem) AppendState()      {}
+func (m *mockItem) Concurrency() int  { return 1 }
+func (m *mockItem) Init()             {}
+func (m *mockItem) State() []string   { return nil }
+func (m *mockItem) Output() []string  { return nil }
 func (m *mockItem) Exec(item storage.MapEntry) (bool, error) {
 	return m.ok, m.err
 }
@@ -30,16 +30,16 @@ type mockItemErr struct {
 	ok bool
 }
 
-func (m *mockItemErr) Summary() string  { return "mock-err" }
-func (m *mockItemErr) Prepare() error   { return nil }
-func (m *mockItemErr) BeforeExec() error { return nil }
-func (m *mockItemErr) AfterExec() error { return nil }
-func (m *mockItemErr) Close() error     { return nil }
-func (m *mockItemErr) AppendState()     {}
-func (m *mockItemErr) Concurrency() int { return 1 }
-func (m *mockItemErr) Init()            {}
-func (m *mockItemErr) State() []string  { return nil }
-func (m *mockItemErr) Output() []string { return nil }
+func (m *mockItemErr) Summary() string   { return "mock-err" }
+func (m *mockItemErr) Prepare() error    { return nil }
+func (m *mockItemErr) BeforeRun() error  { return nil }
+func (m *mockItemErr) AfterRun() error   { return nil }
+func (m *mockItemErr) Close() error      { return nil }
+func (m *mockItemErr) AppendState()      {}
+func (m *mockItemErr) Concurrency() int  { return 1 }
+func (m *mockItemErr) Init()             {}
+func (m *mockItemErr) State() []string   { return nil }
+func (m *mockItemErr) Output() []string  { return nil }
 func (m *mockItemErr) Exec(item storage.MapEntry) (bool, error) {
 	return m.ok, errors.New("item err")
 }

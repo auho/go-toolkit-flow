@@ -236,7 +236,7 @@ func TestRunners_Finish_AllSuccess(t *testing.T) {
 func TestRunners_Finish_OneFails(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
 	p1 := &mockProcessor[storage.MapEntry]{}
-	p2 := &mockProcessor[storage.MapEntry]{afterExecErr: errors.New("after exec error")}
+	p2 := &mockProcessor[storage.MapEntry]{afterRunErr: errors.New("after run error")}
 
 	rs.Add(
 		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p1),

@@ -8,6 +8,9 @@ import (
 // Batch is a producer-path processor that processes items in bulk and produces output.
 // Producer path: source → processor (produces data) → destination persistence → exec flow control.
 // Exec returns the produced data which is forwarded to a destination.
+//
+// Optional: implement AfterBatcher[DE] to perform post-batch processing on
+// produced items before they are sent to the destination.
 type Batch[SE, DE storage.Entry] interface {
 	processor.Processor[SE]
 

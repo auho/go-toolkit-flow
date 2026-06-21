@@ -36,17 +36,13 @@ func (t *itemOp) Exec(item map[string]any) ([]map[string]any, bool, error) {
 	return []map[string]any{item}, true, nil
 }
 
-func (t *itemOp) PostBatchExec(items []map[string]any) error {
+func (t *itemOp) BeforeRun() error {
+	t.Outputln("BeforeRun")
 	return nil
 }
 
-func (t *itemOp) BeforeExec() error {
-	t.Outputln("BeforeExec")
-	return nil
-}
-
-func (t *itemOp) AfterExec() error {
-	t.Outputln("AfterExec")
+func (t *itemOp) AfterRun() error {
+	t.Outputln("AfterRun")
 	return nil
 }
 
@@ -73,13 +69,13 @@ func (p *producerBatchOp) Exec(items []map[string]any) ([]map[string]any, int64,
 	return items, int64(len(items)), nil
 }
 
-func (p *producerBatchOp) BeforeExec() error {
-	p.Outputln("BeforeExec")
+func (p *producerBatchOp) BeforeRun() error {
+	p.Outputln("BeforeRun")
 	return nil
 }
 
-func (p *producerBatchOp) AfterExec() error {
-	p.Outputln("AfterExec")
+func (p *producerBatchOp) AfterRun() error {
+	p.Outputln("AfterRun")
 	return nil
 }
 
@@ -108,13 +104,13 @@ func (c *consumerItemOp) Exec(item map[string]any) (bool, error) {
 	return true, nil
 }
 
-func (c *consumerItemOp) BeforeExec() error {
-	c.Outputln("BeforeExec")
+func (c *consumerItemOp) BeforeRun() error {
+	c.Outputln("BeforeRun")
 	return nil
 }
 
-func (c *consumerItemOp) AfterExec() error {
-	c.Outputln("AfterExec")
+func (c *consumerItemOp) AfterRun() error {
+	c.Outputln("AfterRun")
 	return nil
 }
 
@@ -141,13 +137,13 @@ func (b *batchOp) Exec(items []map[string]any) (int64, error) {
 	return int64(len(items)), nil
 }
 
-func (b *batchOp) BeforeExec() error {
-	b.Outputln("BeforeExec")
+func (b *batchOp) BeforeRun() error {
+	b.Outputln("BeforeRun")
 	return nil
 }
 
-func (b *batchOp) AfterExec() error {
-	b.Outputln("AfterExec")
+func (b *batchOp) AfterRun() error {
+	b.Outputln("AfterRun")
 	return nil
 }
 
@@ -174,17 +170,13 @@ func (t *sliceItemOp) Exec(item storage.SliceEntry) ([]storage.SliceEntry, bool,
 	return []storage.SliceEntry{item}, true, nil
 }
 
-func (t *sliceItemOp) PostBatchExec(items []storage.SliceEntry) error {
+func (t *sliceItemOp) BeforeRun() error {
+	t.Outputln("BeforeRun")
 	return nil
 }
 
-func (t *sliceItemOp) BeforeExec() error {
-	t.Outputln("BeforeExec")
-	return nil
-}
-
-func (t *sliceItemOp) AfterExec() error {
-	t.Outputln("AfterExec")
+func (t *sliceItemOp) AfterRun() error {
+	t.Outputln("AfterRun")
 	return nil
 }
 

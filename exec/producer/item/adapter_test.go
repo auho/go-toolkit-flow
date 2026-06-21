@@ -13,62 +13,54 @@ type mockItem struct {
 	err error
 }
 
-func (m *mockItem) Summary() string          { return "mock" }
-func (m *mockItem) Prepare() error           { return nil }
-func (m *mockItem) BeforeExec() error        { return nil }
-func (m *mockItem) AfterExec() error         { return nil }
-func (m *mockItem) Close() error             { return nil }
-func (m *mockItem) AppendState()             {}
-func (m *mockItem) Concurrency() int         { return 1 }
-func (m *mockItem) Init()                    {}
-func (m *mockItem) State() []string          { return nil }
-func (m *mockItem) Output() []string         { return nil }
+func (m *mockItem) Summary() string   { return "mock" }
+func (m *mockItem) Prepare() error    { return nil }
+func (m *mockItem) BeforeRun() error  { return nil }
+func (m *mockItem) AfterRun() error   { return nil }
+func (m *mockItem) Close() error      { return nil }
+func (m *mockItem) AppendState()      {}
+func (m *mockItem) Concurrency() int  { return 1 }
+func (m *mockItem) Init()             {}
+func (m *mockItem) State() []string   { return nil }
+func (m *mockItem) Output() []string  { return nil }
 func (m *mockItem) Exec(item storage.MapEntry) ([]storage.MapEntry, bool, error) {
 	return m.out, m.ok, m.err
 }
 
-func (m *mockItem) PostBatchExec(items []storage.MapEntry) error {
-	return nil
-}
-
 type mockItemErr struct{}
 
-func (m *mockItemErr) Summary() string          { return "mock-err" }
-func (m *mockItemErr) Prepare() error           { return nil }
-func (m *mockItemErr) BeforeExec() error        { return nil }
-func (m *mockItemErr) AfterExec() error         { return nil }
-func (m *mockItemErr) Close() error             { return nil }
-func (m *mockItemErr) AppendState()             {}
-func (m *mockItemErr) Concurrency() int         { return 1 }
-func (m *mockItemErr) Init()                    {}
-func (m *mockItemErr) State() []string          { return nil }
-func (m *mockItemErr) Output() []string         { return nil }
+func (m *mockItemErr) Summary() string   { return "mock-err" }
+func (m *mockItemErr) Prepare() error    { return nil }
+func (m *mockItemErr) BeforeRun() error  { return nil }
+func (m *mockItemErr) AfterRun() error   { return nil }
+func (m *mockItemErr) Close() error      { return nil }
+func (m *mockItemErr) AppendState()      {}
+func (m *mockItemErr) Concurrency() int  { return 1 }
+func (m *mockItemErr) Init()             {}
+func (m *mockItemErr) State() []string   { return nil }
+func (m *mockItemErr) Output() []string  { return nil }
 func (m *mockItemErr) Exec(item storage.MapEntry) ([]storage.MapEntry, bool, error) {
 	return nil, false, errors.New("item err")
 }
 
-func (m *mockItemErr) PostBatchExec(items []storage.MapEntry) error {
-	return nil
-}
+type mockItemAfterBatchErr struct{}
 
-type mockItemPostBatchExecErr struct{}
-
-func (m *mockItemPostBatchExecErr) Summary() string          { return "mock-pbe-err" }
-func (m *mockItemPostBatchExecErr) Prepare() error           { return nil }
-func (m *mockItemPostBatchExecErr) BeforeExec() error        { return nil }
-func (m *mockItemPostBatchExecErr) AfterExec() error         { return nil }
-func (m *mockItemPostBatchExecErr) Close() error             { return nil }
-func (m *mockItemPostBatchExecErr) AppendState()             {}
-func (m *mockItemPostBatchExecErr) Concurrency() int         { return 1 }
-func (m *mockItemPostBatchExecErr) Init()                    {}
-func (m *mockItemPostBatchExecErr) State() []string          { return nil }
-func (m *mockItemPostBatchExecErr) Output() []string         { return nil }
-func (m *mockItemPostBatchExecErr) Exec(item storage.MapEntry) ([]storage.MapEntry, bool, error) {
+func (m *mockItemAfterBatchErr) Summary() string   { return "mock-ab-err" }
+func (m *mockItemAfterBatchErr) Prepare() error    { return nil }
+func (m *mockItemAfterBatchErr) BeforeRun() error  { return nil }
+func (m *mockItemAfterBatchErr) AfterRun() error   { return nil }
+func (m *mockItemAfterBatchErr) Close() error      { return nil }
+func (m *mockItemAfterBatchErr) AppendState()      {}
+func (m *mockItemAfterBatchErr) Concurrency() int  { return 1 }
+func (m *mockItemAfterBatchErr) Init()             {}
+func (m *mockItemAfterBatchErr) State() []string   { return nil }
+func (m *mockItemAfterBatchErr) Output() []string  { return nil }
+func (m *mockItemAfterBatchErr) Exec(item storage.MapEntry) ([]storage.MapEntry, bool, error) {
 	return []storage.MapEntry{{"key": "val"}}, true, nil
 }
 
-func (m *mockItemPostBatchExecErr) PostBatchExec(items []storage.MapEntry) error {
-	return errors.New("post batch exec err")
+func (m *mockItemAfterBatchErr) AfterBatch(items []storage.MapEntry) error {
+	return errors.New("after batch err")
 }
 
 func TestAdapter_NewRunner(t *testing.T) {
@@ -131,15 +123,15 @@ func TestAdapterExec_Error(t *testing.T) {
 	}
 }
 
-func TestAdapter_PostBatchExec_Error(t *testing.T) {
-	a := &adapter[storage.MapEntry, storage.MapEntry]{item: &mockItemPostBatchExecErr{}}
+func TestAdapter_AfterBatch_Error(t *testing.T) {
+	a := &adapter[storage.MapEntry, storage.MapEntry]{item: &mockItemAfterBatchErr{}}
 	_, _, _, err := a.Exec([]storage.MapEntry{{"id": 1}})
 
 	if err == nil {
 		t.Fatal("Exec should return error")
 	}
-	if !contains(err.Error(), "item.PostBatchExec") {
-		t.Errorf("error should contain 'item.PostBatchExec', got: %v", err)
+	if !contains(err.Error(), "item.AfterBatch") {
+		t.Errorf("error should contain 'item.AfterBatch', got: %v", err)
 	}
 }
 
