@@ -1,6 +1,6 @@
-// Package exec is the execution layer between operator and flow.
+// Package exec is the execution layer between processor and flow.
 // It provides Runner (single task) and Runners (collection) that bind an
-// Executor adapter with an Operator, managing the lifecycle:
+// Executor adapter with a Processor, managing the lifecycle:
 //   Prepare → Start (worker goroutines) → Receive → Done → Finish → Close
 //
 // Data flow:
@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/auho/go-toolkit-flow/operator"
+	"github.com/auho/go-toolkit-flow/processor"
 	"github.com/auho/go-toolkit-flow/storage"
 	"golang.org/x/sync/errgroup"
 )
@@ -46,11 +46,11 @@ type Runner[SE, DE storage.Entry] interface {
 }
 
 // runner implements Runner. It binds an Executor (processing strategy) with
-// an Operator (lifecycle + state management) and manages concurrent workers
+// a Processor (lifecycle + state management) and manages concurrent workers
 // via errgroup.
 //
 // Concurrency model:
-//   - Start launches N worker goroutines (N = operator.Concurrency())
+//   - Start launches N worker goroutines (N = processor.Concurrency())
 //   - Workers read from inChan, call executor.Exec, and write to outChan
 //   - Done closes inChan, causing workers to exit
 //   - Finish waits for all workers (errgroup.Wait), then closes outChan
@@ -64,37 +64,37 @@ type runner[SE, DE storage.Entry] struct {
 	inChan   chan []SE
 	outChan  chan []DE
 	executor Executor[SE, DE]
-	operator operator.Operator[SE]
+	processor processor.Processor[SE]
 
 	startGroup *errgroup.Group
 	startCtx   context.Context
 }
 
-// NewRunner creates a Runner from the given Executor and Operator.
-// The inChan and outChan buffer sizes are set to operator.Concurrency().
-func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], o operator.Operator[SE]) Runner[SE, DE] {
+// NewRunner creates a Runner from the given Executor and Processor.
+// The inChan and outChan buffer sizes are set to processor.Concurrency().
+func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], p processor.Processor[SE]) Runner[SE, DE] {
 	r := &runner[SE, DE]{}
 	r.executor = e
-	r.operator = o
-	r.inChan = make(chan []SE, o.Concurrency())
-	r.outChan = make(chan []DE, o.Concurrency())
+	r.processor = p
+	r.inChan = make(chan []SE, p.Concurrency())
+	r.outChan = make(chan []DE, p.Concurrency())
 
 	return r
 }
 
-// Prepare initializes the operator and creates the errgroup context.
-// Calls operator.Init → operator.Prepare → operator.BeforeExec in sequence.
+// Prepare initializes the processor and creates the errgroup context.
+// Calls processor.Init → processor.Prepare → processor.BeforeExec in sequence.
 func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
-	r.operator.Init()
+	r.processor.Init()
 
-	err := r.operator.Prepare()
+	err := r.processor.Prepare()
 	if err != nil {
-		return fmt.Errorf("operator.Prepare: %w", err)
+		return fmt.Errorf("processor.Prepare: %w", err)
 	}
 
-	err = r.operator.BeforeExec()
+	err = r.processor.BeforeExec()
 	if err != nil {
-		return fmt.Errorf("operator.BeforeExec: %w", err)
+		return fmt.Errorf("processor.BeforeExec: %w", err)
 	}
 
 	r.startGroup, r.startCtx = errgroup.WithContext(ctx)
@@ -113,9 +113,9 @@ func (r *runner[SE, DE]) Receive(items []SE) {
 
 // Start launches worker goroutines that read from inChan, call executor.Exec,
 // and write produced data to outChan. The number of workers equals
-// operator.Concurrency().
+// processor.Concurrency().
 func (r *runner[SE, DE]) Start() {
-	for i := 0; i < r.operator.Concurrency(); i++ {
+	for i := 0; i < r.processor.Concurrency(); i++ {
 		r.startGroup.Go(func() error {
 			for {
 				select {
@@ -154,7 +154,7 @@ func (r *runner[SE, DE]) Done() {
 }
 
 // Finish waits for all workers to complete, closes outChan, and calls
-// operator.AfterExec. Returns an error if any worker failed or if
+// processor.AfterExec. Returns an error if any worker failed or if
 // AfterExec returns an error.
 func (r *runner[SE, DE]) Finish() error {
 	err := r.startGroup.Wait()
@@ -164,29 +164,29 @@ func (r *runner[SE, DE]) Finish() error {
 
 	close(r.outChan)
 
-	err = r.operator.AfterExec()
+	err = r.processor.AfterExec()
 	if err != nil {
-		return fmt.Errorf("operator.AfterExec: %w", err)
+		return fmt.Errorf("processor.AfterExec: %w", err)
 	}
 
 	return nil
 }
 
 func (r *runner[SE, DE]) Close() error {
-	return r.operator.Close()
+	return r.processor.Close()
 }
 
 func (r *runner[SE, DE]) Summary() string {
-	return r.operator.Summary()
+	return r.processor.Summary()
 }
 
 func (r *runner[SE, DE]) State() []string {
-	r.operator.AppendState()
-	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.operator.State()...)
+	r.processor.AppendState()
+	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.processor.State()...)
 }
 
 func (r *runner[SE, DE]) Output() []string {
-	return r.operator.Output()
+	return r.processor.Output()
 }
 
 func (r *runner[SE, DE]) OutChan() <-chan []DE {

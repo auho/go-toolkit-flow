@@ -1,11 +1,11 @@
-package operator
+package processor
 
 import (
 	"testing"
 )
 
-func TestBaseOperator_Init_EnablesMethods(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_Init_EnablesMethods(t *testing.T) {
+	var op BaseProcessor
 
 	op.Init()
 
@@ -25,16 +25,16 @@ func TestBaseOperator_Init_EnablesMethods(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_Init_Idempotent(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_Init_Idempotent(t *testing.T) {
+	var op BaseProcessor
 
 	op.Init()
 	op.Init()
 	op.Init()
 }
 
-func TestBaseOperator_State_Empty(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_State_Empty(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	if s := op.State(); len(s) != 0 {
@@ -42,8 +42,8 @@ func TestBaseOperator_State_Empty(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_AddStateLine(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_AddStateLine(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	n1 := op.AddStateLine("line1")
@@ -68,8 +68,8 @@ func TestBaseOperator_AddStateLine(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_SetStateLine(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_SetStateLine(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	n := op.AddStateLine("old")
@@ -88,8 +88,8 @@ func TestBaseOperator_SetStateLine(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_Output_Empty(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_Output_Empty(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	if o := op.Output(); len(o) != 0 {
@@ -97,8 +97,8 @@ func TestBaseOperator_Output_Empty(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_Outputln(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_Outputln(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	op.Outputln("hello")
@@ -112,8 +112,8 @@ func TestBaseOperator_Outputln(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_Outputf(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_Outputf(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	op.Outputf("hello %s", "world")
@@ -127,8 +127,8 @@ func TestBaseOperator_Outputf(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_Log_Empty(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_Log_Empty(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	if l := op.Log(); len(l) != 0 {
@@ -136,8 +136,8 @@ func TestBaseOperator_Log_Empty(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_Logln(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_Logln(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	op.Logln("hello")
@@ -151,8 +151,8 @@ func TestBaseOperator_Logln(t *testing.T) {
 	}
 }
 
-func TestBaseOperator_Logf(t *testing.T) {
-	var op BaseOperator
+func TestBaseProcessor_Logf(t *testing.T) {
+	var op BaseProcessor
 	op.Init()
 
 	op.Logf("hello %s", "world")

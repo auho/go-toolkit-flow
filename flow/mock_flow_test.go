@@ -17,12 +17,12 @@ import (
 // storage.mock source/destination only — no third-party dependencies.
 //
 // Coverage matrix:
-//   - operator kind:  producer.Item / producer.Batch / consumer.Item / consumer.Batch
+//   - processor kind: producer.Item / producer.Batch / consumer.Item / consumer.Batch
 //   - destination:    NoopDestination / InsertMap / UpdateMap / MultiDestination
 //   - group layout:   single-group single-runner / single-group multi-runner / multi-group
 //   - entry type:     MapEntry / SliceEntry
 
-// === Operator × destination combinations ===
+// === Processor × destination combinations ===
 
 // TestFlow_ProducerItem verifies the producer.Item path:
 // mock source → itemOp (1:1 passthrough) → InsertMap destination.

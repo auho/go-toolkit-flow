@@ -10,8 +10,8 @@ import (
 
 func TestRunner_New(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	if r == nil {
 		t.Error("NewRunner should not return nil")
@@ -25,8 +25,8 @@ func TestRunner_New(t *testing.T) {
 
 func TestRunner_Prepare_Success(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
@@ -34,41 +34,41 @@ func TestRunner_Prepare_Success(t *testing.T) {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
 
-	if operator.prepareCalled.Load() != 1 {
-		t.Errorf("prepareCalled should be 1, got %d", operator.prepareCalled.Load())
+	if p.prepareCalled.Load() != 1 {
+		t.Errorf("prepareCalled should be 1, got %d", p.prepareCalled.Load())
 	}
-	if operator.beforeExecCalled.Load() != 1 {
-		t.Errorf("beforeExecCalled should be 1, got %d", operator.beforeExecCalled.Load())
+	if p.beforeExecCalled.Load() != 1 {
+		t.Errorf("beforeExecCalled should be 1, got %d", p.beforeExecCalled.Load())
 	}
 }
 
-func TestRunner_Prepare_OperatorPrepareError(t *testing.T) {
+func TestRunner_Prepare_ProcessorPrepareError(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{prepareErr: errors.New("prepare fail")}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{prepareErr: errors.New("prepare fail")}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
-	if !contains(err.Error(), "operator.Prepare") {
-		t.Errorf("error should contain 'operator.Prepare', got: %v", err)
+	if !contains(err.Error(), "processor.Prepare") {
+		t.Errorf("error should contain 'processor.Prepare', got: %v", err)
 	}
 }
 
 func TestRunner_Prepare_BeforeExecError(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{beforeExecErr: errors.New("before fail")}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{beforeExecErr: errors.New("before fail")}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
-	if !contains(err.Error(), "operator.BeforeExec") {
-		t.Errorf("error should contain 'operator.BeforeExec', got: %v", err)
+	if !contains(err.Error(), "processor.BeforeExec") {
+		t.Errorf("error should contain 'processor.BeforeExec', got: %v", err)
 	}
 }
 
@@ -78,8 +78,8 @@ func TestRunner_ReceiveAndStart(t *testing.T) {
 		amount:   1,
 		affected: 1,
 	}
-	operator := &mockOperator[storage.MapEntry]{}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
@@ -106,7 +106,7 @@ func TestRunner_ReceiveAndStart(t *testing.T) {
 
 func TestRunner_Start_ExecError(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{err: errors.New("exec fail")}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, &mockOperator[storage.MapEntry]{})
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, &mockProcessor[storage.MapEntry]{})
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
@@ -128,8 +128,8 @@ func TestRunner_Start_ExecError(t *testing.T) {
 
 func TestRunner_Finish_Success(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
@@ -144,8 +144,8 @@ func TestRunner_Finish_Success(t *testing.T) {
 		t.Fatalf("Finish should succeed, got: %v", err)
 	}
 
-	if operator.afterExecCalled.Load() != 1 {
-		t.Errorf("afterExecCalled should be 1, got %d", operator.afterExecCalled.Load())
+	if p.afterExecCalled.Load() != 1 {
+		t.Errorf("afterExecCalled should be 1, got %d", p.afterExecCalled.Load())
 	}
 
 	// OutChan should be closed after Finish
@@ -157,8 +157,8 @@ func TestRunner_Finish_Success(t *testing.T) {
 
 func TestRunner_Done(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
@@ -178,8 +178,8 @@ func TestRunner_Done(t *testing.T) {
 
 func TestRunner_Finish_AfterExecError(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{afterExecErr: errors.New("after fail")}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{afterExecErr: errors.New("after fail")}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
@@ -193,15 +193,15 @@ func TestRunner_Finish_AfterExecError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Finish should return error")
 	}
-	if !contains(err.Error(), "operator.AfterExec") {
-		t.Errorf("error should contain 'operator.AfterExec', got: %v", err)
+	if !contains(err.Error(), "processor.AfterExec") {
+		t.Errorf("error should contain 'processor.AfterExec', got: %v", err)
 	}
 }
 
 func TestRunner_Summary(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{summaryStr: "test-summary"}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{summaryStr: "test-summary"}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	if r.Summary() != "test-summary" {
 		t.Errorf("Summary should be 'test-summary', got '%s'", r.Summary())
@@ -210,8 +210,8 @@ func TestRunner_Summary(t *testing.T) {
 
 func TestRunner_State(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
@@ -237,8 +237,8 @@ func TestRunner_State(t *testing.T) {
 
 func TestRunner_Output(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
 	err := r.Prepare(ctx)
@@ -252,15 +252,15 @@ func TestRunner_Output(t *testing.T) {
 
 func TestRunner_Close(t *testing.T) {
 	executor := &mockExecutor[storage.MapEntry, storage.MapEntry]{}
-	operator := &mockOperator[storage.MapEntry]{}
-	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, operator)
+	p := &mockProcessor[storage.MapEntry]{}
+	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	err := r.Close()
 	if err != nil {
 		t.Fatalf("Close should succeed, got: %v", err)
 	}
-	if operator.closeCalled.Load() != 1 {
-		t.Errorf("closeCalled should be 1, got %d", operator.closeCalled.Load())
+	if p.closeCalled.Load() != 1 {
+		t.Errorf("closeCalled should be 1, got %d", p.closeCalled.Load())
 	}
 }
 

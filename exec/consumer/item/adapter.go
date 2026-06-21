@@ -4,19 +4,19 @@ import (
 	"fmt"
 
 	"github.com/auho/go-toolkit-flow/exec"
-	"github.com/auho/go-toolkit-flow/operator/consumer"
+	"github.com/auho/go-toolkit-flow/processor/consumer"
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
 var _ exec.Executor[string, string] = (*adapter[string, string])(nil)
 
-// adapter adapts a consumer.Item operator to the exec.Executor interface.
+// adapter adapts a consumer.Item processor to the exec.Executor interface.
 // Consumer path: processes data without producing output (out is always nil).
 type adapter[SE, DE storage.Entry] struct {
 	item consumer.Item[SE]
 }
 
-// NewRunner creates a Runner for the consumer item operator (path one).
+// NewRunner creates a Runner for the consumer item processor (path one).
 // SE and DE are the same type in the consumer path; out is always nil.
 func NewRunner[SE, DE storage.Entry](it consumer.Item[SE]) exec.Runner[SE, DE] {
 	a := &adapter[SE, DE]{

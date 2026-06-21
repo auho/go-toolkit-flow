@@ -1,17 +1,17 @@
-package operator_test
+package processor_test
 
 import (
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/operator"
-	"github.com/auho/go-toolkit-flow/operator/consumer"
-	"github.com/auho/go-toolkit-flow/operator/producer"
+	"github.com/auho/go-toolkit-flow/processor"
+	"github.com/auho/go-toolkit-flow/processor/consumer"
+	"github.com/auho/go-toolkit-flow/processor/producer"
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
 // mockBatch implements consumer.Batch[storage.MapEntry]
 type mockBatch struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (m *mockBatch) Summary() string                         { return "mock-batch" }
@@ -30,7 +30,7 @@ var _ consumer.Batch[storage.MapEntry] = (*mockBatch)(nil)
 
 // mockConsumerItem implements consumer.Item[storage.MapEntry]
 type mockConsumerItem struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (m *mockConsumerItem) Summary() string            { return "mock-consumer-item" }
@@ -48,7 +48,7 @@ var _ consumer.Item[storage.MapEntry] = (*mockConsumerItem)(nil)
 
 // mockProducerBatch implements producer.Batch[storage.MapEntry, storage.MapEntry]
 type mockProducerBatch struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (m *mockProducerBatch) Summary() string { return "mock-producer-batch" }
@@ -68,7 +68,7 @@ var _ producer.Batch[storage.MapEntry, storage.MapEntry] = (*mockProducerBatch)(
 
 // mockProducerItem implements producer.Item[storage.MapEntry, storage.MapEntry]
 type mockProducerItem struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (m *mockProducerItem) Summary() string { return "mock-producer-item" }

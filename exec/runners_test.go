@@ -22,7 +22,7 @@ func TestRunners_Add(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
 	r1 := newMockRunner[storage.MapEntry, storage.MapEntry](
 		&mockExecutor[storage.MapEntry, storage.MapEntry]{},
-		&mockOperator[storage.MapEntry]{},
+		&mockProcessor[storage.MapEntry]{},
 	)
 
 	rs.Add(r1)
@@ -32,11 +32,11 @@ func TestRunners_Add(t *testing.T) {
 
 	r2 := newMockRunner[storage.MapEntry, storage.MapEntry](
 		&mockExecutor[storage.MapEntry, storage.MapEntry]{},
-		&mockOperator[storage.MapEntry]{},
+		&mockProcessor[storage.MapEntry]{},
 	)
 	r3 := newMockRunner[storage.MapEntry, storage.MapEntry](
 		&mockExecutor[storage.MapEntry, storage.MapEntry]{},
-		&mockOperator[storage.MapEntry]{},
+		&mockProcessor[storage.MapEntry]{},
 	)
 	rs.Add(r2, r3)
 	if rs.Len() != 3 {
@@ -51,12 +51,12 @@ func TestRunners_Add(t *testing.T) {
 
 func TestRunners_Prepare_AllSuccess(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
-	op1 := &mockOperator[storage.MapEntry]{}
-	op2 := &mockOperator[storage.MapEntry]{}
+	p1 := &mockProcessor[storage.MapEntry]{}
+	p2 := &mockProcessor[storage.MapEntry]{}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op1),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op2),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p1),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p2),
 	)
 
 	ctx := context.Background()
@@ -65,22 +65,22 @@ func TestRunners_Prepare_AllSuccess(t *testing.T) {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
 
-	if op1.prepareCalled.Load() != 1 {
-		t.Errorf("op1 prepareCalled should be 1, got %d", op1.prepareCalled.Load())
+	if p1.prepareCalled.Load() != 1 {
+		t.Errorf("p1 prepareCalled should be 1, got %d", p1.prepareCalled.Load())
 	}
-	if op2.prepareCalled.Load() != 1 {
-		t.Errorf("op2 prepareCalled should be 1, got %d", op2.prepareCalled.Load())
+	if p2.prepareCalled.Load() != 1 {
+		t.Errorf("p2 prepareCalled should be 1, got %d", p2.prepareCalled.Load())
 	}
 }
 
 func TestRunners_Prepare_OneFails(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
-	op1 := &mockOperator[storage.MapEntry]{}
-	op2 := &mockOperator[storage.MapEntry]{prepareErr: errors.New("prepare error")}
+	p1 := &mockProcessor[storage.MapEntry]{}
+	p2 := &mockProcessor[storage.MapEntry]{prepareErr: errors.New("prepare error")}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op1),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op2),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p1),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p2),
 	)
 
 	ctx := context.Background()
@@ -99,8 +99,8 @@ func TestRunners_Start(t *testing.T) {
 	exec2 := &mockExecutor[storage.MapEntry, storage.MapEntry]{out: []storage.MapEntry{{"k2": "v2"}}, amount: 1, affected: 1}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](exec1, &mockOperator[storage.MapEntry]{}),
-		newMockRunner[storage.MapEntry, storage.MapEntry](exec2, &mockOperator[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](exec1, &mockProcessor[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](exec2, &mockProcessor[storage.MapEntry]{}),
 	)
 
 	ctx := context.Background()
@@ -128,9 +128,9 @@ func TestRunners_Start(t *testing.T) {
 func TestRunners_Receive_Single(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
 	exec1 := &mockExecutor[storage.MapEntry, storage.MapEntry]{out: []storage.MapEntry{{"k": "v"}}, amount: 1, affected: 1}
-	op1 := &mockOperator[storage.MapEntry]{}
+	p1 := &mockProcessor[storage.MapEntry]{}
 
-	rs.Add(newMockRunner[storage.MapEntry, storage.MapEntry](exec1, op1))
+	rs.Add(newMockRunner[storage.MapEntry, storage.MapEntry](exec1, p1))
 
 	ctx := context.Background()
 	err := rs.Prepare(ctx)
@@ -158,9 +158,9 @@ func TestRunners_Receive_Multi(t *testing.T) {
 	exec3 := &mockExecutor[storage.MapEntry, storage.MapEntry]{out: []storage.MapEntry{{"k3": "v3"}}, amount: 1, affected: 1}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](exec1, &mockOperator[storage.MapEntry]{}),
-		newMockRunner[storage.MapEntry, storage.MapEntry](exec2, &mockOperator[storage.MapEntry]{}),
-		newMockRunner[storage.MapEntry, storage.MapEntry](exec3, &mockOperator[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](exec1, &mockProcessor[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](exec2, &mockProcessor[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](exec3, &mockProcessor[storage.MapEntry]{}),
 	)
 
 	ctx := context.Background()
@@ -190,12 +190,12 @@ func TestRunners_Receive_Multi(t *testing.T) {
 
 func TestRunners_Done(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
-	op1 := &mockOperator[storage.MapEntry]{}
-	op2 := &mockOperator[storage.MapEntry]{}
+	p1 := &mockProcessor[storage.MapEntry]{}
+	p2 := &mockProcessor[storage.MapEntry]{}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op1),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op2),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p1),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p2),
 	)
 
 	ctx := context.Background()
@@ -215,8 +215,8 @@ func TestRunners_Done(t *testing.T) {
 func TestRunners_Finish_AllSuccess(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{}),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{}),
 	)
 
 	ctx := context.Background()
@@ -235,12 +235,12 @@ func TestRunners_Finish_AllSuccess(t *testing.T) {
 
 func TestRunners_Finish_OneFails(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
-	op1 := &mockOperator[storage.MapEntry]{}
-	op2 := &mockOperator[storage.MapEntry]{afterExecErr: errors.New("after exec error")}
+	p1 := &mockProcessor[storage.MapEntry]{}
+	p2 := &mockProcessor[storage.MapEntry]{afterExecErr: errors.New("after exec error")}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op1),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op2),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p1),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p2),
 	)
 
 	ctx := context.Background()
@@ -262,12 +262,12 @@ func TestRunners_Finish_OneFails(t *testing.T) {
 
 func TestRunners_Close_AllSuccess(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
-	op1 := &mockOperator[storage.MapEntry]{}
-	op2 := &mockOperator[storage.MapEntry]{}
+	p1 := &mockProcessor[storage.MapEntry]{}
+	p2 := &mockProcessor[storage.MapEntry]{}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op1),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op2),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p1),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p2),
 	)
 
 	err := rs.Close()
@@ -275,22 +275,22 @@ func TestRunners_Close_AllSuccess(t *testing.T) {
 		t.Fatalf("Close should succeed, got: %v", err)
 	}
 
-	if op1.closeCalled.Load() != 1 {
-		t.Errorf("op1.closeCalled should be 1, got %d", op1.closeCalled.Load())
+	if p1.closeCalled.Load() != 1 {
+		t.Errorf("p1.closeCalled should be 1, got %d", p1.closeCalled.Load())
 	}
-	if op2.closeCalled.Load() != 1 {
-		t.Errorf("op2.closeCalled should be 1, got %d", op2.closeCalled.Load())
+	if p2.closeCalled.Load() != 1 {
+		t.Errorf("p2.closeCalled should be 1, got %d", p2.closeCalled.Load())
 	}
 }
 
 func TestRunners_Close_OneFails(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
-	op1 := &mockOperator[storage.MapEntry]{}
-	op2 := &mockOperator[storage.MapEntry]{closeErr: errors.New("close error")}
+	p1 := &mockProcessor[storage.MapEntry]{}
+	p2 := &mockProcessor[storage.MapEntry]{closeErr: errors.New("close error")}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op1),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, op2),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p1),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, p2),
 	)
 
 	err := rs.Close()
@@ -305,8 +305,8 @@ func TestRunners_Close_OneFails(t *testing.T) {
 func TestRunners_Summary(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{summaryStr: "summary1"}),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{summaryStr: "summary2"}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{summaryStr: "summary1"}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{summaryStr: "summary2"}),
 	)
 
 	summaries := rs.Summary()
@@ -324,8 +324,8 @@ func TestRunners_Summary(t *testing.T) {
 func TestRunners_State(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{summaryStr: "s1"}),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{summaryStr: "s2"}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{summaryStr: "s1"}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{summaryStr: "s2"}),
 	)
 
 	ctx := context.Background()
@@ -360,8 +360,8 @@ func TestRunners_State(t *testing.T) {
 func TestRunners_Output(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{}),
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{}),
 	)
 
 	ctx := context.Background()
@@ -381,7 +381,7 @@ func TestRunners_Len(t *testing.T) {
 	}
 
 	rs.Add(
-		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{}),
+		newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{}),
 	)
 	if rs.Len() != 1 {
 		t.Errorf("Len should be 1, got %d", rs.Len())
@@ -390,8 +390,8 @@ func TestRunners_Len(t *testing.T) {
 
 func TestRunners_All(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
-	r1 := newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{})
-	r2 := newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockOperator[storage.MapEntry]{})
+	r1 := newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{})
+	r2 := newMockRunner[storage.MapEntry, storage.MapEntry](&mockExecutor[storage.MapEntry, storage.MapEntry]{}, &mockProcessor[storage.MapEntry]{})
 
 	rs.Add(r1, r2)
 	all := rs.All()

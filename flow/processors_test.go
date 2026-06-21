@@ -3,23 +3,23 @@ package flow
 import (
 	"runtime"
 
-	"github.com/auho/go-toolkit-flow/operator"
-	"github.com/auho/go-toolkit-flow/operator/consumer"
-	"github.com/auho/go-toolkit-flow/operator/producer"
+	"github.com/auho/go-toolkit-flow/processor"
+	"github.com/auho/go-toolkit-flow/processor/consumer"
+	"github.com/auho/go-toolkit-flow/processor/producer"
 	"github.com/auho/go-toolkit-flow/storage"
 )
 
-// This file defines helper operators and a SliceEntry source format used by
+// This file defines helper processors and a SliceEntry source format used by
 // the flow combination tests (mock_flow_test.go). All helpers target
 // storage.MapEntry unless noted, to match mock source/destination defaults.
 
-// === Producer-path operators ===
+// === Producer-path processors ===
 
 // itemOp is a producer.Item that passes each input item through unchanged (1:1).
 var _ producer.Item[map[string]any, map[string]any] = (*itemOp)(nil)
 
 type itemOp struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (t *itemOp) Concurrency() int { return runtime.NumCPU() }
@@ -56,7 +56,7 @@ func (t *itemOp) Close() error { return nil }
 var _ producer.Batch[map[string]any, map[string]any] = (*producerBatchOp)(nil)
 
 type producerBatchOp struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (p *producerBatchOp) Concurrency() int { return runtime.NumCPU() }
@@ -85,13 +85,13 @@ func (p *producerBatchOp) AfterExec() error {
 
 func (p *producerBatchOp) Close() error { return nil }
 
-// === Consumer-path operators ===
+// === Consumer-path processors ===
 
 // consumerItemOp is a consumer.Item that accepts every item (ok=true).
 var _ consumer.Item[map[string]any] = (*consumerItemOp)(nil)
 
 type consumerItemOp struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (c *consumerItemOp) Concurrency() int { return runtime.NumCPU() }
@@ -124,7 +124,7 @@ func (c *consumerItemOp) Close() error { return nil }
 var _ consumer.Batch[map[string]any] = (*batchOp)(nil)
 
 type batchOp struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (b *batchOp) Concurrency() int { return runtime.NumCPU() }
@@ -157,7 +157,7 @@ func (b *batchOp) Close() error { return nil }
 var _ producer.Item[storage.SliceEntry, storage.SliceEntry] = (*sliceItemOp)(nil)
 
 type sliceItemOp struct {
-	operator.BaseOperator
+	processor.BaseProcessor
 }
 
 func (t *sliceItemOp) Concurrency() int { return runtime.NumCPU() }

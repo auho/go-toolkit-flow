@@ -1,15 +1,15 @@
-// Package operator defines the business logic layer of the pipeline.
-// An Operator wraps the user's processing logic (Exec) with lifecycle hooks
+// Package processor defines the business logic layer of the pipeline.
+// A Processor wraps the user's processing logic (Exec) with lifecycle hooks
 // (Prepare, BeforeExec, AfterExec, Close) and state/output tracking.
 //
 // There are two processing paths:
-//   - Consumer path (operator/consumer): processes data without producing output.
-//   - Producer path (operator/producer): processes data and produces output
+//   - Consumer path (processor/consumer): processes data without producing output.
+//   - Producer path (processor/producer): processes data and produces output
 //     that is forwarded to a Destination.
 //
-// BaseOperator provides zero-value-usable defaults for state/output/log
+// BaseProcessor provides zero-value-usable defaults for state/output/log
 // management via sync.Once lazy initialization.
-package operator
+package processor
 
 import (
 	"fmt"
@@ -20,14 +20,14 @@ import (
 	"github.com/auho/go-toolkit/time/timing"
 )
 
-// Operator is the core interface that all operators must implement.
+// Processor is the core interface that all processors must implement.
 // It defines the lifecycle and state management contract for the
 // business logic layer of the pipeline.
-type Operator[E storage.Entry] interface {
-	// Summary returns a human-readable description of the operator.
+type Processor[E storage.Entry] interface {
+	// Summary returns a human-readable description of the processor.
 	Summary() string
 
-	// Prepare initializes the operator before processing begins.
+	// Prepare initializes the processor before processing begins.
 	Prepare() error
 
 	// BeforeExec is called once before the first batch is processed.
@@ -36,7 +36,7 @@ type Operator[E storage.Entry] interface {
 	// AfterExec is called once after all batches have been processed.
 	AfterExec() error
 
-	// Close releases resources held by the operator.
+	// Close releases resources held by the processor.
 	Close() error
 
 	// AppendState appends current state lines for status display.
@@ -55,10 +55,10 @@ type Operator[E storage.Entry] interface {
 	Output() []string
 }
 
-// BaseOperator provides default implementations for state, output, and log
+// BaseProcessor provides default implementations for state, output, and log
 // management. It is zero-value usable: fields are lazily initialized via
 // sync.Once on the first call to any method that requires them.
-type BaseOperator struct {
+type BaseProcessor struct {
 	initOnce sync.Once
 
 	duration *timing.Duration
@@ -69,7 +69,7 @@ type BaseOperator struct {
 
 // ensureInit guarantees all fields are initialized.
 // Called at the entry of every public method.
-func (t *BaseOperator) ensureInit() {
+func (t *BaseProcessor) ensureInit() {
 	t.initOnce.Do(func() {
 		t.duration = timing.NewDuration()
 		t.state = output.NewMultilineText()
@@ -81,48 +81,48 @@ func (t *BaseOperator) ensureInit() {
 // Init ensures all internal fields are initialized.
 // Must be called before State(), Output(), or Log() can be used safely.
 // Idempotent: multiple calls are safe.
-func (t *BaseOperator) Init() {
+func (t *BaseProcessor) Init() {
 	t.ensureInit()
 }
 
-func (t *BaseOperator) State() []string {
+func (t *BaseProcessor) State() []string {
 	return t.state.Content()
 }
 
 // AddStateLine appends a state line and returns its line number (1-based).
-func (t *BaseOperator) AddStateLine(s string) int {
+func (t *BaseProcessor) AddStateLine(s string) int {
 	return t.state.PrintNext(s)
 }
 
 // SetStateLine overwrites the state line at the given 1-based line number.
-func (t *BaseOperator) SetStateLine(line int, s string) {
+func (t *BaseProcessor) SetStateLine(line int, s string) {
 	t.state.Print(line, s)
 }
 
-func (t *BaseOperator) Output() []string {
+func (t *BaseProcessor) Output() []string {
 	return t.output.Content()
 }
 
 // Outputf appends a formatted line to the output.
-func (t *BaseOperator) Outputf(format string, a ...any) {
+func (t *BaseProcessor) Outputf(format string, a ...any) {
 	t.output.PrintNext(fmt.Sprintf(format, a...))
 }
 
 // Outputln appends a line to the output.
-func (t *BaseOperator) Outputln(a ...any) {
+func (t *BaseProcessor) Outputln(a ...any) {
 	t.output.PrintNext(fmt.Sprint(a...))
 }
 
-func (t *BaseOperator) Log() []string {
+func (t *BaseProcessor) Log() []string {
 	return t.log.Content()
 }
 
 // Logf appends a formatted line to the log.
-func (t *BaseOperator) Logf(format string, a ...any) {
+func (t *BaseProcessor) Logf(format string, a ...any) {
 	t.log.PrintNext(fmt.Sprintf(format, a...))
 }
 
 // Logln appends a line to the log.
-func (t *BaseOperator) Logln(a ...any) {
+func (t *BaseProcessor) Logln(a ...any) {
 	t.log.PrintNext(fmt.Sprint(a...))
 }
