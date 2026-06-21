@@ -58,10 +58,7 @@ func WithGroup[SE, DE storage.Entry](
 			dest = storage.MultiDestination[DE](dests)
 		}
 
-		f.groups.Add(group[SE, DE]{
-			runners:     rs,
-			destination: dest,
-		})
+		f.groups.Add(newGroup(rs, dest))
 	}
 }
 

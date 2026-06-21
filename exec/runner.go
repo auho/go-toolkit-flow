@@ -68,16 +68,30 @@ type runner[SE, DE storage.Entry] struct {
 
 	startGroup *errgroup.Group
 	startCtx   context.Context
+
+	// internalDests holds destinations owned by the processor (if it implements
+	// storage.DestinationHolder). Populated once in NewRunner via type
+	// assertion. nil for runners whose processor doesn't hold internal dests.
+	// flow manages these destinations' lifecycle; the processor writes to them
+	// directly inside Exec.
+	internalDests []storage.Destination[DE]
 }
 
 // NewRunner creates a Runner from the given Executor and Processor.
 // The inChan and outChan buffer sizes are set to processor.Concurrency().
+// If the processor implements storage.DestinationHolder, the runner caches
+// its internal destinations and exposes them via Destinations() for flow to
+// manage their lifecycle.
 func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], p processor.Processor[SE]) Runner[SE, DE] {
 	r := &runner[SE, DE]{}
 	r.executor = e
 	r.processor = p
 	r.inChan = make(chan []SE, p.Concurrency())
 	r.outChan = make(chan []DE, p.Concurrency())
+
+	if dh, ok := p.(storage.DestinationHolder[DE]); ok {
+		r.internalDests = dh.Destinations()
+	}
 
 	return r
 }
@@ -191,4 +205,12 @@ func (r *runner[SE, DE]) Output() []string {
 
 func (r *runner[SE, DE]) OutChan() <-chan []DE {
 	return r.outChan
+}
+
+// Destinations returns the internal destinations held by the processor (if any).
+// Returns nil for runners whose processor does not implement DestinationHolder.
+// flow uses this (via a type assertion to storage.DestinationHolder) to manage the
+// lifecycle of internal destinations uniformly.
+func (r *runner[SE, DE]) Destinations() []storage.Destination[DE] {
+	return r.internalDests
 }

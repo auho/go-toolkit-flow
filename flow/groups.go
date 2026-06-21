@@ -3,10 +3,9 @@ package flow
 import (
 	"context"
 	"fmt"
-	"sync"
 
-	"github.com/auho/go-toolkit-flow/exec"
 	"github.com/auho/go-toolkit-flow/storage"
+	"golang.org/x/sync/errgroup"
 )
 
 // groups is a collection of group that encapsulates batch operations.
@@ -53,22 +52,18 @@ func (gs *groups[SE, DE]) Prepare(ctx context.Context) error {
 	return nil
 }
 
-// Start launches the groups' processing pipeline: first all runners'
-// worker goroutines, then all destinations' accept signal.
+// Start launches each group's processing pipeline: runners' worker goroutines
+// first, then destination and internal destinations' accept signal.
 func (gs *groups[SE, DE]) Start() {
 	for _, g := range *gs {
-		g.runners.Start()
-	}
-
-	for _, g := range *gs {
-		g.destination.Accept()
+		g.Start()
 	}
 }
 
 // Done signals all groups' runners that no more data will be sent.
 func (gs *groups[SE, DE]) Done() {
 	for _, g := range *gs {
-		g.runners.Done()
+		g.Done()
 	}
 }
 
@@ -92,73 +87,11 @@ func (gs *groups[SE, DE]) Receive(items []SE, copyFn func([]SE) []SE) {
 	}
 }
 
-// Finish waits for all groups' runners to complete processing.
-// Internally, each group's runners.Finish waits for all runner goroutines
-// to exit and then closes each runner's OutChan.
+// Finish waits for all groups' runners to complete processing, then signals
+// Done on all internal destinations (safe because workers have exited).
 func (gs *groups[SE, DE]) Finish() error {
 	for _, g := range *gs {
-		if err := g.runners.Finish(); err != nil {
-			return fmt.Errorf("runners.Finish: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// OutputForward fans in each group's runner outputs and forwards them
-// to the group's destination.
-//
-// Concurrency model:
-//   - Each group runs in its own goroutine (total = len(groups), bounded)
-//   - Within each group: one fan-in goroutine per runner
-//   - Groups share no state; destinations need no thread safety (each is called
-//     serially by one group's single fan-out goroutine)
-//
-// Timing constraints:
-//   - Prerequisite: Finish has closed all runner.OutChan channels
-//   - fan-in goroutines: range OutChan exits → close(merged)
-//   - Group goroutine: range merged exits → destination.Done()
-func (gs *groups[SE, DE]) OutputForward(ctx context.Context) error {
-	var wg sync.WaitGroup
-	errCh := make(chan error, gs.Len())
-
-	for _, g := range *gs {
-		wg.Add(1)
-		go func(g group[SE, DE]) {
-			defer wg.Done()
-
-			merged := make(chan []DE)
-			var fanIn sync.WaitGroup
-
-			for _, r := range g.runners.All() {
-				fanIn.Add(1)
-				go func(r exec.Runner[SE, DE]) {
-					defer fanIn.Done()
-					for out := range r.OutChan() {
-						select {
-						case <-ctx.Done():
-							return
-						case merged <- out:
-						}
-					}
-				}(r)
-			}
-			go func() { fanIn.Wait(); close(merged) }()
-
-			for out := range merged {
-				if err := g.destination.Receive(out); err != nil {
-					errCh <- err
-					return
-				}
-			}
-			g.destination.Done()
-		}(g)
-	}
-
-	wg.Wait()
-	close(errCh)
-	for err := range errCh {
-		if err != nil {
+		if err := g.Finish(); err != nil {
 			return err
 		}
 	}
@@ -166,12 +99,28 @@ func (gs *groups[SE, DE]) OutputForward(ctx context.Context) error {
 	return nil
 }
 
-// DestinationFinish finalizes persistence for all groups' destinations.
-// Called after all data has been forwarded and Done.
+// OutputForward concurrently runs each group's OutputForward.
+// Uses errgroup.WithContext for fail-fast: if any group fails, the context is
+// canceled and other groups exit via their internal ctx.Done() checks.
+func (gs *groups[SE, DE]) OutputForward(ctx context.Context) error {
+	g, ctx := errgroup.WithContext(ctx)
+
+	for _, grp := range *gs {
+		grp := grp
+		g.Go(func() error {
+			return grp.OutputForward(ctx)
+		})
+	}
+
+	return g.Wait()
+}
+
+// DestinationFinish finalizes persistence for all groups' destinations and
+// internal destinations. Called after all data has been forwarded and Done.
 func (gs *groups[SE, DE]) DestinationFinish() error {
 	for _, g := range *gs {
-		if err := g.destination.Finish(); err != nil {
-			return fmt.Errorf("destination.Finish: %w", err)
+		if err := g.DestinationFinish(); err != nil {
+			return err
 		}
 	}
 
@@ -221,7 +170,7 @@ func (gs *groups[SE, DE]) Output() []string {
 	lines := make([]string, 0)
 
 	for _, g := range *gs {
-		lines = append(lines, g.runners.Output()...)
+		lines = append(lines, g.Output()...)
 	}
 
 	return lines

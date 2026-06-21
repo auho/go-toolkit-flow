@@ -43,3 +43,16 @@ type Destination[E Entry] interface {
 	// StateString returns a human-readable state string for display.
 	StateString() []string
 }
+
+// DestinationHolder is optionally implemented by components that hold internal
+// destinations written to during processing (e.g. a processor that dispatches
+// data to multiple destinations inside Exec). The pipeline discovers these via
+// a type assertion and manages their lifecycle uniformly.
+//
+// The holder itself is responsible for calling dest.Receive during processing;
+// this interface only exposes the destinations for lifecycle ownership.
+// Holders MUST NOT continue calling dest.Receive after their processing has
+// completed, because the pipeline will invoke dest.Done() once workers exit.
+type DestinationHolder[DE Entry] interface {
+	Destinations() []Destination[DE]
+}
