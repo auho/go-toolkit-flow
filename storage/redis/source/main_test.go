@@ -8,14 +8,18 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-redis/redis/v8"
+
+	"github.com/auho/go-toolkit-flow/internal/testutil"
 	testredis "github.com/auho/go-toolkit-flow/internal/testutil/redis"
 	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/go-redis/redis/v8"
 )
 
-var _redisOptions = testredis.Options
+var _redisOptions redis.Options
 
 func TestMain(m *testing.M) {
+	testutil.LoadEnv()
+	_redisOptions = testredis.GetOptions()
 	setUp()
 	code := m.Run()
 	tearDown()

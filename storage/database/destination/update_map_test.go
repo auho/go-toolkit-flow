@@ -70,7 +70,7 @@ func TestBulkUpdateMapFormatGorm(t *testing.T) {
 		t.Error(fmt.Sprintf("total != db amount %d != %d", updateBulk.state.Amount(), dbAmount))
 	}
 
-	mysql.CleanData(updateMapTable)
+	mysql.CleanData(simpleDB, updateMapTable)
 }
 
 func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {

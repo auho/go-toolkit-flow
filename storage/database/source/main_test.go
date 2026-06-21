@@ -7,9 +7,12 @@ import (
 	"os"
 	"testing"
 
+	simpledb "github.com/auho/go-simple-db/v2"
+	"gorm.io/gorm"
+
+	"github.com/auho/go-toolkit-flow/internal/testutil"
 	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/storage"
-	"gorm.io/gorm"
 )
 
 var tableName = mysql.SourceTable
@@ -17,8 +20,10 @@ var idName = mysql.IDName
 var nameName = mysql.NameName
 var valueName = mysql.ValueName
 var gormDB *gorm.DB
+var simpleDB *simpledb.SimpleDB
 
 func TestMain(m *testing.M) {
+	testutil.LoadEnv()
 	setUp()
 	code := m.Run()
 	tearDown()
@@ -26,10 +31,10 @@ func TestMain(m *testing.M) {
 }
 
 func setUp() {
-	gormDB, _ = mysql.InitDB()
+	gormDB, simpleDB = mysql.InitDB()
 
-	mysql.CreateTable(tableName)
-	mysql.BuildData(tableName)
+	mysql.CreateTable(gormDB, tableName)
+	mysql.BuildData(gormDB, tableName)
 }
 
 func _testSection[E storage.Entry](
@@ -80,6 +85,6 @@ func _testSection[E storage.Entry](
 }
 
 func tearDown() {
-	mysql.CleanData(tableName)
+	mysql.CleanData(simpleDB, tableName)
 	log.Println("tear down")
 }

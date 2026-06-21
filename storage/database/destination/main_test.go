@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	simpledb "github.com/auho/go-simple-db/v2"
-	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"gorm.io/gorm"
+
+	"github.com/auho/go-toolkit-flow/internal/testutil"
+	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 )
 
 var insertMapTable = "destination_insert_map"
@@ -20,6 +22,7 @@ var gormDB *gorm.DB
 var simpleDB *simpledb.SimpleDB
 
 func TestMain(m *testing.M) {
+	testutil.LoadEnv()
 	setUp()
 	code := m.Run()
 	tearDown()
@@ -29,18 +32,18 @@ func TestMain(m *testing.M) {
 func setUp() {
 	gormDB, simpleDB = mysql.InitDB()
 
-	mysql.CreateTable(insertMapTable)
-	mysql.CleanData(insertMapTable)
-	mysql.CreateTable(insertSliceTable)
-	mysql.CleanData(insertSliceTable)
-	mysql.CreateTable(updateMapTable)
-	mysql.CleanData(updateMapTable)
+	mysql.CreateTable(gormDB, insertMapTable)
+	mysql.CleanData(simpleDB, insertMapTable)
+	mysql.CreateTable(gormDB, insertSliceTable)
+	mysql.CleanData(simpleDB, insertSliceTable)
+	mysql.CreateTable(gormDB, updateMapTable)
+	mysql.CleanData(simpleDB, updateMapTable)
 }
 
 func tearDown() {
-	mysql.CleanData(insertMapTable)
-	mysql.CleanData(insertSliceTable)
-	mysql.CleanData(updateMapTable)
+	mysql.CleanData(simpleDB, insertMapTable)
+	mysql.CleanData(simpleDB, insertSliceTable)
+	mysql.CleanData(simpleDB, updateMapTable)
 
 	err := simpleDB.Close()
 	if err != nil {

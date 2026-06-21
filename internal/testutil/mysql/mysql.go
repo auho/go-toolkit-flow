@@ -13,7 +13,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var _dsn = "user:password@tcp(localhost:3306)/"
 var dbName = "_test_flow"
 
 var SourceTable = "source"
@@ -21,42 +20,51 @@ var DestinationTable = "destination"
 var IDName = "id"
 var NameName = "name"
 var ValueName = "value"
-var Dsn = _dsn + dbName
-var _gormDB *gorm.DB
-var _simpleDB *simpledb.SimpleDB
 
-func init() {
-	_gormDB, _simpleDB = InitDB()
-
-	err := _gormDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET `utf8mb4` COLLATE `utf8mb4_general_ci`;", dbName)).Error
-	if err != nil {
-		log.Fatal("create database ", err)
+func mustGetEnv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		log.Fatalf("env var %s not set, please configure MySQL DSN, e.g.: export TEST_MYSQL_DSN='root:pass@tcp(host:port)'", key)
 	}
+	return v
 }
 
 func InitDB() (*gorm.DB, *simpledb.SimpleDB) {
+	dsn := mustGetEnv("TEST_MYSQL_DSN") + "/" + dbName
+
 	dbc := &gorm.Config{
 		Logger: logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer（日志输出的目标，前缀和日志包含的内容——译者注）
+			log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer (log output target, prefix and log content)
 			logger.Config{
-				SlowThreshold:             time.Second,  // 慢 SQL 阈值
-				LogLevel:                  logger.Error, // 日志级别
-				IgnoreRecordNotFoundError: true,         // 忽略ErrRecordNotFound（记录未找到）错误
+				SlowThreshold:             time.Second,  // slow SQL threshold
+				LogLevel:                  logger.Error, // log level
+				IgnoreRecordNotFoundError: true,         // ignore ErrRecordNotFound (record not found) error
 			},
 		),
 	}
 
-	// First connect without specifying database name
-	_mysql, err := mysqlgorm.NewMySQL(Dsn, dbc)
+	_mysql, err := mysqlgorm.NewMySQL(dsn, dbc)
 	if err != nil {
 		log.Fatal("mysqlgorm.NewMySQL ", err)
 	}
 
-	return _mysql.GormDB(), simpledb.NewSimple(_mysql)
+	gormDB := _mysql.GormDB()
+	sqlDB, err := gormDB.DB()
+	if err != nil {
+		log.Fatal("get sql.DB: ", err)
+	}
+	// Connection pool tuning: the default MaxIdleConns=2 does not match the number of
+	// concurrent scan workers (runtime.NumCPU()), causing frequent connection creation/destruction
+	// and stale connections triggering retries. Set to 20 to cover typical concurrent scenarios.
+	sqlDB.SetMaxOpenConns(20)
+	sqlDB.SetMaxIdleConns(20)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+
+	return gormDB, simpledb.NewSimple(_mysql)
 }
 
-func CreateTable(table string) {
-	err := _gormDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET `utf8mb4` COLLATE `utf8mb4_general_ci`;", dbName)).Error
+func CreateTable(db *gorm.DB, table string) {
+	err := db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET `utf8mb4` COLLATE `utf8mb4_general_ci`;", dbName)).Error
 	if err != nil {
 		log.Fatal("create database ", err)
 	}
@@ -68,14 +76,14 @@ func CreateTable(table string) {
 		"`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP," +
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
-	err = _gormDB.Exec(query).Error
+	err = db.Exec(query).Error
 	if err != nil {
 		log.Fatal("create table ", err)
 	}
 }
 
-func BuildData(table string) {
-	err := _gormDB.Exec(fmt.Sprintf("TRUNCATE TABLE %s", table)).Error
+func BuildData(db *gorm.DB, table string) {
+	err := db.Exec(fmt.Sprintf("TRUNCATE TABLE %s", table)).Error
 	if err != nil {
 		log.Fatal("build data", err)
 	}
@@ -92,14 +100,14 @@ func BuildData(table string) {
 			}
 		}
 
-		err = _gormDB.Table(table).Create(data).Error
+		err = db.Table(table).Create(data).Error
 		if err != nil {
 			log.Fatal("bulk insert ", err, data)
 		}
 	}
 
 	var count int64
-	err = _gormDB.Table(table).Count(&count).Error
+	err = db.Table(table).Count(&count).Error
 	if err != nil {
 		log.Fatal("build data count ", err)
 	}
@@ -109,8 +117,8 @@ func BuildData(table string) {
 	}
 }
 
-func CleanData(table string) {
-	err := _simpleDB.Truncate(table)
+func CleanData(sdb *simpledb.SimpleDB, table string) {
+	err := sdb.Truncate(table)
 	if err != nil {
 		log.Fatal("clean data", err)
 	}

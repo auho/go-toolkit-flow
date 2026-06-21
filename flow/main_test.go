@@ -6,12 +6,21 @@ import (
 	"os"
 	"testing"
 
+	simpledb "github.com/auho/go-simple-db/v2"
+	"gorm.io/gorm"
+
+	"github.com/auho/go-toolkit-flow/internal/testutil"
 	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit-flow/storage/database/source"
 )
 
+var _gormDB *gorm.DB
+var _simpleDB *simpledb.SimpleDB
+
 func TestMain(m *testing.M) {
+	testutil.LoadEnv()
+	_gormDB, _simpleDB = mysql.InitDB()
 	code := m.Run()
 	os.Exit(code)
 }
@@ -19,19 +28,18 @@ func TestMain(m *testing.M) {
 // setupMySQLTable creates a table and builds test data for MySQL-based tests.
 // Each test uses its own table to avoid concurrency contention.
 func setupMySQLTable(table string) {
-	mysql.CreateTable(table)
-	mysql.BuildData(table)
+	mysql.CreateTable(_gormDB, table)
+	mysql.BuildData(_gormDB, table)
 }
 
 // teardownMySQLTable cleans up MySQL test data for the given table.
 func teardownMySQLTable(table string) {
-	mysql.CleanData(table)
+	mysql.CleanData(_simpleDB, table)
 }
 
 // buildDataSource creates a database source reading from the given table.
 func buildDataSource(table string) storage.Source[map[string]any] {
 	gormDB, _ := mysql.InitDB()
-
 	dataSrc, err := source.NewSectionMapWithGorm(
 		source.SectionConfig{
 			Concurrency: 0,

@@ -73,5 +73,5 @@ func TestBulkInsertMapGorm(t *testing.T) {
 		t.Error(fmt.Sprintf("total != db amount %d != %d", bulk.state.Amount(), dbAmount))
 	}
 
-	mysql.CleanData(insertMapTable)
+	mysql.CleanData(simpleDB, insertMapTable)
 }

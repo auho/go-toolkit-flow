@@ -78,5 +78,5 @@ func TestBulkInsertSliceGorm(t *testing.T) {
 		t.Error(fmt.Sprintf("total != db amount %d != %d", bulk.state.Amount(), dbAmount))
 	}
 
-	mysql.CleanData(insertSliceTable)
+	mysql.CleanData(simpleDB, insertSliceTable)
 }
