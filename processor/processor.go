@@ -8,7 +8,7 @@
 //     that is forwarded to a Destination.
 //
 // BaseProcessor provides zero-value-usable defaults for state/output/log
-// management via sync.Once lazy initialization.
+// management.
 //
 // Optional capabilities (discovered via type assertion, like DestinationHolder):
 //   - AfterBatcher[T]: post-batch processing hook, called after each batch's
@@ -18,7 +18,6 @@ package processor
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/auho/go-toolkit-flow/storage"
 	"github.com/auho/go-toolkit/console/output"
@@ -50,9 +49,6 @@ type Processor[E storage.Entry] interface {
 	// Concurrency returns the number of worker goroutines to use.
 	Concurrency() int
 
-	// Init initializes internal fields. Called by exec before Prepare.
-	Init()
-
 	// State returns the current state lines for status display.
 	State() []string
 
@@ -71,33 +67,13 @@ type AfterBatcher[T storage.Entry] interface {
 }
 
 // BaseProcessor provides default implementations for state, output, and log
-// management. It is zero-value usable: fields are lazily initialized via
-// sync.Once on the first call to any method that requires them.
+// management. It is zero-value usable: all fields work directly from their
+// zero values.
 type BaseProcessor struct {
-	initOnce sync.Once
-
-	duration *timing.Duration
-	state    *output.MultilineText
-	output   *output.MultilineText
-	log      *output.MultilineText
-}
-
-// ensureInit guarantees all fields are initialized.
-// Called at the entry of every public method.
-func (t *BaseProcessor) ensureInit() {
-	t.initOnce.Do(func() {
-		t.duration = timing.NewDuration()
-		t.state = output.NewMultilineText()
-		t.output = output.NewMultilineText()
-		t.log = output.NewMultilineText()
-	})
-}
-
-// Init ensures all internal fields are initialized.
-// Must be called before State(), Output(), or Log() can be used safely.
-// Idempotent: multiple calls are safe.
-func (t *BaseProcessor) Init() {
-	t.ensureInit()
+	duration timing.Duration
+	state    output.MultilineText
+	output   output.MultilineText
+	log      output.MultilineText
 }
 
 func (t *BaseProcessor) State() []string {

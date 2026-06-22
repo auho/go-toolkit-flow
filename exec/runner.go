@@ -70,8 +70,9 @@ type runner[SE, DE storage.Entry] struct {
 	startCtx   context.Context
 
 	// internalDests holds destinations owned by the processor (if it implements
-	// storage.DestinationHolder). Populated once in NewRunner via type
-	// assertion. nil for runners whose processor doesn't hold internal dests.
+	// storage.DestinationHolder). Populated once in Prepare via type assertion,
+	// after processor.Prepare succeeds. nil for runners whose processor doesn't
+	// hold internal dests.
 	// flow manages these destinations' lifecycle; the processor writes to them
 	// directly inside Exec.
 	internalDests []storage.Destination[DE]
@@ -80,8 +81,8 @@ type runner[SE, DE storage.Entry] struct {
 // NewRunner creates a Runner from the given Executor and Processor.
 // The inChan and outChan buffer sizes are set to processor.Concurrency().
 // If the processor implements storage.DestinationHolder, the runner caches
-// its internal destinations and exposes them via Destinations() for flow to
-// manage their lifecycle.
+// its internal destinations in Prepare (after processor.Prepare succeeds)
+// and exposes them via Destinations() for flow to manage their lifecycle.
 func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], p processor.Processor[SE]) Runner[SE, DE] {
 	r := &runner[SE, DE]{}
 	r.executor = e
@@ -89,21 +90,21 @@ func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], p processor.Processor[S
 	r.inChan = make(chan []SE, p.Concurrency())
 	r.outChan = make(chan []DE, p.Concurrency())
 
-	if dh, ok := p.(storage.DestinationHolder[DE]); ok {
-		r.internalDests = dh.Destinations()
-	}
-
 	return r
 }
 
 // Prepare initializes the processor and creates the errgroup context.
-// Calls processor.Init → processor.Prepare → processor.BeforeRun in sequence.
+// Calls processor.Prepare → (collect internal destinations) → processor.BeforeRun in sequence.
 func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
-	r.processor.Init()
-
 	err := r.processor.Prepare()
 	if err != nil {
 		return fmt.Errorf("processor.Prepare: %w", err)
+	}
+
+	// Collect internal destinations after processor.Prepare succeeds, so that
+	// processors that populate destinations during Prepare are discovered.
+	if dh, ok := r.processor.(storage.DestinationHolder[DE]); ok {
+		r.internalDests = dh.Destinations()
 	}
 
 	err = r.processor.BeforeRun()

@@ -4,38 +4,8 @@ import (
 	"testing"
 )
 
-func TestBaseProcessor_Init_EnablesMethods(t *testing.T) {
-	var op BaseProcessor
-
-	op.Init()
-
-	// State() 返回空 slice
-	if s := op.State(); len(s) != 0 {
-		t.Errorf("State() should be empty, got %v", s)
-	}
-
-	// Output() 返回空 slice
-	if o := op.Output(); len(o) != 0 {
-		t.Errorf("Output() should be empty, got %v", o)
-	}
-
-	// Log() 返回空 slice
-	if l := op.Log(); len(l) != 0 {
-		t.Errorf("Log() should be empty, got %v", l)
-	}
-}
-
-func TestBaseProcessor_Init_Idempotent(t *testing.T) {
-	var op BaseProcessor
-
-	op.Init()
-	op.Init()
-	op.Init()
-}
-
 func TestBaseProcessor_State_Empty(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	if s := op.State(); len(s) != 0 {
 		t.Errorf("State() should be empty, got %v", s)
@@ -44,7 +14,6 @@ func TestBaseProcessor_State_Empty(t *testing.T) {
 
 func TestBaseProcessor_AddStateLine(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	n1 := op.AddStateLine("line1")
 	if n1 != 1 {
@@ -70,7 +39,6 @@ func TestBaseProcessor_AddStateLine(t *testing.T) {
 
 func TestBaseProcessor_SetStateLine(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	n := op.AddStateLine("old")
 	if n != 1 {
@@ -90,7 +58,6 @@ func TestBaseProcessor_SetStateLine(t *testing.T) {
 
 func TestBaseProcessor_Output_Empty(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	if o := op.Output(); len(o) != 0 {
 		t.Errorf("Output() should be empty, got %v", o)
@@ -99,7 +66,6 @@ func TestBaseProcessor_Output_Empty(t *testing.T) {
 
 func TestBaseProcessor_Outputln(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	op.Outputln("hello")
 
@@ -114,7 +80,6 @@ func TestBaseProcessor_Outputln(t *testing.T) {
 
 func TestBaseProcessor_Outputf(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	op.Outputf("hello %s", "world")
 
@@ -129,7 +94,6 @@ func TestBaseProcessor_Outputf(t *testing.T) {
 
 func TestBaseProcessor_Log_Empty(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	if l := op.Log(); len(l) != 0 {
 		t.Errorf("Log() should be empty, got %v", l)
@@ -138,7 +102,6 @@ func TestBaseProcessor_Log_Empty(t *testing.T) {
 
 func TestBaseProcessor_Logln(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	op.Logln("hello")
 
@@ -153,7 +116,6 @@ func TestBaseProcessor_Logln(t *testing.T) {
 
 func TestBaseProcessor_Logf(t *testing.T) {
 	var op BaseProcessor
-	op.Init()
 
 	op.Logf("hello %s", "world")
 

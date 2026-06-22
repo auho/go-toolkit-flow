@@ -20,47 +20,35 @@ type group[SE, DE storage.Entry] struct {
 	// destination receives the fan-in merged output from all runners in this group.
 	destination storage.Destination[DE]
 	// internalDests holds destinations owned by runners' processors (via
-	// storage.DestinationHolder). Collected once in newGroup and wrapped as a
-	// storage.Destination (NoopDestination when empty, MultiDestination
-	// otherwise); flow manages their lifecycle uniformly with destination.
+	// storage.DestinationHolder). Collected once in Prepare (after runners'
+	// Prepare succeeds) and wrapped as a storage.Destination (NoopDestination
+	// when empty, MultiDestination otherwise); flow manages their lifecycle
+	// uniformly with destination.
 	internalDests storage.Destination[DE]
 }
 
-// newGroup constructs a group from runners and a destination, collecting any
-// internal destinations held by the runners' processors via a one-time type
-// assertion against storage.DestinationHolder. The collected destinations are
-// wrapped as a single storage.Destination: NoopDestination when none are held
-// (all methods no-op), or MultiDestination otherwise (fan-out semantics).
-func newGroup[SE, DE storage.Entry](rs *exec.Runners[SE, DE], dest storage.Destination[DE]) group[SE, DE] {
-	var md storage.MultiDestination[DE]
-	for _, r := range rs.All() {
-		if dh, ok := r.(storage.DestinationHolder[DE]); ok {
-			md = append(md, dh.Destinations()...)
-		}
-	}
-
-	var internalDests storage.Destination[DE] = storage.NoopDestination[DE]{}
-	if len(md) > 0 {
-		internalDests = md
-	}
-
-	return group[SE, DE]{
+// newGroup constructs a group from runners and a destination. Internal
+// destinations held by the runners' processors are NOT collected here; they
+// are discovered in Prepare after runners' Prepare succeeds, because a
+// processor may populate its destinations during Prepare.
+func newGroup[SE, DE storage.Entry](rs *exec.Runners[SE, DE], dest storage.Destination[DE]) *group[SE, DE] {
+	return &group[SE, DE]{
 		runners:       rs,
 		destination:   dest,
-		internalDests: internalDests,
+		internalDests: storage.NoopDestination[DE]{},
 	}
 }
 
 // Start launches this group's runners' worker goroutines, then signals the
 // destination and internal destinations to accept data.
-func (g group[SE, DE]) Start() {
+func (g *group[SE, DE]) Start() {
 	g.runners.Start()
 	g.destination.Accept()
 	g.internalDests.Accept()
 }
 
 // Done signals this group's runners that no more data will be sent.
-func (g group[SE, DE]) Done() {
+func (g *group[SE, DE]) Done() {
 	g.runners.Done()
 }
 
@@ -68,7 +56,7 @@ func (g group[SE, DE]) Done() {
 // Done on the internal destinations (safe because workers have exited).
 // Internally, runners.Finish waits for all runner goroutines to exit and then
 // closes each runner's OutChan.
-func (g group[SE, DE]) Finish() error {
+func (g *group[SE, DE]) Finish() error {
 	if err := g.runners.Finish(); err != nil {
 		return fmt.Errorf("runners.Finish: %w", err)
 	}
@@ -80,7 +68,7 @@ func (g group[SE, DE]) Finish() error {
 
 // DestinationFinish finalizes persistence for this group's destination and
 // internal destinations. Called after all data has been forwarded and Done.
-func (g group[SE, DE]) DestinationFinish() error {
+func (g *group[SE, DE]) DestinationFinish() error {
 	if err := g.destination.Finish(); err != nil {
 		return fmt.Errorf("destination.Finish: %w", err)
 	}
@@ -93,14 +81,29 @@ func (g group[SE, DE]) DestinationFinish() error {
 }
 
 // Output returns output lines from this group's runners.
-func (g group[SE, DE]) Output() []string {
+func (g *group[SE, DE]) Output() []string {
 	return g.runners.Output()
 }
 
 // Prepare prepares this group's runners, destination, and internal destinations.
-func (g group[SE, DE]) Prepare(ctx context.Context) error {
+// Internal destinations are collected from runners after their Prepare succeeds,
+// because a processor may populate its destinations during Prepare.
+func (g *group[SE, DE]) Prepare(ctx context.Context) error {
 	if err := g.runners.Prepare(ctx); err != nil {
 		return fmt.Errorf("runners.Prepare: %w", err)
+	}
+
+	// Collect internal destinations held by runners' processors now that
+	// runners' Prepare has completed. Wrap as MultiDestination when any are
+	// held; otherwise leave the NoopDestination assigned in newGroup.
+	var md storage.MultiDestination[DE]
+	for _, r := range g.runners.All() {
+		if dh, ok := r.(storage.DestinationHolder[DE]); ok {
+			md = append(md, dh.Destinations()...)
+		}
+	}
+	if len(md) > 0 {
+		g.internalDests = md
 	}
 
 	if err := g.destination.Prepare(ctx); err != nil {
@@ -116,7 +119,7 @@ func (g group[SE, DE]) Prepare(ctx context.Context) error {
 
 // Summary returns summary lines for this group's runners, destination, and
 // any internal destinations held by runners.
-func (g group[SE, DE]) Summary() []string {
+func (g *group[SE, DE]) Summary() []string {
 	lines := make([]string, 0)
 	lines = append(lines, "    Runners: ")
 	for _, s := range g.runners.Summary() {
@@ -135,7 +138,7 @@ func (g group[SE, DE]) Summary() []string {
 
 // State returns state lines for this group's runners, destination, and any
 // internal destinations held by runners.
-func (g group[SE, DE]) State() []string {
+func (g *group[SE, DE]) State() []string {
 	lines := make([]string, 0)
 	lines = append(lines, g.runners.State()...)
 	lines = append(lines, g.destination.StateString()...)
@@ -146,7 +149,7 @@ func (g group[SE, DE]) State() []string {
 
 // Close closes this group's runners, destination, and internal destinations,
 // collecting all errors.
-func (g group[SE, DE]) Close() []error {
+func (g *group[SE, DE]) Close() []error {
 	var errs []error
 
 	if err := g.runners.Close(); err != nil {
@@ -177,7 +180,7 @@ func (g group[SE, DE]) Close() []error {
 //   - Prerequisite: Finish has closed all runner.OutChan channels
 //   - fan-in goroutines: range OutChan exits → fanIn.Wait() → close(merged)
 //   - Forwarder: range merged exits → destination.Done()
-func (g group[SE, DE]) OutputForward(ctx context.Context) error {
+func (g *group[SE, DE]) OutputForward(ctx context.Context) error {
 	merged := make(chan []DE)
 	var fanIn sync.WaitGroup
 

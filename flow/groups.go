@@ -16,14 +16,14 @@ import (
 // Concurrency note: the current implementation iterates sequentially.
 // Future versions may use errgroup for concurrent execution without
 // changing call sites in flow.go.
-type groups[SE, DE storage.Entry] []group[SE, DE]
+type groups[SE, DE storage.Entry] []*group[SE, DE]
 
 func newGroups[SE, DE storage.Entry]() *groups[SE, DE] {
 	gs := make(groups[SE, DE], 0)
 	return &gs
 }
 
-func (gs *groups[SE, DE]) Add(g group[SE, DE]) {
+func (gs *groups[SE, DE]) Add(g *group[SE, DE]) {
 	*gs = append(*gs, g)
 }
 
