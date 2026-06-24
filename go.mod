@@ -4,8 +4,7 @@ go 1.26
 
 require (
 	github.com/auho/go-simple-db/v3 v3.0.0
-	github.com/auho/go-toolkit/console v0.0.0-20241217063504-e5b194ca3628
-	github.com/auho/go-toolkit/time v0.0.0-20241217063504-e5b194ca3628
+	github.com/auho/go-toolkit/v2 v2.0.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/sync v0.20.0

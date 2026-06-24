@@ -11,8 +11,8 @@ import (
 
 	"github.com/auho/go-toolkit-flow/v3/exec"
 	"github.com/auho/go-toolkit-flow/v3/storage"
-	"github.com/auho/go-toolkit/console/output"
-	"github.com/auho/go-toolkit/time/timing"
+	"github.com/auho/go-toolkit/v2/console/output"
+	"github.com/auho/go-toolkit/v2/time/timing"
 	"golang.org/x/sync/errgroup"
 )
 

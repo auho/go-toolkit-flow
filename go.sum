@@ -8,10 +8,8 @@ github.com/andybalholm/brotli v1.2.1 h1:R+f5xP285VArJDRgowrfb9DqL18yVK0gKAW/F+eT
 github.com/andybalholm/brotli v1.2.1/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/auho/go-simple-db/v3 v3.0.0 h1:lfOQ12y0VI3+3by24eeofQvySbGTMsb8uuWj1nUiY9g=
 github.com/auho/go-simple-db/v3 v3.0.0/go.mod h1:VnLl0xb0ixfzoPBRmE4Y66KTKsK/iozCBim5x/pbids=
-github.com/auho/go-toolkit/console v0.0.0-20241217063504-e5b194ca3628 h1:3Myujaj6azsijZ/v7jn9o4UImNo39wI2DOEDXl2zAUc=
-github.com/auho/go-toolkit/console v0.0.0-20241217063504-e5b194ca3628/go.mod h1:GbyPjwDniq2mT91rPTpLpKi/KuFzRKjgLXMmD7EINnE=
-github.com/auho/go-toolkit/time v0.0.0-20241217063504-e5b194ca3628 h1:oqrLaVDU2eZRvOP5fmS3aDZmurvigiqaR9p9vtqj4nQ=
-github.com/auho/go-toolkit/time v0.0.0-20241217063504-e5b194ca3628/go.mod h1:bkpYGleE+ATwcAryjTbzMiv8D1uu6J8zEFON1gwg/qw=
+github.com/auho/go-toolkit/v2 v2.0.0 h1:0ioRrxf6iktGV1VSRKo0LBQLzTqMAFXKrSSD2bhGBs0=
+github.com/auho/go-toolkit/v2 v2.0.0/go.mod h1:Gvd7KxSyGBdXTw9Ojtb92fp8lsDfHUH7Z+9nFWZAax0=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

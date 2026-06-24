@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/auho/go-toolkit/time/timing"
+	"github.com/auho/go-toolkit/v2/time/timing"
 )
 
 // Status constants for the state machine.
