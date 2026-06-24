@@ -2,7 +2,7 @@
 // package to query data from different database backends.
 package dialect
 
-import "github.com/auho/go-toolkit-flow/storage"
+import "github.com/auho/go-toolkit-flow/v3/storage"
 
 // Dialect is the base interface for database dialects.
 type Dialect interface {

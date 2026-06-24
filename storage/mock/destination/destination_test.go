@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/mock/destination/format"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/mock/destination/format"
 )
 
 func TestMemory_Done_Idempotent(t *testing.T) {

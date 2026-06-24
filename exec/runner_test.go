@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 func TestRunner_New(t *testing.T) {

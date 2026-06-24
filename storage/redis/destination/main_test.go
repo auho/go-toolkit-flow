@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-redis/redis/v8"
 
-	"github.com/auho/go-toolkit-flow/internal/testutil"
-	testredis "github.com/auho/go-toolkit-flow/internal/testutil/redis"
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/internal/testutil"
+	testredis "github.com/auho/go-toolkit-flow/v3/internal/testutil/redis"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 var _redisOptions redis.Options

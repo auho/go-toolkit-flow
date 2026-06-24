@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 // Runners is a collection of Runner that encapsulates batch lifecycle operations.

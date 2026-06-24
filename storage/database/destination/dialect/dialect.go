@@ -1,6 +1,6 @@
 package dialect
 
-import "github.com/auho/go-toolkit-flow/storage"
+import "github.com/auho/go-toolkit-flow/v3/storage"
 
 // Dialect is the database dialect interface.
 type Dialect interface {

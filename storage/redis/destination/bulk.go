@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
-	"github.com/auho/go-toolkit-flow/storage/redis/destination/format"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/destination/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/destination/format"
 	"golang.org/x/sync/errgroup"
 )
 

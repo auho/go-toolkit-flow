@@ -3,7 +3,7 @@ package format
 import (
 	"context"
 
-	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/source/dialect"
 )
 
 var _ Format[string] = (*scanKeyFormat)(nil)

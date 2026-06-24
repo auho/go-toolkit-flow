@@ -3,14 +3,14 @@ package flow
 import (
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/exec"
-	"github.com/auho/go-toolkit-flow/exec/consumer/batch"
-	consumeritem "github.com/auho/go-toolkit-flow/exec/consumer/item"
-	producerbatch "github.com/auho/go-toolkit-flow/exec/producer/batch"
-	produceritem "github.com/auho/go-toolkit-flow/exec/producer/item"
-	"github.com/auho/go-toolkit-flow/storage"
-	mockdest "github.com/auho/go-toolkit-flow/storage/mock/destination"
-	mocksrc "github.com/auho/go-toolkit-flow/storage/mock/source"
+	"github.com/auho/go-toolkit-flow/v3/exec"
+	"github.com/auho/go-toolkit-flow/v3/exec/consumer/batch"
+	consumeritem "github.com/auho/go-toolkit-flow/v3/exec/consumer/item"
+	producerbatch "github.com/auho/go-toolkit-flow/v3/exec/producer/batch"
+	produceritem "github.com/auho/go-toolkit-flow/v3/exec/producer/item"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	mockdest "github.com/auho/go-toolkit-flow/v3/storage/mock/destination"
+	mocksrc "github.com/auho/go-toolkit-flow/v3/storage/mock/source"
 )
 
 // This file contains combination tests for the flow package. All tests use

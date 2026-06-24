@@ -2,7 +2,7 @@
 // mock data produced by the source package.
 package format
 
-import "github.com/auho/go-toolkit-flow/storage"
+import "github.com/auho/go-toolkit-flow/v3/storage"
 
 // Format is the data format interface for the mock source.
 // It describes the scan type, generates items in batches, and provides

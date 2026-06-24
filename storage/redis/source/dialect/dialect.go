@@ -3,7 +3,7 @@ package dialect
 import (
 	"context"
 
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 type Dialect interface {

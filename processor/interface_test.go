@@ -3,10 +3,10 @@ package processor_test
 import (
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/processor"
-	"github.com/auho/go-toolkit-flow/processor/consumer"
-	"github.com/auho/go-toolkit-flow/processor/producer"
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/processor"
+	"github.com/auho/go-toolkit-flow/v3/processor/consumer"
+	"github.com/auho/go-toolkit-flow/v3/processor/producer"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 // mockBatch implements consumer.Batch[storage.MapEntry]

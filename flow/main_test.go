@@ -6,13 +6,13 @@ import (
 	"os"
 	"testing"
 
-	simpledb "github.com/auho/go-simple-db/v2"
+	simpledb "github.com/auho/go-simple-db/v3"
 	"gorm.io/gorm"
 
-	"github.com/auho/go-toolkit-flow/internal/testutil"
-	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/database/source"
+	"github.com/auho/go-toolkit-flow/v3/internal/testutil"
+	"github.com/auho/go-toolkit-flow/v3/internal/testutil/mysql"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/database/source"
 )
 
 var _gormDB *gorm.DB

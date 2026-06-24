@@ -6,8 +6,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/mock/source/format"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/mock/source/format"
 )
 
 var _ storage.Source[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)

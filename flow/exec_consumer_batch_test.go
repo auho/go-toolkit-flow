@@ -3,8 +3,8 @@ package flow
 import (
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/exec"
-	"github.com/auho/go-toolkit-flow/exec/consumer/batch"
+	"github.com/auho/go-toolkit-flow/v3/exec"
+	"github.com/auho/go-toolkit-flow/v3/exec/consumer/batch"
 )
 
 func TestExecConsumerBatch(t *testing.T) {

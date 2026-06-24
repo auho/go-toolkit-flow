@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
-	"github.com/auho/go-toolkit-flow/storage/redis/source/format"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/source/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/source/format"
 )
 
 var _ storage.Source[storage.MapEntry] = (*Iterator[storage.MapEntry])(nil)

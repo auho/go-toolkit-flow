@@ -3,15 +3,15 @@ package exec
 import (
 	"sync/atomic"
 
-	"github.com/auho/go-toolkit-flow/processor"
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/processor"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 type mockExecutor[SE, DE storage.Entry] struct {
-	out      []DE
-	amount   int64
-	affected int64
-	err      error
+	out       []DE
+	amount    int64
+	affected  int64
+	err       error
 	callCount atomic.Int64
 }
 
@@ -22,16 +22,16 @@ func (m *mockExecutor[SE, DE]) Exec(items []SE) ([]DE, int64, int64, error) {
 
 type mockProcessor[E storage.Entry] struct {
 	processor.BaseProcessor
-	concurrency    int
-	prepareErr     error
-	beforeRunErr   error
-	afterRunErr    error
-	closeErr       error
-	summaryStr     string
-	prepareCalled    atomic.Int64
-	beforeRunCalled  atomic.Int64
-	afterRunCalled   atomic.Int64
-	closeCalled      atomic.Int64
+	concurrency     int
+	prepareErr      error
+	beforeRunErr    error
+	afterRunErr     error
+	closeErr        error
+	summaryStr      string
+	prepareCalled   atomic.Int64
+	beforeRunCalled atomic.Int64
+	afterRunCalled  atomic.Int64
+	closeCalled     atomic.Int64
 }
 
 func (m *mockProcessor[E]) Concurrency() int {

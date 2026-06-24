@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	simpledb "github.com/auho/go-simple-db/v2"
-	mysqlgorm "github.com/auho/go-simple-db/v2/driver/mysql/gorm"
+	simpledb "github.com/auho/go-simple-db/v3"
+	mysqlgorm "github.com/auho/go-simple-db/v3/driver/mysql/gorm"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )

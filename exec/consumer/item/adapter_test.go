@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 type mockItem struct {

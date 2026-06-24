@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/auho/go-toolkit-flow/storage/redis/client/goredis"
-	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/client/goredis"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/destination/dialect"
 	"github.com/go-redis/redis/v8"
 )
 

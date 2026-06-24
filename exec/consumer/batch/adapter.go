@@ -3,10 +3,10 @@ package batch
 import (
 	"fmt"
 
-	"github.com/auho/go-toolkit-flow/exec"
-	"github.com/auho/go-toolkit-flow/processor"
-	"github.com/auho/go-toolkit-flow/processor/consumer"
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/exec"
+	"github.com/auho/go-toolkit-flow/v3/processor"
+	"github.com/auho/go-toolkit-flow/v3/processor/consumer"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 var _ exec.Executor[string, string] = (*adapter[string, string])(nil)

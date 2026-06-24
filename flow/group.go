@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/auho/go-toolkit-flow/exec"
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/exec"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 // group binds a set of runners with one destination.

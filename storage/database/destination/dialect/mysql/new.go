@@ -3,8 +3,8 @@ package mysql
 import (
 	"fmt"
 
-	"github.com/auho/go-toolkit-flow/storage/database/client/mysql"
-	"github.com/auho/go-toolkit-flow/storage/database/destination/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/database/client/mysql"
+	"github.com/auho/go-toolkit-flow/v3/storage/database/destination/dialect"
 	"gorm.io/gorm"
 )
 

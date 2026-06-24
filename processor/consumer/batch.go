@@ -1,8 +1,8 @@
 package consumer
 
 import (
-	"github.com/auho/go-toolkit-flow/processor"
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/processor"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 // Batch is a consumer-path processor that processes items in bulk.

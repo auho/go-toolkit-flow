@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/internal/testutil/mysql"
+	"github.com/auho/go-toolkit-flow/v3/internal/testutil/mysql"
 )
 
 func TestBulkInsertSliceGorm(t *testing.T) {

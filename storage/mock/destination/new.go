@@ -1,8 +1,8 @@
 package destination
 
 import (
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/mock/destination/format"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/mock/destination/format"
 )
 
 // NewInsertMap creates a Memory destination that receives MapEntry items

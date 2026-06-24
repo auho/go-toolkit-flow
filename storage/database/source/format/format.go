@@ -3,8 +3,8 @@
 package format
 
 import (
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/database/source/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/database/source/dialect"
 )
 
 // Format is the data format interface for result conversion and deep copying.

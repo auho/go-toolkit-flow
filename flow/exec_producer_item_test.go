@@ -3,8 +3,8 @@ package flow
 import (
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/exec"
-	"github.com/auho/go-toolkit-flow/exec/producer/item"
+	"github.com/auho/go-toolkit-flow/v3/exec"
+	"github.com/auho/go-toolkit-flow/v3/exec/producer/item"
 )
 
 func TestExecProducerItem(t *testing.T) {

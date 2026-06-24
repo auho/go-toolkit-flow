@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/internal/testutil/file"
+	"github.com/auho/go-toolkit-flow/v3/internal/testutil/file"
 )
 
 func TestLine(t *testing.T) {

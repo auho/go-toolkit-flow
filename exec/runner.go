@@ -1,10 +1,12 @@
 // Package exec is the execution layer between processor and flow.
 // It provides Runner (single task) and Runners (collection) that bind an
 // Executor adapter with a Processor, managing the lifecycle:
-//   Prepare → Start (worker goroutines) → Receive → Done → Finish → Close
+//
+//	Prepare → Start (worker goroutines) → Receive → Done → Finish → Close
 //
 // Data flow:
-//   inChan → [worker goroutines: executor.Exec] → outChan
+//
+//	inChan → [worker goroutines: executor.Exec] → outChan
 package exec
 
 import (
@@ -12,8 +14,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/auho/go-toolkit-flow/processor"
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/processor"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -61,9 +63,9 @@ type runner[SE, DE storage.Entry] struct {
 	amount   int64
 	affected int64
 
-	inChan   chan []SE
-	outChan  chan []DE
-	executor Executor[SE, DE]
+	inChan    chan []SE
+	outChan   chan []DE
+	executor  Executor[SE, DE]
 	processor processor.Processor[SE]
 
 	startGroup *errgroup.Group

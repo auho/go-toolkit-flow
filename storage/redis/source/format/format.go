@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/redis/source/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/source/dialect"
 )
 
 type Format[E storage.Entry] interface {

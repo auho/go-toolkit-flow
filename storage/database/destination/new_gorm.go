@@ -3,10 +3,10 @@ package destination
 import (
 	"errors"
 
-	"github.com/auho/go-toolkit-flow/storage"
-	"github.com/auho/go-toolkit-flow/storage/database/destination/dialect"
-	"github.com/auho/go-toolkit-flow/storage/database/destination/dialect/mysql"
-	"github.com/auho/go-toolkit-flow/storage/database/destination/format"
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/database/destination/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/database/destination/dialect/mysql"
+	"github.com/auho/go-toolkit-flow/v3/storage/database/destination/format"
 	"gorm.io/gorm"
 )
 

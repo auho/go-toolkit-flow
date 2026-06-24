@@ -3,8 +3,8 @@ package format
 import (
 	"context"
 
-	"github.com/auho/go-toolkit-flow/storage/redis/client"
-	"github.com/auho/go-toolkit-flow/storage/redis/destination/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/client"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/destination/dialect"
 )
 
 var _ Format[string] = (*listsFormat)(nil)

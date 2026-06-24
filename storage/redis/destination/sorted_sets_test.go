@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/auho/go-toolkit-flow/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 var _sortedSetsKey = "test:destination:sortedSets"
