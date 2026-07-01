@@ -60,15 +60,15 @@ func InitDB() (*gorm.DB, *simpledb.SimpleDB) {
 	sqlDB.SetMaxIdleConns(20)
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 
-	return gormDB, simpledb.NewSimple(_mysql)
-}
-
-func CreateTable(db *gorm.DB, table string) {
-	err := db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET `utf8mb4` COLLATE `utf8mb4_general_ci`;", dbName)).Error
+	err = gormDB.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` DEFAULT CHARACTER SET `utf8mb4` COLLATE `utf8mb4_general_ci`;", dbName)).Error
 	if err != nil {
 		log.Fatal("create database ", err)
 	}
 
+	return gormDB, simpledb.NewSimple(_mysql)
+}
+
+func CreateTable(db *gorm.DB, table string) {
 	query := "CREATE TABLE IF NOT EXISTS `" + dbName + "`.`" + table + "` (" +
 		"`id` int(11) unsigned NOT NULL AUTO_INCREMENT," +
 		"`name` varchar(32) NOT NULL DEFAULT ''," +
@@ -76,7 +76,7 @@ func CreateTable(db *gorm.DB, table string) {
 		"`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP," +
 		"PRIMARY KEY (`id`)" +
 		") ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;"
-	err = db.Exec(query).Error
+	err := db.Exec(query).Error
 	if err != nil {
 		log.Fatal("create table ", err)
 	}
