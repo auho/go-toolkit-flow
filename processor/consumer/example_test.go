@@ -3,22 +3,18 @@ package consumer_test
 import (
 	"fmt"
 
+	testutilprocessor "github.com/auho/go-toolkit-flow/v3/internal/testutil/processor"
 	"github.com/auho/go-toolkit-flow/v3/processor/consumer"
 	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 // counterBatch is a consumer.Batch implementation that counts processed items.
 type counterBatch struct {
-	consumer.Processor
+	testutilprocessor.TestProcessor
 }
 
 func (b *counterBatch) Summary() string  { return "counterBatch" }
 func (b *counterBatch) Concurrency() int { return 1 }
-func (b *counterBatch) AppendState()     {}
-func (b *counterBatch) Prepare() error   { return nil }
-func (b *counterBatch) BeforeRun() error { return nil }
-func (b *counterBatch) AfterRun() error  { return nil }
-func (b *counterBatch) Close() error     { return nil }
 
 func (b *counterBatch) Exec(items []storage.MapEntry) (int64, error) {
 	return int64(len(items)), nil
@@ -43,16 +39,11 @@ func ExampleBatch() {
 
 // evenFilterItem is a consumer.Item implementation that keeps only even ids.
 type evenFilterItem struct {
-	consumer.Processor
+	testutilprocessor.TestProcessor
 }
 
 func (it *evenFilterItem) Summary() string  { return "evenFilterItem" }
 func (it *evenFilterItem) Concurrency() int { return 1 }
-func (it *evenFilterItem) AppendState()     {}
-func (it *evenFilterItem) Prepare() error   { return nil }
-func (it *evenFilterItem) BeforeRun() error { return nil }
-func (it *evenFilterItem) AfterRun() error  { return nil }
-func (it *evenFilterItem) Close() error     { return nil }
 
 func (it *evenFilterItem) Exec(item storage.MapEntry) (bool, error) {
 	id, _ := item["id"].(int)

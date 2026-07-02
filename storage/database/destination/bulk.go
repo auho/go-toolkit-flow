@@ -20,18 +20,17 @@ type WriteConfig = dialect.WriteConfig
 var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
 
 type Bulk[E storage.Entry] struct {
-	storage.Storage
 	dialect dialect.Dialect
 	format  format.Format[E]
 	config  BulkConfig
 
-	state     *storage.StateInfo
+	state     *storage.Snapshot
 	itemsChan chan []E
 
 	// Concurrency and error handling
 	writeGroup *errgroup.Group
 	writeCtx   context.Context
-	writeError error
+	writeErr   error
 
 	isDone atomic.Bool
 }
@@ -57,7 +56,7 @@ func (b *Bulk[E]) initConfig() {
 		b.config.Concurrency = runtime.NumCPU()
 	}
 
-	b.state = storage.NewStateInfo()
+	b.state = storage.NewSnapshot()
 	b.state.SetConcurrency(b.config.Concurrency)
 	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()
@@ -109,12 +108,12 @@ func (b *Bulk[E]) Done() {
 }
 
 func (b *Bulk[E]) Finish() error {
-	b.writeError = b.writeGroup.Wait()
+	b.writeErr = b.writeGroup.Wait()
 
 	b.state.DurationStop()
 	b.state.MarkAsFinished()
 
-	return b.writeError
+	return b.writeErr
 }
 
 func (b *Bulk[E]) writeBatch(items []E) error {
@@ -181,7 +180,7 @@ func (b *Bulk[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s Concurrency:%d", b.title(), b.config.Concurrency)}
 }
 
-func (b *Bulk[E]) StateInfo() storage.State {
+func (b *Bulk[E]) State() storage.State {
 	return b.state
 }
 

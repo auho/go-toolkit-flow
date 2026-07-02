@@ -51,7 +51,7 @@ func (g *gormMySQL) BulkUpdateMap(idName string, items storage.MapEntries) error
 
 		err := g.DB.Table(g.config.TableName).Where(fmt.Sprintf("`%s` = ?", idName), _id).Omit(idName).UpdateColumns(item).Error
 		if err != nil {
-			return fmt.Errorf("table[%s] %s[%v] error %v", g.config.TableName, idName, _id, err)
+			return fmt.Errorf("BulkUpdateMap: table[%s] %s[%v]: %w", g.config.TableName, idName, _id, err)
 		}
 	}
 

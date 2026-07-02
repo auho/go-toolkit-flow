@@ -23,7 +23,6 @@ var _ storage.Source[storage.MapEntry] = (*Section[storage.MapEntry])(nil)
 // Section is a segmented query orchestrator that scans a database table by
 // splitting the ID range into fixed-size pages and fetching them concurrently.
 type Section[E storage.Entry] struct {
-	storage.Storage
 	dialect dialect.Dialect
 	format  format.Format[E]
 	config  SectionConfig
@@ -35,7 +34,7 @@ type Section[E storage.Entry] struct {
 
 	itemsChan   chan []E
 	segmentChan chan []int64
-	state       *storage.PageStateInfo
+	state       *storage.PageSnapshot
 
 	// concurrency and error handling
 	scanGroup *errgroup.Group
@@ -176,7 +175,7 @@ func (s *Section[E]) initConfig(config SectionConfig) {
 		s.config.Concurrency = runtime.NumCPU()
 	}
 
-	s.state = storage.NewPageState()
+	s.state = storage.NewPageSnapshot()
 	s.state.SetConcurrency(s.config.Concurrency)
 	s.state.SetTitle(s.title())
 	s.state.MarkAsConfigured()

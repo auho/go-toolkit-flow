@@ -16,7 +16,6 @@ import (
 var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
 
 type Bulk[E storage.Entry] struct {
-	storage.Storage
 	dialect dialect.Dialect
 	format  format.Format[E]
 
@@ -27,7 +26,7 @@ type Bulk[E storage.Entry] struct {
 
 	isDone    atomic.Bool
 	itemsChan chan []E
-	state     *storage.StateInfo
+	state     *storage.Snapshot
 
 	// Concurrency and error handling
 	writeGroup *errgroup.Group
@@ -114,7 +113,7 @@ func (b *Bulk[E]) Summary() []string {
 	return []string{fmt.Sprintf("%s Concurrency:%d; page size:%d", b.title(), b.concurrency, b.pageSize)}
 }
 
-func (b *Bulk[E]) StateInfo() storage.State {
+func (b *Bulk[E]) State() storage.State {
 	return b.state
 }
 
@@ -151,7 +150,7 @@ func (b *Bulk[E]) config(config BulkConfig) error {
 		b.pageSize = 20
 	}
 
-	b.state = storage.NewStateInfo()
+	b.state = storage.NewSnapshot()
 	b.state.SetConcurrency(b.concurrency)
 	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()

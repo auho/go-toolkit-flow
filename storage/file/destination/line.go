@@ -14,11 +14,10 @@ import (
 var _ storage.Destination[string] = (*Line)(nil)
 
 type Line struct {
-	storage.Storage
 	isDone atomic.Bool
 	f      *os.File
 	b      *bufio.Writer
-	state  *storage.StateInfo
+	state  *storage.Snapshot
 	wg     sync.WaitGroup
 }
 
@@ -31,7 +30,7 @@ func NewLine(c Config) (*Line, error) {
 	d := &Line{
 		f:     f,
 		b:     bufio.NewWriter(f),
-		state: storage.NewStateInfo(),
+		state: storage.NewSnapshot(),
 	}
 
 	d.state.SetTitle(d.title())
@@ -96,7 +95,7 @@ func (l *Line) Summary() []string {
 	return []string{l.title()}
 }
 
-func (l *Line) StateInfo() storage.State {
+func (l *Line) State() storage.State {
 	return l.state
 }
 

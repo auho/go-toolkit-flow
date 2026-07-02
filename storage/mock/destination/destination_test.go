@@ -55,7 +55,7 @@ func TestMemory_Amount(t *testing.T) {
 	d.Done()
 	_ = d.Finish()
 
-	if d.StateInfo().Amount() != 2 {
-		t.Errorf("amount = %d, want 2", d.StateInfo().Amount())
+	if d.State().Amount() != 2 {
+		t.Errorf("amount = %d, want 2", d.State().Amount())
 	}
 }

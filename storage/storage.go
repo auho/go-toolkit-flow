@@ -23,6 +23,3 @@ type ScoreMapEntries = []ScoreMapEntry
 type Entry interface {
 	SliceEntry | StringSliceEntry | MapEntry | StringMapEntry | ScoreMapEntry | string
 }
-
-// Storage is an empty struct embedded by implementations to share package identity.
-type Storage struct{}

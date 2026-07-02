@@ -9,16 +9,16 @@ import (
 	"sync"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/tool"
 )
 
 var _ storage.Source[string] = (*Line)(nil)
 
 type Line struct {
-	storage.Storage
 	config    Config
 	file      *os.File
 	scanner   *bufio.Scanner
-	state     *storage.StateInfo
+	state     *storage.Snapshot
 	itemsChan chan []string
 	scanCtx   context.Context
 	scanWg    sync.WaitGroup
@@ -37,7 +37,7 @@ func NewLine(c Config) (*Line, error) {
 	}
 
 	l.scanner = bufio.NewScanner(l.file)
-	l.state = storage.NewStateInfo()
+	l.state = storage.NewSnapshot()
 	l.state.MarkAsConfigured()
 
 	if l.config.Concurrency <= 0 {
@@ -133,9 +133,7 @@ func (l *Line) StateString() []string {
 }
 
 func (l *Line) Copy(items []string) []string {
-	ns := make([]string, len(items))
-	copy(ns, items)
-	return ns
+	return tool.CopyStrings(items)
 }
 
 func (l *Line) title() string {

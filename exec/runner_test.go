@@ -203,8 +203,9 @@ func TestRunner_Summary(t *testing.T) {
 	p := &mockProcessor[storage.MapEntry]{summaryStr: "test-summary"}
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
-	if r.Summary() != "test-summary" {
-		t.Errorf("Summary should be 'test-summary', got '%s'", r.Summary())
+	got := r.Summary()
+	if len(got) != 1 || got[0] != "test-summary" {
+		t.Errorf("Summary should be [test-summary], got %v", got)
 	}
 }
 
@@ -219,7 +220,7 @@ func TestRunner_State(t *testing.T) {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
 
-	state := r.State()
+	state := r.StateString()
 	if len(state) == 0 {
 		t.Error("State should not be empty")
 	}

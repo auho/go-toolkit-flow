@@ -41,7 +41,7 @@ func ExampleRunFlow() {
 		return
 	}
 
-	fmt.Println(dest.StateInfo().Amount())
+	fmt.Println(dest.State().Amount())
 }
 
 // ExampleRunFlow_consumer demonstrates the consumer path: a mock source feeds
@@ -108,6 +108,6 @@ func ExampleRunFlow_multiDestination() {
 		return
 	}
 
-	fmt.Println("dest1:", dest1.StateInfo().Amount())
-	fmt.Println("dest2:", dest2.StateInfo().Amount())
+	fmt.Println("dest1:", dest1.State().Amount())
+	fmt.Println("dest2:", dest2.State().Amount())
 }

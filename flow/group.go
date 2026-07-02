@@ -132,9 +132,9 @@ func (g *group[SE, DE]) Summary() []string {
 
 // State returns state lines for this group's runners, destination, and any
 // internal destinations held by runners.
-func (g *group[SE, DE]) State() []string {
+func (g *group[SE, DE]) StateString() []string {
 	lines := make([]string, 0)
-	lines = append(lines, g.runners.State()...)
+	lines = append(lines, g.runners.StateString()...)
 	lines = append(lines, g.destination.StateString()...)
 	lines = append(lines, g.internalDests.StateString()...)
 
@@ -193,12 +193,13 @@ func (g *group[SE, DE]) OutputForward(ctx context.Context) error {
 	}
 	go func() { fanIn.Wait(); close(merged) }()
 
+	defer g.destination.Done()
+
 	for out := range merged {
 		if err := g.destination.Receive(out); err != nil {
 			return err
 		}
 	}
-	g.destination.Done()
 
 	return nil
 }

@@ -3,7 +3,7 @@ package flow
 import (
 	"runtime"
 
-	"github.com/auho/go-toolkit-flow/v3/processor"
+	testutilprocessor "github.com/auho/go-toolkit-flow/v3/internal/testutil/processor"
 	"github.com/auho/go-toolkit-flow/v3/processor/consumer"
 	"github.com/auho/go-toolkit-flow/v3/processor/producer"
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -19,11 +19,10 @@ import (
 var _ producer.Item[map[string]any, map[string]any] = (*itemOp)(nil)
 
 type itemOp struct {
-	processor.BaseProcessor
+	testutilprocessor.TestProcessor
 }
 
 func (t *itemOp) Concurrency() int { return runtime.NumCPU() }
-func (t *itemOp) AppendState()     {}
 
 func (t *itemOp) Summary() string { return "test itemOp" }
 
@@ -46,17 +45,14 @@ func (t *itemOp) AfterRun() error {
 	return nil
 }
 
-func (t *itemOp) Close() error { return nil }
-
 // producerBatchOp is a producer.Batch that passes the input batch through unchanged.
 var _ producer.Batch[map[string]any, map[string]any] = (*producerBatchOp)(nil)
 
 type producerBatchOp struct {
-	processor.BaseProcessor
+	testutilprocessor.TestProcessor
 }
 
 func (p *producerBatchOp) Concurrency() int { return runtime.NumCPU() }
-func (p *producerBatchOp) AppendState()     {}
 
 func (p *producerBatchOp) Summary() string { return "test producerBatchOp" }
 
@@ -79,19 +75,16 @@ func (p *producerBatchOp) AfterRun() error {
 	return nil
 }
 
-func (p *producerBatchOp) Close() error { return nil }
-
 // === Consumer-path processors ===
 
 // consumerItemOp is a consumer.Item that accepts every item (ok=true).
 var _ consumer.Item[map[string]any] = (*consumerItemOp)(nil)
 
 type consumerItemOp struct {
-	processor.BaseProcessor
+	testutilprocessor.TestProcessor
 }
 
 func (c *consumerItemOp) Concurrency() int { return runtime.NumCPU() }
-func (c *consumerItemOp) AppendState()     {}
 
 func (c *consumerItemOp) Summary() string { return "test consumerItemOp" }
 
@@ -114,17 +107,14 @@ func (c *consumerItemOp) AfterRun() error {
 	return nil
 }
 
-func (c *consumerItemOp) Close() error { return nil }
-
 // batchOp is a consumer.Batch that counts processed items.
 var _ consumer.Batch[map[string]any] = (*batchOp)(nil)
 
 type batchOp struct {
-	processor.BaseProcessor
+	testutilprocessor.TestProcessor
 }
 
 func (b *batchOp) Concurrency() int { return runtime.NumCPU() }
-func (b *batchOp) AppendState()     {}
 
 func (b *batchOp) Summary() string { return "test batchOp" }
 
@@ -147,17 +137,14 @@ func (b *batchOp) AfterRun() error {
 	return nil
 }
 
-func (b *batchOp) Close() error { return nil }
-
 // sliceItemOp is a producer.Item that passes each SliceEntry through unchanged (1:1).
 var _ producer.Item[storage.SliceEntry, storage.SliceEntry] = (*sliceItemOp)(nil)
 
 type sliceItemOp struct {
-	processor.BaseProcessor
+	testutilprocessor.TestProcessor
 }
 
 func (t *sliceItemOp) Concurrency() int { return runtime.NumCPU() }
-func (t *sliceItemOp) AppendState()     {}
 
 func (t *sliceItemOp) Summary() string { return "test sliceItemOp" }
 
@@ -179,5 +166,3 @@ func (t *sliceItemOp) AfterRun() error {
 	t.Outputln("AfterRun")
 	return nil
 }
-
-func (t *sliceItemOp) Close() error { return nil }

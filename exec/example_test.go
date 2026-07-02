@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/auho/go-toolkit-flow/v3/exec"
-	"github.com/auho/go-toolkit-flow/v3/processor"
+	testutilprocessor "github.com/auho/go-toolkit-flow/v3/internal/testutil/processor"
 	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
@@ -30,16 +30,11 @@ func (e *exampleProducerExecutor) Exec(items []storage.MapEntry) (out []storage.
 
 // exampleProc is a minimal processor implementation.
 type exampleProc struct {
-	processor.BaseProcessor
+	testutilprocessor.TestProcessor
 }
 
 func (p *exampleProc) Concurrency() int { return 1 }
-func (p *exampleProc) AppendState()     {}
 func (p *exampleProc) Summary() string  { return "exampleProc" }
-func (p *exampleProc) Prepare() error   { return nil }
-func (p *exampleProc) BeforeRun() error { return nil }
-func (p *exampleProc) AfterRun() error  { return nil }
-func (p *exampleProc) Close() error     { return nil }
 
 // ExampleNewRunner demonstrates creating a single Runner and driving its
 // full consumer lifecycle: Prepare → Start → Receive → Done → Finish → Close.
@@ -63,7 +58,9 @@ func ExampleNewRunner() {
 
 	defer r.Close()
 
-	fmt.Println(r.Summary())
+	for _, s := range r.Summary() {
+		fmt.Println(s)
+	}
 	// Output:
 	// exampleProc
 }

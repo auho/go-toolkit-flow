@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/auho/go-toolkit-flow/v3/storage/redis/source/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/tool"
 )
 
 var _ Format[string] = (*scanKeyFormat)(nil)
@@ -38,7 +39,5 @@ func (f *scanKeyFormat) FetchLen(_ context.Context, _ dialect.Dialect) (int64, e
 }
 
 func (f *scanKeyFormat) Copy(items []string) []string {
-	newItems := make([]string, len(items))
-	_ = copy(newItems, items)
-	return newItems
+	return tool.CopyStrings(items)
 }

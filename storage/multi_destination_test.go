@@ -53,14 +53,14 @@ func (s *spyDestination) Summary() []string {
 	return []string{s.name}
 }
 
-func (s *spyDestination) StateInfo() State {
-	st := NewStateInfo()
+func (s *spyDestination) State() State {
+	st := NewSnapshot()
 	st.SetStatus(s.name)
 	return st
 }
 
 func (s *spyDestination) StateString() []string {
-	return []string{s.StateInfo().Overview()}
+	return []string{s.State().Overview()}
 }
 
 func TestMultiDestination_Prepare_AllSuccess(t *testing.T) {
@@ -231,8 +231,8 @@ func TestMultiDestination_Close_OneFails(t *testing.T) {
 	if !d1.closed {
 		t.Error("d1 was not closed")
 	}
-	if d2.closed {
-		t.Error("d2 was closed despite d1 error (short-circuit expected)")
+	if !d2.closed {
+		t.Error("d2 was not closed despite d1 error (best-effort expected)")
 	}
 }
 
@@ -259,14 +259,14 @@ func TestMultiDestination_State(t *testing.T) {
 	d3 := &spyDestination{name: "s3"}
 	md := MultiDestination[string]{d1, d2, d3}
 
-	si := md.StateInfo()
+	si := md.State()
 	if si == nil {
-		t.Fatal("StateInfo() returned nil")
+		t.Fatal("State() returned nil")
 	}
 	overview := si.Overview()
 	for _, name := range []string{"s1", "s2", "s3"} {
 		if !strings.Contains(overview, name) {
-			t.Errorf("StateInfo().Overview() = %q, missing %q", overview, name)
+			t.Errorf("State().Overview() = %q, missing %q", overview, name)
 		}
 	}
 }
@@ -281,5 +281,5 @@ func TestMultiDestination_Empty(t *testing.T) {
 	_ = md.Finish()
 	_ = md.Close()
 	_ = md.Summary()
-	_ = md.StateInfo()
+	_ = md.State()
 }

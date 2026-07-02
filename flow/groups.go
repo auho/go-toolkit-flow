@@ -155,11 +155,11 @@ func (gs *groups[SE, DE]) Summary() []string {
 }
 
 // State returns state lines for all groups' runners and destinations.
-func (gs *groups[SE, DE]) State() []string {
+func (gs *groups[SE, DE]) StateString() []string {
 	lines := make([]string, 0)
 
 	for _, g := range *gs {
-		lines = append(lines, g.State()...)
+		lines = append(lines, g.StateString()...)
 	}
 
 	return lines

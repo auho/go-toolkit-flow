@@ -4,18 +4,18 @@ import (
 	"strings"
 )
 
-// MultiState aggregates multiple State into a single State.
+// MultiSnapshot aggregates multiple State into a single State.
 // Used by MultiDestination to present a unified state view.
-type MultiState struct {
+type MultiSnapshot struct {
 	states []State
 }
 
-// NewMultiState creates a MultiState from the given sub-states.
-func NewMultiState(states []State) *MultiState {
-	return &MultiState{states: states}
+// NewMultiSnapshot creates a MultiSnapshot from the given sub-states.
+func NewMultiSnapshot(states []State) *MultiSnapshot {
+	return &MultiSnapshot{states: states}
 }
 
-func (m *MultiState) Overview() string {
+func (m *MultiSnapshot) Overview() string {
 	var sb strings.Builder
 	sb.WriteString(m.Title())
 	for _, s := range m.states {
@@ -25,7 +25,7 @@ func (m *MultiState) Overview() string {
 	return sb.String()
 }
 
-func (m *MultiState) Amount() int64 {
+func (m *MultiSnapshot) Amount() int64 {
 	var sum int64
 	for _, s := range m.states {
 		sum += s.Amount()
@@ -33,7 +33,7 @@ func (m *MultiState) Amount() int64 {
 	return sum
 }
 
-func (m *MultiState) Title() string {
+func (m *MultiSnapshot) Title() string {
 	var sb strings.Builder
 	sb.WriteString("MultiDestination")
 	for _, s := range m.states {
@@ -43,7 +43,7 @@ func (m *MultiState) Title() string {
 	return sb.String()
 }
 
-func (m *MultiState) Concurrency() int {
+func (m *MultiSnapshot) Concurrency() int {
 	if len(m.states) == 0 {
 		return 0
 	}
@@ -57,4 +57,4 @@ func (m *MultiState) Concurrency() int {
 }
 
 // Compile-time interface conformance check.
-var _ State = (*MultiState)(nil)
+var _ State = (*MultiSnapshot)(nil)

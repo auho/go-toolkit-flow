@@ -26,7 +26,6 @@ var _ storage.Source[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 //   - ReceiveChan is read by the transport goroutine
 //   - Finish waits for the scan goroutine to complete, then closes itemsChan
 type Memory[E storage.Entry] struct {
-	storage.Storage
 	format format.Format[E]
 
 	id          int64
@@ -35,7 +34,7 @@ type Memory[E storage.Entry] struct {
 	totalPage   int64
 	concurrency int
 	idName      string
-	state       *storage.PageStateInfo
+	state       *storage.PageSnapshot
 	itemsChan   chan []E
 	scanCtx     context.Context
 	scanWg      sync.WaitGroup
@@ -69,7 +68,7 @@ func NewMemory[E storage.Entry](config Config, f format.Format[E]) *Memory[E] {
 
 	m.totalPage = int64(math.Ceil(float64(m.total) / float64(m.pageSize)))
 
-	m.state = storage.NewPageState()
+	m.state = storage.NewPageSnapshot()
 	m.state.SetTotal(m.total)
 	m.state.SetPageSize(m.pageSize)
 	m.state.SetTotalPage(m.totalPage)

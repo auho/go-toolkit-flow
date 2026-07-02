@@ -6,7 +6,7 @@ import (
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/redis/client"
 	"github.com/auho/go-toolkit-flow/v3/storage/redis/source/dialect"
-	"github.com/auho/go-toolkit-flow/v3/tool"
+	"github.com/auho/go-toolkit-flow/v3/storage/tool"
 )
 
 var _ Format[storage.StringMapEntry] = (*sortedSetsFormat)(nil)

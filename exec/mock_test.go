@@ -3,6 +3,7 @@ package exec
 import (
 	"sync/atomic"
 
+	testutilprocessor "github.com/auho/go-toolkit-flow/v3/internal/testutil/processor"
 	"github.com/auho/go-toolkit-flow/v3/processor"
 	"github.com/auho/go-toolkit-flow/v3/storage"
 )
@@ -21,7 +22,7 @@ func (m *mockExecutor[SE, DE]) Exec(items []SE) ([]DE, int64, int64, error) {
 }
 
 type mockProcessor[E storage.Entry] struct {
-	processor.BaseProcessor
+	testutilprocessor.TestProcessor
 	concurrency     int
 	prepareErr      error
 	beforeRunErr    error
@@ -50,8 +51,6 @@ func (m *mockProcessor[E]) BeforeRun() error { m.beforeRunCalled.Add(1); return 
 func (m *mockProcessor[E]) AfterRun() error { m.afterRunCalled.Add(1); return m.afterRunErr }
 
 func (m *mockProcessor[E]) Close() error { m.closeCalled.Add(1); return m.closeErr }
-
-func (m *mockProcessor[E]) AppendState() {}
 
 func newMockRunner[SE, DE storage.Entry](executor Executor[SE, DE], processor processor.Processor[SE]) Runner[SE, DE] {
 	return NewRunner[SE, DE](executor, processor)

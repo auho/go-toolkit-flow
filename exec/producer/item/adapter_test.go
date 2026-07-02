@@ -121,7 +121,8 @@ func TestAdapterExec_Error(t *testing.T) {
 }
 
 func TestAdapter_AfterBatch_Error(t *testing.T) {
-	a := &adapter[storage.MapEntry, storage.MapEntry]{item: &mockItemAfterBatchErr{}}
+	it := &mockItemAfterBatchErr{}
+	a := &adapter[storage.MapEntry, storage.MapEntry]{item: it, afterBatcher: it}
 	_, _, _, err := a.Exec([]storage.MapEntry{{"id": 1}})
 
 	if err == nil {

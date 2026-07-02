@@ -14,7 +14,6 @@ import (
 var _ storage.Source[storage.MapEntry] = (*Iterator[storage.MapEntry])(nil)
 
 type Iterator[E storage.Entry] struct {
-	storage.Storage
 	dialect dialect.Dialect
 	format  format.Format[E]
 
@@ -24,7 +23,7 @@ type Iterator[E storage.Entry] struct {
 	total           int64
 	timeoutDuration time.Duration
 
-	state     *storage.TotalStateInfo
+	state     *storage.TotalSnapshot
 	itemsChan chan []E
 	scanCtx   context.Context
 	scanWg    sync.WaitGroup
@@ -63,7 +62,7 @@ func (i *Iterator[E]) config(c KeyConfig) error {
 		i.pageSize = 100
 	}
 
-	i.state = storage.NewTotalState()
+	i.state = storage.NewTotalSnapshot()
 	i.state.MarkAsConfigured()
 	i.state.SetConcurrency(i.concurrency)
 	i.state.SetTitle(i.title())

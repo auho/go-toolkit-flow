@@ -41,8 +41,8 @@ type Runner[SE, DE storage.Entry] interface {
 	Done()                             // triggered after upstream data processing
 	Finish() error                     // data processing completed
 	Close() error
-	Summary() string
-	State() []string
+	Summary() []string
+	StateString() []string
 	Output() []string
 	OutChan() <-chan []DE // produced data output channel (producer path)
 	Destinations() []storage.Destination[DE]
@@ -149,9 +149,9 @@ func (r *runner[SE, DE]) Start() {
 					}
 
 					atomic.AddInt64(&r.total, int64(len(items)))
-					out, amount, affected, err1 := r.executor.Exec(items)
-					if err1 != nil {
-						return fmt.Errorf("executor.Exec: %w", err1)
+					out, amount, affected, err := r.executor.Exec(items)
+					if err != nil {
+						return fmt.Errorf("executor.Exec: %w", err)
 					}
 
 					atomic.AddInt64(&r.amount, amount)
@@ -180,11 +180,10 @@ func (r *runner[SE, DE]) Done() {
 // AfterRun returns an error.
 func (r *runner[SE, DE]) Finish() error {
 	err := r.startGroup.Wait()
+	defer close(r.outChan)
 	if err != nil {
 		return fmt.Errorf("runGroup.Wait: %w", err)
 	}
-
-	close(r.outChan)
 
 	err = r.processor.AfterRun()
 	if err != nil {
@@ -198,11 +197,11 @@ func (r *runner[SE, DE]) Close() error {
 	return r.processor.Close()
 }
 
-func (r *runner[SE, DE]) Summary() string {
-	return r.processor.Summary()
+func (r *runner[SE, DE]) Summary() []string {
+	return []string{r.processor.Summary()}
 }
 
-func (r *runner[SE, DE]) State() []string {
+func (r *runner[SE, DE]) StateString() []string {
 	r.processor.AppendState()
 	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.processor.State()...)
 }

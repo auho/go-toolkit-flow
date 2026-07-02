@@ -54,8 +54,8 @@ func TestFlow_ProducerItem(t *testing.T) {
 	if src.State().Amount() != total {
 		t.Errorf("source amount = %d, want %d", src.State().Amount(), total)
 	}
-	if dest.StateInfo().Amount() != total {
-		t.Errorf("destination amount = %d, want %d", dest.StateInfo().Amount(), total)
+	if dest.State().Amount() != total {
+		t.Errorf("destination amount = %d, want %d", dest.State().Amount(), total)
 	}
 
 	// Content integrity: each id in [1, total], unique; content non-zero
@@ -123,8 +123,8 @@ func TestFlow_ProducerBatch(t *testing.T) {
 	if src.State().Amount() != total {
 		t.Errorf("source amount = %d, want %d", src.State().Amount(), total)
 	}
-	if dest.StateInfo().Amount() != total {
-		t.Errorf("destination amount = %d, want %d", dest.StateInfo().Amount(), total)
+	if dest.State().Amount() != total {
+		t.Errorf("destination amount = %d, want %d", dest.State().Amount(), total)
 	}
 }
 
@@ -212,11 +212,11 @@ func TestFlow_MultiDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if dest1.StateInfo().Amount() != total {
-		t.Errorf("dest1 amount = %d, want %d", dest1.StateInfo().Amount(), total)
+	if dest1.State().Amount() != total {
+		t.Errorf("dest1 amount = %d, want %d", dest1.State().Amount(), total)
 	}
-	if dest2.StateInfo().Amount() != total {
-		t.Errorf("dest2 amount = %d, want %d", dest2.StateInfo().Amount(), total)
+	if dest2.State().Amount() != total {
+		t.Errorf("dest2 amount = %d, want %d", dest2.State().Amount(), total)
 	}
 
 	// Both destinations must have identical items (same IDs in the same order)
@@ -278,11 +278,11 @@ func TestFlow_MultiGroup(t *testing.T) {
 	if src.State().Amount() != total {
 		t.Errorf("source amount = %d, want %d", src.State().Amount(), total)
 	}
-	if dest1.StateInfo().Amount() != total {
-		t.Errorf("dest1 amount = %d, want %d", dest1.StateInfo().Amount(), total)
+	if dest1.State().Amount() != total {
+		t.Errorf("dest1 amount = %d, want %d", dest1.State().Amount(), total)
 	}
-	if dest2.StateInfo().Amount() != total {
-		t.Errorf("dest2 amount = %d, want %d", dest2.StateInfo().Amount(), total)
+	if dest2.State().Amount() != total {
+		t.Errorf("dest2 amount = %d, want %d", dest2.State().Amount(), total)
 	}
 
 	// Both destinations must have identical items (same IDs in the same order)
@@ -335,8 +335,8 @@ func TestFlow_MultiRunner(t *testing.T) {
 
 	// Each runner receives a copy of every batch → destination gets 2×total.
 	want := total * 2
-	if dest.StateInfo().Amount() != want {
-		t.Errorf("destination amount = %d, want %d (2×%d)", dest.StateInfo().Amount(), want, total)
+	if dest.State().Amount() != want {
+		t.Errorf("destination amount = %d, want %d (2×%d)", dest.State().Amount(), want, total)
 	}
 }
 
@@ -369,8 +369,8 @@ func TestFlow_DestinationUpdate(t *testing.T) {
 	if src.State().Amount() != total {
 		t.Errorf("source amount = %d, want %d", src.State().Amount(), total)
 	}
-	if dest.StateInfo().Amount() != total {
-		t.Errorf("destination amount = %d, want %d", dest.StateInfo().Amount(), total)
+	if dest.State().Amount() != total {
+		t.Errorf("destination amount = %d, want %d", dest.State().Amount(), total)
 	}
 }
 
@@ -405,7 +405,7 @@ func TestFlow_SliceEntry(t *testing.T) {
 	if src.State().Amount() != total {
 		t.Errorf("source amount = %d, want %d", src.State().Amount(), total)
 	}
-	if dest.StateInfo().Amount() != total {
-		t.Errorf("destination amount = %d, want %d", dest.StateInfo().Amount(), total)
+	if dest.State().Amount() != total {
+		t.Errorf("destination amount = %d, want %d", dest.State().Amount(), total)
 	}
 }

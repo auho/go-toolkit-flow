@@ -7,8 +7,8 @@ import (
 	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
-func ExampleStateInfo() {
-	s := storage.NewStateInfo()
+func ExampleSnapshot() {
+	s := storage.NewSnapshot()
 	s.SetTitle("my-source")
 	s.MarkAsScanning()
 	s.SetAmount(42)
@@ -20,8 +20,8 @@ func ExampleStateInfo() {
 	// Status: scan, Concurrency: 2, Amount: 42, Duration: 0.000000 秒
 }
 
-func ExampleTotalStateInfo() {
-	s := storage.NewTotalState()
+func ExampleTotalSnapshot() {
+	s := storage.NewTotalSnapshot()
 	s.SetTitle("my-source")
 	s.MarkAsAccepted()
 	s.SetAmount(50)
@@ -34,8 +34,8 @@ func ExampleTotalStateInfo() {
 	// Status: accept, Concurrency: 4, Amount: 50/100, Duration: 0.000000 秒
 }
 
-func ExamplePageStateInfo() {
-	s := storage.NewPageState()
+func ExamplePageSnapshot() {
+	s := storage.NewPageSnapshot()
 	s.SetTitle("my-source")
 	s.MarkAsScanning()
 	s.SetAmount(50)
@@ -51,16 +51,16 @@ func ExamplePageStateInfo() {
 	// Status: scan, Concurrency: 2, Amount: 50/100, Page: 5/10(10), Duration: 0.000000 秒
 }
 
-func ExampleMultiState() {
-	s1 := storage.NewStateInfo()
+func ExampleMultiSnapshot() {
+	s1 := storage.NewSnapshot()
 	s1.SetTitle("source")
 	s1.SetAmount(100)
 
-	s2 := storage.NewStateInfo()
+	s2 := storage.NewSnapshot()
 	s2.SetTitle("dest")
 	s2.SetAmount(50)
 
-	ms := storage.NewMultiState([]storage.State{s1, s2})
+	ms := storage.NewMultiSnapshot([]storage.State{s1, s2})
 	fmt.Println(ms.Amount())
 	// Output:
 	// 150
@@ -86,18 +86,18 @@ type spyDest struct {
 }
 
 func (s *spyDest) Prepare(_ context.Context) error { return nil }
-func (s *spyDest) Accept()                          {}
-func (s *spyDest) Receive(_ []string) error         { return nil }
-func (s *spyDest) Done()                            {}
-func (s *spyDest) Finish() error                    { return nil }
-func (s *spyDest) Close() error                     { return nil }
-func (s *spyDest) Summary() []string                { return []string{s.name} }
-func (s *spyDest) StateInfo() storage.State {
-	st := storage.NewStateInfo()
+func (s *spyDest) Accept()                         {}
+func (s *spyDest) Receive(_ []string) error        { return nil }
+func (s *spyDest) Done()                           {}
+func (s *spyDest) Finish() error                   { return nil }
+func (s *spyDest) Close() error                    { return nil }
+func (s *spyDest) Summary() []string               { return []string{s.name} }
+func (s *spyDest) State() storage.State {
+	st := storage.NewSnapshot()
 	st.SetTitle(s.name)
 	return st
 }
-func (s *spyDest) StateString() []string { return []string{s.StateInfo().Overview()} }
+func (s *spyDest) StateString() []string { return []string{s.State().Overview()} }
 
 func ExampleMultiDestination() {
 	d1 := &spyDest{name: "alpha"}

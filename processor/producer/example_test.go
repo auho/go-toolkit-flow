@@ -3,22 +3,18 @@ package producer_test
 import (
 	"fmt"
 
+	testutilprocessor "github.com/auho/go-toolkit-flow/v3/internal/testutil/processor"
 	"github.com/auho/go-toolkit-flow/v3/processor/producer"
 	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
 // doublerBatch is a producer.Batch implementation that doubles each item's id.
 type doublerBatch struct {
-	producer.Processor
+	testutilprocessor.TestProcessor
 }
 
 func (b *doublerBatch) Summary() string  { return "doublerBatch" }
 func (b *doublerBatch) Concurrency() int { return 1 }
-func (b *doublerBatch) AppendState()     {}
-func (b *doublerBatch) Prepare() error   { return nil }
-func (b *doublerBatch) BeforeRun() error { return nil }
-func (b *doublerBatch) AfterRun() error  { return nil }
-func (b *doublerBatch) Close() error     { return nil }
 
 func (b *doublerBatch) Exec(items []storage.MapEntry) ([]storage.MapEntry, int64, error) {
 	produced := make([]storage.MapEntry, 0, len(items))
@@ -54,16 +50,11 @@ func ExampleBatch() {
 
 // splitterItem is a producer.Item implementation that produces two items per input.
 type splitterItem struct {
-	producer.Processor
+	testutilprocessor.TestProcessor
 }
 
 func (it *splitterItem) Summary() string  { return "splitterItem" }
 func (it *splitterItem) Concurrency() int { return 1 }
-func (it *splitterItem) AppendState()     {}
-func (it *splitterItem) Prepare() error   { return nil }
-func (it *splitterItem) BeforeRun() error { return nil }
-func (it *splitterItem) AfterRun() error  { return nil }
-func (it *splitterItem) Close() error     { return nil }
 
 func (it *splitterItem) Exec(item storage.MapEntry) ([]storage.MapEntry, bool, error) {
 	id, _ := item["id"].(int)

@@ -6,14 +6,14 @@ import (
 )
 
 func TestState_New(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	if s == nil {
 		t.Fatal("NewState() == nil")
 	}
 }
 
 func TestState_Status(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.SetStatus("running")
 	if s.Status() != "running" {
 		t.Errorf("Status() = %q, want %q", s.Status(), "running")
@@ -21,7 +21,7 @@ func TestState_Status(t *testing.T) {
 }
 
 func TestState_MarkAsConfigured(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.MarkAsConfigured()
 	if s.Status() != StatusConfig {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusConfig)
@@ -29,7 +29,7 @@ func TestState_MarkAsConfigured(t *testing.T) {
 }
 
 func TestState_MarkAsPrepare(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.MarkAsPrepare()
 	if s.Status() != StatusPrepare {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusPrepare)
@@ -37,7 +37,7 @@ func TestState_MarkAsPrepare(t *testing.T) {
 }
 
 func TestState_MarkAsAccepted(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.MarkAsAccepted()
 	if s.Status() != StatusAccept {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusAccept)
@@ -45,7 +45,7 @@ func TestState_MarkAsAccepted(t *testing.T) {
 }
 
 func TestState_MarkAsScanning(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.MarkAsScanning()
 	if s.Status() != StatusScan {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusScan)
@@ -53,7 +53,7 @@ func TestState_MarkAsScanning(t *testing.T) {
 }
 
 func TestState_MarkAsDone(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.MarkAsDone()
 	if s.Status() != StatusDone {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusDone)
@@ -61,7 +61,7 @@ func TestState_MarkAsDone(t *testing.T) {
 }
 
 func TestState_MarkAsFinished(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.MarkAsFinished()
 	if s.Status() != StatusFinish {
 		t.Errorf("Status() = %q, want %q", s.Status(), StatusFinish)
@@ -69,7 +69,7 @@ func TestState_MarkAsFinished(t *testing.T) {
 }
 
 func TestState_Amount(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.SetAmount(100)
 	if s.Amount() != 100 {
 		t.Errorf("Amount() = %d, want %d", s.Amount(), 100)
@@ -82,20 +82,20 @@ func TestState_Amount(t *testing.T) {
 }
 
 func TestState_Duration(t *testing.T) {
-	s := NewStateInfo()
+	s := NewSnapshot()
 	s.DurationStart()
 	s.DurationStop()
 }
 
 func TestTotalState_New(t *testing.T) {
-	ts := NewTotalState()
+	ts := NewTotalSnapshot()
 	if ts == nil {
-		t.Fatal("NewTotalState() == nil")
+		t.Fatal("NewTotalSnapshot() == nil")
 	}
 }
 
 func TestTotalState_Overview(t *testing.T) {
-	ts := NewTotalState()
+	ts := NewTotalSnapshot()
 	ts.SetStatus(StatusDone)
 	ts.SetAmount(50)
 	ts.SetTotal(100)
@@ -121,14 +121,14 @@ func TestTotalState_Overview(t *testing.T) {
 }
 
 func TestPageState_New(t *testing.T) {
-	ps := NewPageState()
+	ps := NewPageSnapshot()
 	if ps == nil {
-		t.Fatal("NewPageState() == nil")
+		t.Fatal("NewPageSnapshot() == nil")
 	}
 }
 
 func TestPageState_AddPage(t *testing.T) {
-	ps := NewPageState()
+	ps := NewPageSnapshot()
 	ps.AddPage(1)
 	if ps.Page() != 1 {
 		t.Errorf("GetPage() = %d, want %d", ps.Page(), 1)
@@ -141,7 +141,7 @@ func TestPageState_AddPage(t *testing.T) {
 }
 
 func TestPageState_Overview(t *testing.T) {
-	ps := NewPageState()
+	ps := NewPageSnapshot()
 	ps.SetStatus(StatusDone)
 	ps.SetAmount(50)
 	ps.SetTotal(100)

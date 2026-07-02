@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/auho/go-toolkit-flow/v3/storage/tool"
 )
 
 var _ Format[string] = (*stringFormat)(nil)
@@ -31,7 +33,5 @@ func (f *stringFormat) Scan(idName string, id *int64, amount int64) (*int64, []s
 }
 
 func (f *stringFormat) Copy(items []string) []string {
-	newItems := make([]string, len(items))
-	_ = copy(newItems, items)
-	return newItems
+	return tool.CopyStrings(items)
 }

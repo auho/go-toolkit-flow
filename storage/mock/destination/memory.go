@@ -14,7 +14,7 @@ var _ storage.Destination[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 
 // Memory is an in-memory Destination implementation for testing.
 // It counts the total number of items received via the state's amount field,
-// which can be accessed via the StateInfo() method.
+// which can be accessed via the State() method.
 //
 // Lifecycle:
 //
@@ -29,7 +29,7 @@ type Memory[E storage.Entry] struct {
 	format format.Format[E]
 
 	isDone    atomic.Bool
-	state     *storage.StateInfo
+	state     *storage.Snapshot
 	items     []E
 	itemsChan chan []E
 	chanWg    sync.WaitGroup
@@ -38,7 +38,7 @@ type Memory[E storage.Entry] struct {
 // NewMemory creates a Memory with the given format.
 func NewMemory[E storage.Entry](f format.Format[E]) *Memory[E] {
 	d := &Memory[E]{format: f}
-	d.state = storage.NewStateInfo()
+	d.state = storage.NewSnapshot()
 	d.state.SetTitle(d.title())
 	d.state.MarkAsConfigured()
 	return d
@@ -98,7 +98,7 @@ func (d *Memory[E]) Summary() []string {
 	return []string{d.title()}
 }
 
-func (d *Memory[E]) StateInfo() storage.State {
+func (d *Memory[E]) State() storage.State {
 	return d.state
 }
 
@@ -117,5 +117,5 @@ func (d *Memory[E]) Close() error {
 }
 
 func (d *Memory[E]) title() string {
-	return fmt.Sprintf("Mock:desc[%s]", d.format.Type())
+	return fmt.Sprintf("Mock:destination[%s]", d.format.Type())
 }

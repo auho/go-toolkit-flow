@@ -17,5 +17,5 @@ func (NoopDestination[E]) Done()                         {}
 func (NoopDestination[E]) Finish() error                 { return nil }
 func (NoopDestination[E]) Close() error                  { return nil }
 func (NoopDestination[E]) Summary() []string             { return nil }
-func (NoopDestination[E]) StateInfo() State              { return nil }
+func (NoopDestination[E]) State() State                  { return nil }
 func (NoopDestination[E]) StateString() []string         { return nil }

@@ -41,7 +41,7 @@ func TestExecProducerItem(t *testing.T) {
 	if got := src.State().Amount(); got != want {
 		t.Errorf("source amount = %d, want %d", got, want)
 	}
-	if got := dest.StateInfo().Amount(); got != want {
+	if got := dest.State().Amount(); got != want {
 		t.Errorf("destination amount = %d, want %d", got, want)
 	}
 	if got := int64(len(dest.Items())); got != want {
@@ -81,7 +81,7 @@ func TestExecProducerBatch(t *testing.T) {
 	if got := src.State().Amount(); got != want {
 		t.Errorf("source amount = %d, want %d", got, want)
 	}
-	if got := dest.StateInfo().Amount(); got != want {
+	if got := dest.State().Amount(); got != want {
 		t.Errorf("destination amount = %d, want %d", got, want)
 	}
 	if got := int64(len(dest.Items())); got != want {

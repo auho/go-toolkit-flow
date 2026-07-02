@@ -1,5 +1,6 @@
 package tool
 
+// CopySliceMap returns a deep copy of a slice of maps.
 func CopySliceMap[E any](items []map[string]E) []map[string]E {
 	newItems := make([]map[string]E, 0, len(items))
 	for _, v := range items {
@@ -14,14 +15,22 @@ func CopySliceMap[E any](items []map[string]E) []map[string]E {
 	return newItems
 }
 
+// CopySliceSlice returns a deep copy of a slice of slices.
 func CopySliceSlice[E any](items [][]E) [][]E {
 	newItems := make([][]E, 0, len(items))
 	for _, v := range items {
 		newItem := make([]E, len(v))
-		_ = copy(newItem, v)
+		copy(newItem, v)
 
 		newItems = append(newItems, newItem)
 	}
 
+	return newItems
+}
+
+// CopyStrings returns a deep copy of a string slice.
+func CopyStrings(items []string) []string {
+	newItems := make([]string, len(items))
+	copy(newItems, items)
 	return newItems
 }

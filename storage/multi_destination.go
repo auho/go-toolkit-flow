@@ -1,6 +1,9 @@
 package storage
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // MultiDestination fans out to multiple Destinations, analogous to io.MultiWriter.
 // All Destination methods iterate through sub-destinations in order.
@@ -56,13 +59,14 @@ func (md MultiDestination[E]) Finish() error {
 }
 
 func (md MultiDestination[E]) Close() error {
+	var errs []error
 	for _, d := range md {
 		if err := d.Close(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (md MultiDestination[E]) Summary() []string {
@@ -74,14 +78,14 @@ func (md MultiDestination[E]) Summary() []string {
 	return lines
 }
 
-func (md MultiDestination[E]) StateInfo() State {
+func (md MultiDestination[E]) State() State {
 	states := make([]State, 0, len(md))
 	for _, d := range md {
-		states = append(states, d.StateInfo())
+		states = append(states, d.State())
 	}
-	return NewMultiState(states)
+	return NewMultiSnapshot(states)
 }
 
 func (md MultiDestination[E]) StateString() []string {
-	return []string{md.StateInfo().Overview()}
+	return []string{md.State().Overview()}
 }

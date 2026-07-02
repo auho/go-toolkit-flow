@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -31,7 +32,7 @@ func (rs *Runners[SE, DE]) Add(r ...Runner[SE, DE]) {
 func (rs *Runners[SE, DE]) Prepare(ctx context.Context) error {
 	for _, r := range *rs {
 		if err := r.Prepare(ctx); err != nil {
-			return fmt.Errorf("prepare: %w", err)
+			return fmt.Errorf("runner.Prepare: %w", err)
 		}
 	}
 
@@ -63,29 +64,30 @@ func (rs *Runners[SE, DE]) Done() {
 func (rs *Runners[SE, DE]) Finish() error {
 	for _, r := range *rs {
 		if err := r.Finish(); err != nil {
-			return fmt.Errorf("finish: %w", err)
+			return fmt.Errorf("runner.Finish: %w", err)
 		}
 	}
 
 	return nil
 }
 
-// Close closes all runners. Returns an error on the first failure.
+// Close closes all runners. Collects all errors and returns them joined.
 func (rs *Runners[SE, DE]) Close() error {
+	var errs []error
 	for _, r := range *rs {
 		if err := r.Close(); err != nil {
-			return fmt.Errorf("close: %w", err)
+			errs = append(errs, fmt.Errorf("runner.Close: %w", err))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // Summary returns summary lines from all runners.
 func (rs *Runners[SE, DE]) Summary() []string {
 	lines := make([]string, 0, len(*rs))
 	for _, r := range *rs {
-		lines = append(lines, r.Summary())
+		lines = append(lines, r.Summary()...)
 	}
 
 	return lines
@@ -93,11 +95,11 @@ func (rs *Runners[SE, DE]) Summary() []string {
 
 // State returns state lines from all runners, with each runner's summary
 // as a header followed by its state lines.
-func (rs *Runners[SE, DE]) State() []string {
+func (rs *Runners[SE, DE]) StateString() []string {
 	lines := make([]string, 0)
 	for _, r := range *rs {
-		lines = append(lines, r.Summary())
-		for _, s := range r.State() {
+		lines = append(lines, r.Summary()...)
+		for _, s := range r.StateString() {
 			lines = append(lines, "  "+s)
 		}
 	}

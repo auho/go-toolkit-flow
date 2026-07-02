@@ -255,8 +255,8 @@ func TestRunners_Finish_OneFails(t *testing.T) {
 	if err == nil {
 		t.Fatal("Finish should return error")
 	}
-	if !contains(err.Error(), "finish") {
-		t.Errorf("error should contain 'finish', got: %v", err)
+	if !contains(err.Error(), "runner.Finish") {
+		t.Errorf("error should contain 'runner.Finish', got: %v", err)
 	}
 }
 
@@ -334,7 +334,7 @@ func TestRunners_State(t *testing.T) {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
 
-	state := rs.State()
+	state := rs.StateString()
 	if len(state) == 0 {
 		t.Error("State should not be empty")
 	}

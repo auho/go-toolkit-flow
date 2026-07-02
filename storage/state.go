@@ -131,19 +131,19 @@ func (s *baseState) DurationStop() {
 	s.duration.Stop()
 }
 
-// StateInfo is a basic state tracker with status, amount, and duration.
+// Snapshot is a basic state tracker with status, amount, and duration.
 // Suitable for destinations that do not need pagination or total tracking.
-type StateInfo struct {
+type Snapshot struct {
 	baseState
 }
 
-// NewStateInfo creates a new StateInfo.
-func NewStateInfo() *StateInfo {
-	return &StateInfo{}
+// NewSnapshot creates a new Snapshot.
+func NewSnapshot() *Snapshot {
+	return &Snapshot{}
 }
 
 // Overview returns a formatted string summarizing the current state.
-func (s *StateInfo) Overview() string {
+func (s *Snapshot) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d, Duration: %s",
 		s.Status(),
 		s.Concurrency(),
@@ -151,29 +151,29 @@ func (s *StateInfo) Overview() string {
 		s.duration.StringStartToStop())
 }
 
-// TotalStateInfo extends StateInfo with a Total field for tracking progress against
+// TotalSnapshot extends Snapshot with a Total field for tracking progress against
 // a known total. Suitable for sources that know the total number of items.
-type TotalStateInfo struct {
+type TotalSnapshot struct {
 	baseState
 	total int64
 }
 
-// NewTotalState creates a new TotalStateInfo.
-func NewTotalState() *TotalStateInfo {
-	return &TotalStateInfo{}
+// NewTotalSnapshot creates a new TotalSnapshot.
+func NewTotalSnapshot() *TotalSnapshot {
+	return &TotalSnapshot{}
 }
 
-func (t *TotalStateInfo) Total() int64 {
+func (t *TotalSnapshot) Total() int64 {
 	return t.total
 }
 
-func (t *TotalStateInfo) SetTotal(n int64) {
+func (t *TotalSnapshot) SetTotal(n int64) {
 	t.total = n
 }
 
 // Overview returns a formatted string summarizing the current state with
 // progress (Amount/Total).
-func (t *TotalStateInfo) Overview() string {
+func (t *TotalSnapshot) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Duration: %s",
 		t.Status(),
 		t.Concurrency(),
@@ -182,9 +182,9 @@ func (t *TotalStateInfo) Overview() string {
 		t.duration.StringStartToStop())
 }
 
-// PageStateInfo extends TotalStateInfo with pagination tracking (Page, PageSize,
+// PageSnapshot extends TotalSnapshot with pagination tracking (Page, PageSize,
 // TotalPage). Suitable for paged database sources.
-type PageStateInfo struct {
+type PageSnapshot struct {
 	baseState
 	page      int64
 	pageSize  int64
@@ -192,47 +192,47 @@ type PageStateInfo struct {
 	total     int64
 }
 
-// NewPageState creates a new PageStateInfo.
-func NewPageState() *PageStateInfo {
-	return &PageStateInfo{}
+// NewPageSnapshot creates a new PageSnapshot.
+func NewPageSnapshot() *PageSnapshot {
+	return &PageSnapshot{}
 }
 
-func (p *PageStateInfo) Page() int64 {
+func (p *PageSnapshot) Page() int64 {
 	return atomic.LoadInt64(&p.page)
 }
 
 // AddPage atomically increments the page counter by n.
-func (p *PageStateInfo) AddPage(n int64) {
+func (p *PageSnapshot) AddPage(n int64) {
 	atomic.AddInt64(&p.page, n)
 }
 
-func (p *PageStateInfo) PageSize() int64 {
+func (p *PageSnapshot) PageSize() int64 {
 	return p.pageSize
 }
 
-func (p *PageStateInfo) SetPageSize(n int64) {
+func (p *PageSnapshot) SetPageSize(n int64) {
 	p.pageSize = n
 }
 
-func (p *PageStateInfo) TotalPage() int64 {
+func (p *PageSnapshot) TotalPage() int64 {
 	return p.totalPage
 }
 
-func (p *PageStateInfo) SetTotalPage(n int64) {
+func (p *PageSnapshot) SetTotalPage(n int64) {
 	p.totalPage = n
 }
 
-func (p *PageStateInfo) Total() int64 {
+func (p *PageSnapshot) Total() int64 {
 	return p.total
 }
 
-func (p *PageStateInfo) SetTotal(n int64) {
+func (p *PageSnapshot) SetTotal(n int64) {
 	p.total = n
 }
 
 // Overview returns a formatted string summarizing the current state with
 // pagination progress (Page/TotalPage, Amount/Total).
-func (p *PageStateInfo) Overview() string {
+func (p *PageSnapshot) Overview() string {
 	return fmt.Sprintf("Status: %s, Concurrency: %d, Amount: %d/%d, Page: %d/%d(%d), Duration: %s",
 		p.Status(),
 		p.Concurrency(),
@@ -246,10 +246,10 @@ func (p *PageStateInfo) Overview() string {
 
 // Compile-time interface conformance checks.
 var (
-	_ State      = (*StateInfo)(nil)
-	_ TotalState = (*TotalStateInfo)(nil)
-	_ PageState  = (*PageStateInfo)(nil)
-	_ TotalState = (*PageStateInfo)(nil)
-	_ State      = (*TotalStateInfo)(nil)
-	_ State      = (*PageStateInfo)(nil)
+	_ State      = (*Snapshot)(nil)
+	_ TotalState = (*TotalSnapshot)(nil)
+	_ PageState  = (*PageSnapshot)(nil)
+	_ TotalState = (*PageSnapshot)(nil)
+	_ State      = (*TotalSnapshot)(nil)
+	_ State      = (*PageSnapshot)(nil)
 )

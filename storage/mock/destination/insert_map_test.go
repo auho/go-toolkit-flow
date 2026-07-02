@@ -43,7 +43,7 @@ func TestInsertMap(t *testing.T) {
 	fmt.Println(d.Summary())
 	fmt.Println(d.StateString())
 
-	if d.StateInfo().Amount() != int64(page*pageSize) {
+	if d.State().Amount() != int64(page*pageSize) {
 		t.Error(" amount ")
 	}
 }

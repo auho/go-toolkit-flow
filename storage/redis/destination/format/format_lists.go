@@ -5,6 +5,7 @@ import (
 
 	"github.com/auho/go-toolkit-flow/v3/storage/redis/client"
 	"github.com/auho/go-toolkit-flow/v3/storage/redis/destination/dialect"
+	"github.com/auho/go-toolkit-flow/v3/storage/tool"
 )
 
 var _ Format[string] = (*listsFormat)(nil)
@@ -30,8 +31,5 @@ func (f *listsFormat) FetchLen(ctx context.Context, d dialect.Dialect) (int64, e
 }
 
 func (f *listsFormat) Copy(items []string) []string {
-	newItems := make([]string, len(items))
-	copy(newItems, items)
-
-	return newItems
+	return tool.CopyStrings(items)
 }

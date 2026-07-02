@@ -97,7 +97,7 @@ func RunFlow[SE, DE storage.Entry](opts ...Option[SE, DE]) error {
 		return fmt.Errorf("run: %w", err)
 	}
 
-	d.StringStartToStop()
+	fmt.Println(d.StringStartToStop())
 
 	return nil
 }
@@ -264,7 +264,7 @@ func (f *flow[SE, DE]) summary() {
 func (f *flow[SE, DE]) state() []string {
 	lines := make([]string, 0)
 	lines = append(lines, f.source.StateString()...)
-	lines = append(lines, f.groups.State()...)
+	lines = append(lines, f.groups.StateString()...)
 
 	return lines
 }
