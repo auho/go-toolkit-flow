@@ -22,7 +22,7 @@ func (m *mockBatch) AppendState()     {}
 func (m *mockBatch) Concurrency() int { return 1 }
 func (m *mockBatch) State() []string  { return nil }
 func (m *mockBatch) Output() []string { return nil }
-func (m *mockBatch) Exec(items []storage.MapEntry) ([]storage.MapEntry, int64, error) {
+func (m *mockBatch) Exec(_ []storage.MapEntry) ([]storage.MapEntry, int64, error) {
 	return m.out, m.n, m.err
 }
 
@@ -40,7 +40,7 @@ func (m *mockBatchErr) AppendState()     {}
 func (m *mockBatchErr) Concurrency() int { return 1 }
 func (m *mockBatchErr) State() []string  { return nil }
 func (m *mockBatchErr) Output() []string { return nil }
-func (m *mockBatchErr) Exec(items []storage.MapEntry) ([]storage.MapEntry, int64, error) {
+func (m *mockBatchErr) Exec(_ []storage.MapEntry) ([]storage.MapEntry, int64, error) {
 	return nil, 0, errors.New("batch err")
 }
 

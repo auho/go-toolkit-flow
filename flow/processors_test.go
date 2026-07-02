@@ -93,7 +93,7 @@ func (c *consumerItemOp) Prepare() error {
 	return nil
 }
 
-func (c *consumerItemOp) Exec(item map[string]any) (bool, error) {
+func (c *consumerItemOp) Exec(_ map[string]any) (bool, error) {
 	return true, nil
 }
 

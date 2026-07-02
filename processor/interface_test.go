@@ -30,7 +30,7 @@ type mockConsumerItem struct {
 
 func (m *mockConsumerItem) Summary() string  { return "mock-consumer-item" }
 func (m *mockConsumerItem) Concurrency() int { return 1 }
-func (m *mockConsumerItem) Exec(item storage.MapEntry) (bool, error) {
+func (m *mockConsumerItem) Exec(_ storage.MapEntry) (bool, error) {
 	return true, nil
 }
 

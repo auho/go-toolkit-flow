@@ -39,7 +39,7 @@ func NewLine(c Config) (*Line, error) {
 	return d, nil
 }
 
-func (l *Line) Prepare(ctx context.Context) error {
+func (l *Line) Prepare(_ context.Context) error {
 	l.state.MarkAsPrepare()
 
 	return nil

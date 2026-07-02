@@ -47,13 +47,13 @@ func (m *MultiSnapshot) Concurrency() int {
 	if len(m.states) == 0 {
 		return 0
 	}
-	min := m.states[0].Concurrency()
+	_min := m.states[0].Concurrency()
 	for _, s := range m.states[1:] {
-		if c := s.Concurrency(); c < min {
-			min = c
+		if c := s.Concurrency(); c < _min {
+			_min = c
 		}
 	}
-	return min
+	return _min
 }
 
 // Compile-time interface conformance check.

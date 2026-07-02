@@ -142,17 +142,26 @@ func (f *flow[SE, DE]) run() error {
 		}),
 	)
 
-	// errgroup with cancel for coordinating async goroutines
-	g, ctx := errgroup.WithContext(context.Background())
+	// rootCtx spans the full lifecycle (Prepare → Close) so that destination
+	// write contexts (derived from rootCtx via groups.Prepare) survive
+	// g.Wait()'s cancellation of asyncCtx. This prevents the race where
+	// g.Wait() cancels writeCtx before DestinationFinish flushes pending data.
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+	defer rootCancel()
+
+	// asyncCtx is derived from rootCtx via errgroup. It is canceled when
+	// g.Wait() returns, enabling fail-fast for transport/OutputForward
+	// goroutines without canceling destination write contexts.
+	g, asyncCtx := errgroup.WithContext(rootCtx)
 
 	// === Phase 1: Prepare ===
 	// All Prepare calls are synchronous so that errors are surfaced before any goroutines start.
-	err := f.source.Prepare(ctx)
+	err := f.source.Prepare(rootCtx)
 	if err != nil {
 		return fmt.Errorf("source.Prepare: %w", err)
 	}
 
-	err = f.groups.Prepare(ctx)
+	err = f.groups.Prepare(rootCtx)
 	if err != nil {
 		return fmt.Errorf("groups.Prepare: %w", err)
 	}
@@ -176,7 +185,7 @@ func (f *flow[SE, DE]) run() error {
 	})
 
 	g.Go(func() error {
-		f.transport(ctx)
+		f.transport(asyncCtx)
 		return nil
 	})
 
@@ -189,7 +198,7 @@ func (f *flow[SE, DE]) run() error {
 	})
 
 	g.Go(func() error {
-		if err := f.groups.OutputForward(ctx); err != nil {
+		if err := f.groups.OutputForward(asyncCtx); err != nil {
 			return fmt.Errorf("groups.OutputForward: %w", err)
 		}
 

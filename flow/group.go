@@ -130,7 +130,7 @@ func (g *group[SE, DE]) Summary() []string {
 	return lines
 }
 
-// State returns state lines for this group's runners, destination, and any
+// StateString returns state lines for this group's runners, destination, and any
 // internal destinations held by runners.
 func (g *group[SE, DE]) StateString() []string {
 	lines := make([]string, 0)

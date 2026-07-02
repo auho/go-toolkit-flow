@@ -21,7 +21,7 @@ func (m *mockItem) AppendState()     {}
 func (m *mockItem) Concurrency() int { return 1 }
 func (m *mockItem) State() []string  { return nil }
 func (m *mockItem) Output() []string { return nil }
-func (m *mockItem) Exec(item storage.MapEntry) (bool, error) {
+func (m *mockItem) Exec(_ storage.MapEntry) (bool, error) {
 	return m.ok, m.err
 }
 
@@ -38,7 +38,7 @@ func (m *mockItemErr) AppendState()     {}
 func (m *mockItemErr) Concurrency() int { return 1 }
 func (m *mockItemErr) State() []string  { return nil }
 func (m *mockItemErr) Output() []string { return nil }
-func (m *mockItemErr) Exec(item storage.MapEntry) (bool, error) {
+func (m *mockItemErr) Exec(_ storage.MapEntry) (bool, error) {
 	return m.ok, errors.New("item err")
 }
 

@@ -21,7 +21,7 @@ func (f *stringFormat) Type() string {
 	return "string"
 }
 
-func (f *stringFormat) Scan(idName string, id *int64, amount int64) (*int64, []string) {
+func (f *stringFormat) Scan(_ string, id *int64, amount int64) (*int64, []string) {
 	items := make([]string, amount)
 
 	startString := time.Now().String()

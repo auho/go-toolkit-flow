@@ -44,7 +44,7 @@ func NewMemory[E storage.Entry](f format.Format[E]) *Memory[E] {
 	return d
 }
 
-func (d *Memory[E]) Prepare(ctx context.Context) error {
+func (d *Memory[E]) Prepare(_ context.Context) error {
 	d.state.MarkAsPrepare()
 	return nil
 }

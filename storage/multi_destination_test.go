@@ -21,7 +21,7 @@ type spyDestination struct {
 	closed     bool
 }
 
-func (s *spyDestination) Prepare(ctx context.Context) error {
+func (s *spyDestination) Prepare(_ context.Context) error {
 	s.prepared = true
 	return s.prepareErr
 }

@@ -12,9 +12,10 @@ func TestRunners_New(t *testing.T) {
 	rs := NewRunners[storage.MapEntry, storage.MapEntry]()
 	if rs == nil {
 		t.Error("NewRunners should not return nil")
-	}
-	if rs.Len() != 0 {
-		t.Errorf("Len should be 0, got %d", rs.Len())
+	} else {
+		if rs.Len() != 0 {
+			t.Errorf("Len should be 0, got %d", rs.Len())
+		}
 	}
 }
 

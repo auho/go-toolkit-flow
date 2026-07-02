@@ -19,8 +19,7 @@ type Runners[SE, DE storage.Entry] []Runner[SE, DE]
 
 // NewRunners creates an empty Runners collection.
 func NewRunners[SE, DE storage.Entry]() *Runners[SE, DE] {
-	r := make(Runners[SE, DE], 0)
-	return &r
+	return new(make(Runners[SE, DE], 0))
 }
 
 // Add appends one or more runners to the collection.
@@ -93,7 +92,7 @@ func (rs *Runners[SE, DE]) Summary() []string {
 	return lines
 }
 
-// State returns state lines from all runners, with each runner's summary
+// StateString returns state lines from all runners, with each runner's summary
 // as a header followed by its state lines.
 func (rs *Runners[SE, DE]) StateString() []string {
 	lines := make([]string, 0)

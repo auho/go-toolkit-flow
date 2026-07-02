@@ -19,8 +19,7 @@ import (
 type groups[SE, DE storage.Entry] []*group[SE, DE]
 
 func newGroups[SE, DE storage.Entry]() *groups[SE, DE] {
-	gs := make(groups[SE, DE], 0)
-	return &gs
+	return new(make(groups[SE, DE], 0))
 }
 
 func (gs *groups[SE, DE]) Add(g *group[SE, DE]) {
@@ -154,7 +153,7 @@ func (gs *groups[SE, DE]) Summary() []string {
 	return lines
 }
 
-// State returns state lines for all groups' runners and destinations.
+// StateString returns state lines for all groups' runners and destinations.
 func (gs *groups[SE, DE]) StateString() []string {
 	lines := make([]string, 0)
 

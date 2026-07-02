@@ -33,7 +33,7 @@ func (m *mockBatchErr) AppendState()     {}
 func (m *mockBatchErr) Concurrency() int { return 1 }
 func (m *mockBatchErr) State() []string  { return nil }
 func (m *mockBatchErr) Output() []string { return nil }
-func (m *mockBatchErr) Exec(items []storage.MapEntry) (int64, error) {
+func (m *mockBatchErr) Exec(_ []storage.MapEntry) (int64, error) {
 	return 0, errors.New("batch err")
 }
 

@@ -20,7 +20,7 @@ func (f *sliceFormat) Type() string {
 	return "slice"
 }
 
-func (f *sliceFormat) Scan(idName string, id *int64, amount int64) (*int64, []storage.SliceEntry) {
+func (f *sliceFormat) Scan(_ string, id *int64, amount int64) (*int64, []storage.SliceEntry) {
 	items := make([]storage.SliceEntry, 0, amount)
 
 	startUnixNano := time.Now().UnixNano()

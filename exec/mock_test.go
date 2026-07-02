@@ -16,7 +16,7 @@ type mockExecutor[SE, DE storage.Entry] struct {
 	callCount atomic.Int64
 }
 
-func (m *mockExecutor[SE, DE]) Exec(items []SE) ([]DE, int64, int64, error) {
+func (m *mockExecutor[SE, DE]) Exec(_ []SE) ([]DE, int64, int64, error) {
 	m.callCount.Add(1)
 	return m.out, m.amount, m.affected, m.err
 }
