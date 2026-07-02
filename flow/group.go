@@ -96,14 +96,8 @@ func (g *group[SE, DE]) Prepare(ctx context.Context) error {
 	// Collect internal destinations held by runners' processors now that
 	// runners' Prepare has completed. Wrap as MultiDestination when any are
 	// held; otherwise leave the NoopDestination assigned in newGroup.
-	var md storage.MultiDestination[DE]
-	for _, r := range g.runners.All() {
-		if dh, ok := r.(storage.DestinationHolder[DE]); ok {
-			md = append(md, dh.Destinations()...)
-		}
-	}
-	if len(md) > 0 {
-		g.internalDests = md
+	if dests := g.runners.Destinations(); len(dests) > 0 {
+		g.internalDests = storage.MultiDestination[DE](dests)
 	}
 
 	if err := g.destination.Prepare(ctx); err != nil {

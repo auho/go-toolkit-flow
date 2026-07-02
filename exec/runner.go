@@ -45,6 +45,7 @@ type Runner[SE, DE storage.Entry] interface {
 	State() []string
 	Output() []string
 	OutChan() <-chan []DE // produced data output channel (producer path)
+	Destinations() []storage.Destination[DE]
 }
 
 // runner implements Runner. It binds an Executor (processing strategy) with
@@ -106,7 +107,11 @@ func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 	// Collect internal destinations after processor.Prepare succeeds, so that
 	// processors that populate destinations during Prepare are discovered.
 	if dh, ok := r.processor.(storage.DestinationHolder[DE]); ok {
-		r.internalDests = dh.Destinations()
+		dests, err := dh.Destinations()
+		if err != nil {
+			return fmt.Errorf("processor.Destinations: %w", err)
+		}
+		r.internalDests = dests
 	}
 
 	err = r.processor.BeforeRun()

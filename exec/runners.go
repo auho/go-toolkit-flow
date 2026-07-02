@@ -124,3 +124,12 @@ func (rs *Runners[SE, DE]) Len() int {
 func (rs *Runners[SE, DE]) All() []Runner[SE, DE] {
 	return *rs
 }
+
+// Destinations collects internal destinations from all runners.
+func (rs *Runners[SE, DE]) Destinations() []storage.Destination[DE] {
+	var dests []storage.Destination[DE]
+	for _, r := range *rs {
+		dests = append(dests, r.Destinations()...)
+	}
+	return dests
+}
