@@ -178,7 +178,7 @@ loop:
 	for {
 		select {
 		case <-b.writeCtx.Done():
-			return nil
+			break loop
 		case items, ok := <-b.itemsChan:
 			if !ok {
 				break loop

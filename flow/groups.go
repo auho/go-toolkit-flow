@@ -105,7 +105,6 @@ func (gs *groups[SE, DE]) OutputForward(ctx context.Context) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	for _, grp := range *gs {
-		grp := grp
 		g.Go(func() error {
 			return grp.OutputForward(ctx)
 		})
