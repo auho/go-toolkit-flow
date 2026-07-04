@@ -56,15 +56,12 @@ func (d *Memory[E]) Accept() {
 	d.state.DurationStart()
 	d.itemsChan = make(chan []E)
 
-	d.chanWg.Add(1)
-	go func() {
+	d.chanWg.Go(func() {
 		for items := range d.itemsChan {
 			d.state.AddAmount(int64(len(items)))
 			d.items = append(d.items, items...)
 		}
-
-		d.chanWg.Done()
-	}()
+	})
 }
 
 func (d *Memory[E]) Receive(items []E) error {

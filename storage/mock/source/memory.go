@@ -93,10 +93,7 @@ func (m *Memory[E]) Scan() {
 	m.state.MarkAsScanning()
 	m.state.DurationStart()
 
-	m.scanWg.Add(1)
-	go func() {
-		defer m.scanWg.Done()
-
+	m.scanWg.Go(func() {
 		for i := int64(0); i < m.total; i += m.pageSize {
 			size := m.pageSize
 			if i+m.pageSize > m.total {
@@ -113,7 +110,7 @@ func (m *Memory[E]) Scan() {
 			m.state.AddPage(1)
 			m.state.AddAmount(int64(len(items)))
 		}
-	}()
+	})
 }
 
 func (m *Memory[E]) ReceiveChan() <-chan []E {

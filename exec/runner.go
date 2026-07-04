@@ -107,11 +107,11 @@ func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 	// Collect internal destinations after processor.Prepare succeeds, so that
 	// processors that populate destinations during Prepare are discovered.
 	if dh, ok := r.processor.(storage.DestinationHolder[DE]); ok {
-		dests, err := dh.Destinations()
-		if err != nil {
+		if dests, err := dh.Destinations(); err != nil {
 			return fmt.Errorf("processor.Destinations: %w", err)
+		} else {
+			r.internalDests = dests
 		}
-		r.internalDests = dests
 	}
 
 	err = r.processor.BeforeRun()
@@ -179,8 +179,9 @@ func (r *runner[SE, DE]) Done() {
 // processor.AfterRun. Returns an error if any worker failed or if
 // AfterRun returns an error.
 func (r *runner[SE, DE]) Finish() error {
-	err := r.startGroup.Wait()
 	defer close(r.outChan)
+
+	err := r.startGroup.Wait()
 	if err != nil {
 		return fmt.Errorf("runGroup.Wait: %w", err)
 	}

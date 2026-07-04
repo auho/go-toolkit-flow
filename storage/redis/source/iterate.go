@@ -97,10 +97,7 @@ func (i *Iterator[E]) Scan() {
 	i.state.MarkAsScanning()
 	i.state.DurationStart()
 
-	i.scanWg.Add(1)
-	go func() {
-		defer i.scanWg.Done()
-
+	i.scanWg.Go(func() {
 		var cursor uint64
 		for {
 			scanCtx, scanCancel := context.WithTimeout(i.scanCtx, i.timeoutDuration)
@@ -132,7 +129,7 @@ func (i *Iterator[E]) Scan() {
 
 			cursor = newCursor
 		}
-	}()
+	})
 }
 
 func (i *Iterator[E]) ReceiveChan() <-chan []E {

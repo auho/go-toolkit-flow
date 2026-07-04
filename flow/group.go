@@ -179,9 +179,7 @@ func (g *group[SE, DE]) OutputForward(ctx context.Context) error {
 	var fanIn sync.WaitGroup
 
 	for _, r := range g.runners.All() {
-		fanIn.Add(1)
-		go func(r exec.Runner[SE, DE]) {
-			defer fanIn.Done()
+		fanIn.Go(func() {
 			for out := range r.OutChan() {
 				select {
 				case <-ctx.Done():
@@ -189,7 +187,7 @@ func (g *group[SE, DE]) OutputForward(ctx context.Context) error {
 				case merged <- out:
 				}
 			}
-		}(r)
+		})
 	}
 	go func() { fanIn.Wait(); close(merged) }()
 

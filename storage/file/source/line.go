@@ -73,10 +73,7 @@ func (l *Line) Scan() {
 	l.state.MarkAsScanning()
 	l.state.DurationStart()
 
-	l.scanWg.Add(1)
-	go func() {
-		defer l.scanWg.Done()
-
+	l.scanWg.Go(func() {
 		items := make([]string, 0, l.config.BatchSize)
 		for l.scanner.Scan() {
 			items = append(items, l.scanner.Text())
@@ -99,7 +96,7 @@ func (l *Line) Scan() {
 			l.scanErr = fmt.Errorf("scanner: %w", err)
 			return
 		}
-	}()
+	})
 }
 
 func (l *Line) ReceiveChan() <-chan []string {
