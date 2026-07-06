@@ -4,7 +4,7 @@ import "context"
 
 // NoopDestination is a no-op Destination implementation (Null Object pattern).
 // It is used as the default destination when no real destination is configured
-// (path one: consumer mode), so that flow never needs nil checks.
+// (consumer path), so that flow never needs nil checks.
 type NoopDestination[E Entry] struct{}
 
 // Compile-time interface conformance check.

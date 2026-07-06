@@ -1,3 +1,4 @@
+// Package mysql provides the MySQL dialect implementation for the destination package.
 package mysql
 
 import (

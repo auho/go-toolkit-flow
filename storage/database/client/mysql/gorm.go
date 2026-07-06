@@ -1,3 +1,4 @@
+// Package mysql provides a MySQL client wrapper for GORM.
 package mysql
 
 import (
@@ -7,11 +8,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// Gorm wraps a gorm.DB and its underlying *sql.DB.
 type Gorm struct {
-	DB    *gorm.DB
+	// DB is the GORM ORM handle.
+	DB *gorm.DB
+	// SqlDB is the underlying database/sql handle for low-level operations.
 	SqlDB *sql.DB
 }
 
+// NewGorm creates a Gorm from an existing gorm.DB, verifying connectivity with a Ping.
 func NewGorm(db *gorm.DB) (*Gorm, error) {
 	sqlDB, err := db.DB()
 	if err != nil {

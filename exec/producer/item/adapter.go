@@ -18,7 +18,7 @@ type adapter[SE, DE storage.Entry] struct {
 	afterBatcher processor.AfterBatcher[DE] // nil if not implemented
 }
 
-// NewRunner creates a Runner for the producer item processor (path two).
+// NewRunner creates a Runner for the producer item processor (producer path).
 // Exec returns produced data which is forwarded to a destination.
 func NewRunner[SE, DE storage.Entry](it producer.Item[SE, DE]) exec.Runner[SE, DE] {
 	a := &adapter[SE, DE]{item: it}

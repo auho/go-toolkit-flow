@@ -318,7 +318,7 @@ type producerItemInterface = interface {
 	AppendState()
 	Concurrency() int
 	Summary() string
-	State() []string
+	StateString() []string
 	Output() []string
 	Exec(storage.MapEntry) ([]storage.MapEntry, bool, error)
 }

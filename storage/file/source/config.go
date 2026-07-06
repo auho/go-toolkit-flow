@@ -2,6 +2,6 @@ package source
 
 type Config struct {
 	Name        string
-	BatchSize   int
+	PageSize    int
 	Concurrency int
 }

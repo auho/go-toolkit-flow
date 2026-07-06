@@ -204,7 +204,7 @@ func (r *runner[SE, DE]) Summary() []string {
 
 func (r *runner[SE, DE]) StateString() []string {
 	r.processor.AppendState()
-	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.processor.State()...)
+	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.processor.StateString()...)
 }
 
 func (r *runner[SE, DE]) Output() []string {

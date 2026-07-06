@@ -44,8 +44,8 @@ func NewLine(c Config) (*Line, error) {
 		l.config.Concurrency = runtime.NumCPU()
 	}
 
-	if l.config.BatchSize <= 0 {
-		l.config.BatchSize = 100
+	if l.config.PageSize <= 0 {
+		l.config.PageSize = 100
 	}
 
 	return l, nil
@@ -74,15 +74,15 @@ func (l *Line) Scan() {
 	l.state.DurationStart()
 
 	l.scanWg.Go(func() {
-		items := make([]string, 0, l.config.BatchSize)
+		items := make([]string, 0, l.config.PageSize)
 		for l.scanner.Scan() {
 			items = append(items, l.scanner.Text())
 			l.state.AddAmount(1)
-			if len(items) >= l.config.BatchSize {
+			if len(items) >= l.config.PageSize {
 				if !l.send(items) {
 					return
 				}
-				items = make([]string, 0, l.config.BatchSize)
+				items = make([]string, 0, l.config.PageSize)
 			}
 		}
 

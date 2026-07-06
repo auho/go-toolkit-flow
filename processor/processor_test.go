@@ -7,7 +7,7 @@ import (
 func TestBaseProcessor_State_Empty(t *testing.T) {
 	var op BaseProcessor
 
-	if s := op.State(); len(s) != 0 {
+	if s := op.StateString(); len(s) != 0 {
 		t.Errorf("State() should be empty, got %v", s)
 	}
 }
@@ -25,7 +25,7 @@ func TestBaseProcessor_AddStateLine(t *testing.T) {
 		t.Errorf("AddStateLine second call should return 2, got %d", n2)
 	}
 
-	s := op.State()
+	s := op.StateString()
 	if len(s) != 2 {
 		t.Fatalf("State() should have 2 lines, got %d", len(s))
 	}
@@ -47,7 +47,7 @@ func TestBaseProcessor_SetStateLine(t *testing.T) {
 
 	op.SetStateLine(1, "new")
 
-	s := op.State()
+	s := op.StateString()
 	if len(s) != 1 {
 		t.Fatalf("State() should have 1 line, got %d", len(s))
 	}

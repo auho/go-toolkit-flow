@@ -28,7 +28,7 @@ func ExampleNewLine() {
 
 	s, err := filesource.NewLine(filesource.Config{
 		Name:        name,
-		BatchSize:   2,
+		PageSize:    2,
 		Concurrency: 1,
 	})
 	if err != nil {

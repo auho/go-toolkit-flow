@@ -17,7 +17,7 @@ func ExampleBaseProcessor() {
 
 	bp.Logln("debug: initializing")
 
-	for _, s := range bp.State() {
+	for _, s := range bp.StateString() {
 		fmt.Println(s)
 	}
 	for _, s := range bp.Output() {

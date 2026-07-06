@@ -49,8 +49,8 @@ type Processor[E storage.Entry] interface {
 	// Concurrency returns the number of worker goroutines to use.
 	Concurrency() int
 
-	// State returns the current state lines for status display.
-	State() []string
+	// StateString returns the current state lines for status display.
+	StateString() []string
 
 	// Output returns the output lines for display.
 	Output() []string
@@ -76,7 +76,7 @@ type BaseProcessor struct {
 	log      output.MultilineText
 }
 
-func (t *BaseProcessor) State() []string {
+func (t *BaseProcessor) StateString() []string {
 	return t.state.Content()
 }
 
@@ -104,6 +104,7 @@ func (t *BaseProcessor) Outputln(a ...any) {
 	t.output.PrintNext(fmt.Sprint(a...))
 }
 
+// Log returns the log lines for display.
 func (t *BaseProcessor) Log() []string {
 	return t.log.Content()
 }
