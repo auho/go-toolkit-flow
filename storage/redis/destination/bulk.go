@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"sync/atomic"
-	"time"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/redis/destination/dialect"
@@ -21,11 +20,7 @@ var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
 type Bulk[E storage.Entry] struct {
 	dialect dialect.Dialect
 	format  format.Format[E]
-
-	concurrency     int
-	isTruncate      bool
-	pageSize        int64
-	timeoutDuration time.Duration
+	config  BulkConfig
 
 	isDone    atomic.Bool
 	itemsChan chan []E
@@ -38,16 +33,15 @@ type Bulk[E storage.Entry] struct {
 }
 
 func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfig) (*Bulk[E], error) {
-	b := &Bulk[E]{}
-	b.dialect = d
-	b.format = f
-
-	err := b.config(c)
-	if err != nil {
-		return nil, fmt.Errorf("config: %w", err)
+	b := &Bulk[E]{
+		dialect: d,
+		format:  f,
+		config:  c,
 	}
 
-	err = b.format.Check()
+	b.initConfig()
+
+	err := b.format.Check()
 	if err != nil {
 		return nil, fmt.Errorf("format.Check: %w", err)
 	}
@@ -58,8 +52,8 @@ func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfi
 func (b *Bulk[E]) Prepare(ctx context.Context) error {
 	b.state.MarkAsPrepare()
 
-	if b.isTruncate {
-		_ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDuration)
+	if b.config.IsTruncate {
+		_ctx, cancel := context.WithTimeout(context.Background(), b.config.TimeoutDuration)
 		defer cancel()
 
 		_, err := b.dialect.Truncate(_ctx, b.format.Key())
@@ -68,7 +62,7 @@ func (b *Bulk[E]) Prepare(ctx context.Context) error {
 		}
 	}
 
-	b.itemsChan = make(chan []E, b.concurrency)
+	b.itemsChan = make(chan []E, b.config.Concurrency)
 	b.writeGroup, b.writeCtx = errgroup.WithContext(ctx)
 
 	return nil
@@ -78,7 +72,7 @@ func (b *Bulk[E]) Accept() {
 	b.state.MarkAsAccepted()
 	b.state.DurationStart()
 
-	for i := 0; i < b.concurrency; i++ {
+	for i := 0; i < b.config.Concurrency; i++ {
 		b.writeGroup.Go(func() error {
 			return b.write()
 		})
@@ -114,7 +108,7 @@ func (b *Bulk[E]) Finish() error {
 }
 
 func (b *Bulk[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s Concurrency:%d; page size:%d", b.title(), b.concurrency, b.pageSize)}
+	return []string{fmt.Sprintf("%s Concurrency:%d; page size:%d", b.title(), b.config.Concurrency, b.config.PageSize)}
 }
 
 func (b *Bulk[E]) State() storage.State {
@@ -130,7 +124,7 @@ func (b *Bulk[E]) title() string {
 }
 
 func (b *Bulk[E]) FetchLen() (int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), b.config.TimeoutDuration)
 	defer cancel()
 
 	return b.format.FetchLen(ctx, b.dialect)
@@ -140,30 +134,25 @@ func (b *Bulk[E]) Close() error {
 	return b.dialect.Close()
 }
 
-func (b *Bulk[E]) config(config BulkConfig) error {
-	b.isTruncate = config.IsTruncate
-	b.concurrency = config.Concurrency
-	b.pageSize = config.PageSize
-	b.timeoutDuration = config.getTimeoutDuration()
-
-	if b.concurrency <= 0 {
-		b.concurrency = 1
+func (b *Bulk[E]) initConfig() {
+	if b.config.Concurrency <= 0 {
+		b.config.Concurrency = 1
 	}
 
-	if b.pageSize <= 0 {
-		b.pageSize = 20
+	if b.config.PageSize <= 0 {
+		b.config.PageSize = 20
 	}
+
+	b.config.getTimeoutDuration()
 
 	b.state = storage.NewSnapshot()
-	b.state.SetConcurrency(b.concurrency)
+	b.state.SetConcurrency(b.config.Concurrency)
 	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()
-
-	return nil
 }
 
 func (b *Bulk[E]) writeBatch(items []E) error {
-	ctx, cancel := context.WithTimeout(context.Background(), b.timeoutDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), b.config.TimeoutDuration)
 	defer cancel()
 
 	if err := b.format.Write(ctx, b.dialect, items); err != nil {
@@ -194,12 +183,12 @@ loop:
 
 			buf = append(buf, items...)
 
-			for int64(len(buf)) >= b.pageSize {
-				if err := b.writeBatch(buf[:b.pageSize]); err != nil {
+			for int64(len(buf)) >= b.config.PageSize {
+				if err := b.writeBatch(buf[:b.config.PageSize]); err != nil {
 					return fmt.Errorf("writeBatch: %w", err)
 				}
 
-				buf = slices.Clone(buf[b.pageSize:])
+				buf = slices.Clone(buf[b.config.PageSize:])
 			}
 		}
 	}

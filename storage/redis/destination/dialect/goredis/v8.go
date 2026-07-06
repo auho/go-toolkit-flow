@@ -64,10 +64,10 @@ func (v *v8) SetAdd(ctx context.Context, keyName string, entries []string) error
 func (v *v8) SortedSetAdd(ctx context.Context, keyName string, entries storage.ScoreMapEntries) error {
 	pipe := v.Client.Pipeline()
 	for _, entry := range entries {
-		for k, v := range entry {
+		for member, score := range entry {
 			pipe.ZAdd(ctx, keyName, &redis.Z{
-				Score:  v,
-				Member: k,
+				Score:  score,
+				Member: member,
 			})
 		}
 	}

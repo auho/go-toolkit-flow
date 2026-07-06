@@ -43,11 +43,11 @@ func TestMemory_ConfigDefaults(t *testing.T) {
 	if m.state.PageSize() != 10 {
 		t.Errorf("default pageSize = %d, want 10", m.state.PageSize())
 	}
-	if m.concurrency != 1 {
-		t.Errorf("default concurrency = %d, want 1", m.concurrency)
+	if m.config.Concurrency != 1 {
+		t.Errorf("default concurrency = %d, want 1", m.config.Concurrency)
 	}
-	if m.idName != "id" {
-		t.Errorf("default idName = %q, want %q", m.idName, "id")
+	if m.config.IDName != "id" {
+		t.Errorf("default idName = %q, want %q", m.config.IDName, "id")
 	}
 }
 

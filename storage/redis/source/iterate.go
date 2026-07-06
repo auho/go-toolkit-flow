@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/redis/source/dialect"
@@ -19,12 +18,9 @@ var _ storage.Source[storage.MapEntry] = (*Iterator[storage.MapEntry])(nil)
 type Iterator[E storage.Entry] struct {
 	dialect dialect.Dialect
 	format  format.Format[E]
+	config  KeyConfig
 
-	concurrency     int
-	pageSize        int64
-	amount          int64
-	total           int64
-	timeoutDuration time.Duration
+	total int64 // runtime: total items available (from FetchLen)
 
 	state     *storage.TotalSnapshot
 	itemsChan chan []E
@@ -34,16 +30,15 @@ type Iterator[E storage.Entry] struct {
 }
 
 func newIterator[E storage.Entry](f format.Format[E], d dialect.Dialect, c KeyConfig) (*Iterator[E], error) {
-	i := &Iterator[E]{}
-	i.dialect = d
-	i.format = f
-
-	err := i.config(c)
-	if err != nil {
-		return nil, fmt.Errorf("config: %w", err)
+	i := &Iterator[E]{
+		dialect: d,
+		format:  f,
+		config:  c,
 	}
 
-	err = f.Check()
+	i.initConfig()
+
+	err := f.Check()
 	if err != nil {
 		return nil, fmt.Errorf("check: %w", err)
 	}
@@ -51,34 +46,29 @@ func newIterator[E storage.Entry](f format.Format[E], d dialect.Dialect, c KeyCo
 	return i, nil
 }
 
-func (i *Iterator[E]) config(c KeyConfig) error {
-	i.concurrency = c.Concurrency
-	i.pageSize = c.PageSize
-	i.amount = c.Amount
-	i.timeoutDuration = c.getTimeoutDuration()
-
-	if i.concurrency <= 0 {
-		i.concurrency = 1
+func (i *Iterator[E]) initConfig() {
+	if i.config.Concurrency <= 0 {
+		i.config.Concurrency = 1
 	}
 
-	if i.pageSize <= 0 {
-		i.pageSize = 100
+	if i.config.PageSize <= 0 {
+		i.config.PageSize = 100
 	}
+
+	i.config.getTimeoutDuration()
 
 	i.state = storage.NewTotalSnapshot()
 	i.state.MarkAsConfigured()
-	i.state.SetConcurrency(i.concurrency)
+	i.state.SetConcurrency(i.config.Concurrency)
 	i.state.SetTitle(i.title())
-
-	return nil
 }
 
 func (i *Iterator[E]) Prepare(ctx context.Context) error {
 	i.state.MarkAsPrepare()
 	i.scanCtx = ctx
-	i.itemsChan = make(chan []E, i.concurrency)
+	i.itemsChan = make(chan []E, i.config.Concurrency)
 
-	lenCtx, lenCancel := context.WithTimeout(ctx, i.timeoutDuration)
+	lenCtx, lenCancel := context.WithTimeout(ctx, i.config.TimeoutDuration)
 	defer lenCancel()
 
 	var err error
@@ -87,8 +77,8 @@ func (i *Iterator[E]) Prepare(ctx context.Context) error {
 		return fmt.Errorf("format.FetchLen: %w", err)
 	}
 
-	if i.amount > 0 && i.total >= i.amount {
-		i.total = i.amount
+	if i.config.Amount > 0 && i.total >= i.config.Amount {
+		i.total = i.config.Amount
 	}
 
 	i.state.SetTotal(i.total)
@@ -103,8 +93,8 @@ func (i *Iterator[E]) Scan() {
 	i.scanWg.Go(func() {
 		var cursor uint64
 		for {
-			scanCtx, scanCancel := context.WithTimeout(i.scanCtx, i.timeoutDuration)
-			items, newCursor, err := i.format.ScanByRange(scanCtx, i.dialect, cursor, i.pageSize)
+			scanCtx, scanCancel := context.WithTimeout(i.scanCtx, i.config.TimeoutDuration)
+			items, newCursor, err := i.format.ScanByRange(scanCtx, i.dialect, cursor, i.config.PageSize)
 			scanCancel()
 
 			if err != nil {
@@ -126,7 +116,7 @@ func (i *Iterator[E]) Scan() {
 				break
 			}
 
-			if i.amount > 0 && i.state.Amount() >= i.amount {
+			if i.config.Amount > 0 && i.state.Amount() >= i.config.Amount {
 				break
 			}
 

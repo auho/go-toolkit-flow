@@ -10,7 +10,6 @@ import (
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/destination/dialect"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/destination/format"
-	"github.com/auho/go-toolkit/v2/time/timing"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -131,10 +130,6 @@ func (b *Bulk[E]) writeBatch(items []E) error {
 }
 
 func (b *Bulk[E]) write() error {
-	duration := timing.NewDuration()
-	duration.Start()
-	duration.Begin()
-
 	var buf []E
 
 loop:
@@ -169,9 +164,6 @@ loop:
 			return fmt.Errorf("writeBatch: %w", err)
 		}
 	}
-
-	duration.End()
-	duration.Stop()
 
 	return nil
 }

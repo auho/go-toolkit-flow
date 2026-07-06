@@ -12,6 +12,9 @@ import (
 
 var _ storage.Source[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 
+const defaultMockTotal = 100
+const defaultMockPageSize = 10
+
 // Memory is an in-memory Source implementation for testing.
 // It generates synthetic data in batches and sends it through a channel,
 // mimicking the behavior of real sources (e.g. database, file) without
@@ -27,62 +30,62 @@ var _ storage.Source[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 //   - Finish waits for the scan goroutine to complete, then closes itemsChan
 type Memory[E storage.Entry] struct {
 	format format.Format[E]
+	config Config
 
-	id          int64
-	total       int64 // maximum number of items to generate
-	pageSize    int64
-	totalPage   int64
-	concurrency int
-	idName      string
-	state       *storage.PageSnapshot
-	itemsChan   chan []E
-	scanCtx     context.Context
-	scanWg      sync.WaitGroup
+	id        int64  // runtime: auto-increment ID
+	totalPage int64  // runtime: computed from total/pageSize
+
+	state     *storage.PageSnapshot
+	itemsChan chan []E
+	scanCtx   context.Context
+	scanWg    sync.WaitGroup
 }
 
 // NewMemory creates a Memory with the given config and format.
 // Applies defaults: total=100, pageSize=10, concurrency=1, idName="id".
 func NewMemory[E storage.Entry](config Config, f format.Format[E]) *Memory[E] {
-	m := &Memory[E]{}
-	m.idName = config.IDName
-	m.format = f
-	m.total = config.Total
-	m.pageSize = config.PageSize
-	m.concurrency = config.Concurrency
-
-	if m.total <= 0 {
-		m.total = 1e2
+	m := &Memory[E]{
+		config: config,
+		format: f,
 	}
 
-	if m.pageSize <= 0 {
-		m.pageSize = 1e1
-	}
-
-	if m.concurrency <= 0 {
-		m.concurrency = 1
-	}
-
-	if m.idName == "" {
-		m.idName = "id"
-	}
-
-	m.totalPage = int64(math.Ceil(float64(m.total) / float64(m.pageSize)))
-
-	m.state = storage.NewPageSnapshot()
-	m.state.SetTotal(m.total)
-	m.state.SetPageSize(m.pageSize)
-	m.state.SetTotalPage(m.totalPage)
-	m.state.SetConcurrency(m.concurrency)
-	m.state.SetTitle(m.title())
-	m.state.MarkAsConfigured()
+	m.initConfig()
 
 	return m
+}
+
+func (m *Memory[E]) initConfig() {
+	if m.config.Total <= 0 {
+		m.config.Total = defaultMockTotal
+	}
+
+	if m.config.PageSize <= 0 {
+		m.config.PageSize = defaultMockPageSize
+	}
+
+	if m.config.Concurrency <= 0 {
+		m.config.Concurrency = 1
+	}
+
+	if m.config.IDName == "" {
+		m.config.IDName = "id"
+	}
+
+	m.totalPage = int64(math.Ceil(float64(m.config.Total) / float64(m.config.PageSize)))
+
+	m.state = storage.NewPageSnapshot()
+	m.state.SetTotal(m.config.Total)
+	m.state.SetPageSize(m.config.PageSize)
+	m.state.SetTotalPage(m.totalPage)
+	m.state.SetConcurrency(m.config.Concurrency)
+	m.state.SetTitle(m.title())
+	m.state.MarkAsConfigured()
 }
 
 func (m *Memory[E]) Prepare(ctx context.Context) error {
 	m.state.MarkAsPrepare()
 	m.scanCtx = ctx
-	m.itemsChan = make(chan []E, m.concurrency)
+	m.itemsChan = make(chan []E, m.config.Concurrency)
 
 	return nil
 }
@@ -94,13 +97,13 @@ func (m *Memory[E]) Scan() {
 	m.state.DurationStart()
 
 	m.scanWg.Go(func() {
-		for i := int64(0); i < m.total; i += m.pageSize {
-			size := m.pageSize
-			if i+m.pageSize > m.total {
-				size = m.total - i
+		for i := int64(0); i < m.config.Total; i += m.config.PageSize {
+			size := m.config.PageSize
+			if i+m.config.PageSize > m.config.Total {
+				size = m.config.Total - i
 			}
 
-			_, items := m.format.Scan(m.idName, &m.id, size)
+			_, items := m.format.Scan(m.config.IDName, &m.id, size)
 			select {
 			case m.itemsChan <- items:
 			case <-m.scanCtx.Done():
@@ -129,7 +132,7 @@ func (m *Memory[E]) Finish() error {
 }
 
 func (m *Memory[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s: total: %d, pageSize: %d", m.title(), m.total, m.pageSize)}
+	return []string{fmt.Sprintf("%s: total: %d, pageSize: %d", m.title(), m.config.Total, m.config.PageSize)}
 }
 
 func (m *Memory[E]) State() storage.State {
