@@ -56,12 +56,19 @@ func (g *group[SE, DE]) Done() {
 // Done on the internal destinations (safe because workers have exited).
 // Internally, runners.Finish waits for all runner goroutines to exit and then
 // closes each runner's OutChan.
+//
+// internalDests.Done() is always called, even if runners.Finish fails, to
+// prevent resource leaks (issue #2 fix).
 func (g *group[SE, DE]) Finish() error {
-	if err := g.runners.Finish(); err != nil {
+	err := g.runners.Finish()
+
+	// Always signal internal destinations Done, even on error, to avoid
+	// leaking the drain goroutine (issue #2 fix).
+	g.internalDests.Done()
+
+	if err != nil {
 		return fmt.Errorf("runners.Finish: %w", err)
 	}
-
-	g.internalDests.Done()
 
 	return nil
 }
@@ -88,8 +95,12 @@ func (g *group[SE, DE]) Output() []string {
 // Prepare prepares this group's runners, destination, and internal destinations.
 // Internal destinations are collected from runners after their Prepare succeeds,
 // because a processor may populate its destinations during Prepare.
-func (g *group[SE, DE]) Prepare(ctx context.Context) error {
-	if err := g.runners.Prepare(ctx); err != nil {
+//
+// Context split (issue #1 fix): runnerCtx derives from asyncCtx so that worker
+// goroutines respond to fail-fast cancellation. destCtx derives from rootCtx so
+// that destination write contexts retain flush ability after asyncCtx cancels.
+func (g *group[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
+	if err := g.runners.Prepare(runnerCtx); err != nil {
 		return fmt.Errorf("runners.Prepare: %w", err)
 	}
 
@@ -100,11 +111,11 @@ func (g *group[SE, DE]) Prepare(ctx context.Context) error {
 		g.internalDests = storage.MultiDestination[DE](dests)
 	}
 
-	if err := g.destination.Prepare(ctx); err != nil {
+	if err := g.destination.Prepare(destCtx); err != nil {
 		return fmt.Errorf("destination.Prepare: %w", err)
 	}
 
-	if err := g.internalDests.Prepare(ctx); err != nil {
+	if err := g.internalDests.Prepare(destCtx); err != nil {
 		return fmt.Errorf("internal destination.Prepare: %w", err)
 	}
 

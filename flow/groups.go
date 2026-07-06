@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -41,9 +42,11 @@ func (gs *groups[SE, DE]) TotalRunners() int {
 }
 
 // Prepare prepares all groups' runners and destinations.
-func (gs *groups[SE, DE]) Prepare(ctx context.Context) error {
+// runnerCtx is passed to runners (derives from asyncCtx for fail-fast).
+// destCtx is passed to destinations (derives from rootCtx for flush ability).
+func (gs *groups[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
 	for _, g := range *gs {
-		if err := g.Prepare(ctx); err != nil {
+		if err := g.Prepare(runnerCtx, destCtx); err != nil {
 			return err
 		}
 	}
@@ -88,14 +91,17 @@ func (gs *groups[SE, DE]) Receive(items []SE, copyFn func([]SE) []SE) {
 
 // Finish waits for all groups' runners to complete processing, then signals
 // Done on all internal destinations (safe because workers have exited).
+// Collects all errors and returns them joined, ensuring every group's Finish
+// is called even if an earlier one fails (issue #2 fix).
 func (gs *groups[SE, DE]) Finish() error {
+	var errs []error
 	for _, g := range *gs {
 		if err := g.Finish(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // OutputForward concurrently runs each group's OutputForward.

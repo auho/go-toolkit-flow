@@ -59,15 +59,18 @@ func (rs *Runners[SE, DE]) Done() {
 	}
 }
 
-// Finish waits for all runners to complete. Returns an error on the first failure.
+// Finish waits for all runners to complete. Collects all errors and returns
+// them joined, ensuring every runner's Finish is called even if an earlier one
+// fails (issue #2 fix: prevents outChan leak when a runner fails).
 func (rs *Runners[SE, DE]) Finish() error {
+	var errs []error
 	for _, r := range *rs {
 		if err := r.Finish(); err != nil {
-			return fmt.Errorf("runner.Finish: %w", err)
+			errs = append(errs, fmt.Errorf("runner.Finish: %w", err))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // Close closes all runners. Collects all errors and returns them joined.
