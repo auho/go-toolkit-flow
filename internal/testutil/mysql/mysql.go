@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -118,7 +119,9 @@ func BuildData(db *gorm.DB, table string) {
 }
 
 func CleanData(sdb *simpledb.SimpleDB, table string) {
-	err := sdb.Truncate(table)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err := sdb.Truncate(ctx, table)
 	if err != nil {
 		log.Fatal("clean data", err)
 	}

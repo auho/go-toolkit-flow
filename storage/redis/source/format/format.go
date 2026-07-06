@@ -21,9 +21,11 @@ type keyFormat struct {
 	key string
 }
 
+var ErrKeyEmpty = errors.New("key is empty")
+
 func (f *keyFormat) Check() error {
 	if f.key == "" {
-		return errors.New("key is empty")
+		return ErrKeyEmpty
 	}
 
 	return nil

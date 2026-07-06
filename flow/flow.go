@@ -19,6 +19,12 @@ import (
 // Option configures a flow.
 type Option[SE, DE storage.Entry] func(*flow[SE, DE])
 
+// Sentinel errors for programmatic error checking.
+var (
+	ErrSourceNotFound = errors.New("source not found")
+	ErrGroupNotFound  = errors.New("group not found")
+)
+
 // WithSource sets the data source for the flow.
 func WithSource[SE, DE storage.Entry](se storage.Source[SE]) Option[SE, DE] {
 	return func(f *flow[SE, DE]) {
@@ -104,11 +110,11 @@ func RunFlow[SE, DE storage.Entry](opts ...Option[SE, DE]) error {
 
 func (f *flow[SE, DE]) check() error {
 	if f.source == nil {
-		return errors.New("source not found")
+		return ErrSourceNotFound
 	}
 
 	if f.groups.Len() == 0 {
-		return errors.New("group not found")
+		return ErrGroupNotFound
 	}
 
 	return nil
@@ -271,11 +277,11 @@ func (f *flow[SE, DE]) close() {
 	}()
 
 	if err := f.source.Close(); err != nil {
-		f.refreshOutput.PrintNext(fmt.Errorf("source.Close: %w", err).Error())
+		f.refreshOutput.PrintNext(fmt.Sprintf("source.Close: %s", err))
 	}
 
 	for _, err := range f.groups.Close() {
-		f.refreshOutput.PrintNext(err.Error())
+		f.refreshOutput.PrintNext(fmt.Sprintf("groups.Close: %s", err))
 	}
 }
 
