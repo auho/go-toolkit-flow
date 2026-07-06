@@ -47,7 +47,7 @@ func _testKey[E storage.Entry](
 		BulkConfig{
 			IsTruncate:  true,
 			Concurrency: 1,
-			PageSize:    0,
+			BatchSize:   0,
 			Key:         key,
 		},
 	)

@@ -7,7 +7,7 @@ import "time"
 type BulkConfig struct {
 	IsTruncate      bool
 	Concurrency     int
-	PageSize        int64
+	BatchSize       int64 // number of items per write batch
 	TimeoutDuration time.Duration
 	Key             string
 }

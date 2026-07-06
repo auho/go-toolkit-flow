@@ -15,7 +15,7 @@ func TestBulkInsertSliceGorm(t *testing.T) {
 		BulkConfig{
 			IsTruncate:  true,
 			Concurrency: 4,
-			PageSize:    337,
+			BatchSize:   337,
 		},
 		WriteConfig{
 			TableName: insertSliceTable,

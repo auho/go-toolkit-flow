@@ -19,7 +19,7 @@ func TestBulkUpdateMapFormatGorm(t *testing.T) {
 	updateBulk, err = NewBulkUpdateMapWithGorm(BulkConfig{
 		IsTruncate:  true,
 		Concurrency: 4,
-		PageSize:    7,
+		BatchSize:   7,
 	}, WriteConfig{
 		TableName: updateMapTable,
 	}, idName, gormDB)
@@ -84,7 +84,7 @@ func _buildDataForUpdateMap(t *testing.T, page, pageSize int64) {
 			}
 		}
 
-		err = simpleDB.BulkInsertFromSliceSlice(updateMapTable, []string{"name", "value"}, rows, 100)
+		err = simpleDB.BulkInsertFromSliceSlice(context.TODO(), updateMapTable, []string{"name", "value"}, rows, 100)
 		if err != nil {
 			t.Error(err)
 		}

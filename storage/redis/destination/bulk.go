@@ -108,7 +108,7 @@ func (b *Bulk[E]) Finish() error {
 }
 
 func (b *Bulk[E]) Summary() []string {
-	return []string{fmt.Sprintf("%s Concurrency:%d; page size:%d", b.title(), b.config.Concurrency, b.config.PageSize)}
+	return []string{fmt.Sprintf("%s Concurrency:%d; batch size:%d", b.title(), b.config.Concurrency, b.config.BatchSize)}
 }
 
 func (b *Bulk[E]) State() storage.State {
@@ -139,8 +139,8 @@ func (b *Bulk[E]) initConfig() {
 		b.config.Concurrency = 1
 	}
 
-	if b.config.PageSize <= 0 {
-		b.config.PageSize = 20
+	if b.config.BatchSize <= 0 {
+		b.config.BatchSize = 20
 	}
 
 	b.config.getTimeoutDuration()
@@ -183,12 +183,12 @@ loop:
 
 			buf = append(buf, items...)
 
-			for int64(len(buf)) >= b.config.PageSize {
-				if err := b.writeBatch(buf[:b.config.PageSize]); err != nil {
+			for int64(len(buf)) >= b.config.BatchSize {
+				if err := b.writeBatch(buf[:b.config.BatchSize]); err != nil {
 					return fmt.Errorf("writeBatch: %w", err)
 				}
 
-				buf = slices.Clone(buf[b.config.PageSize:])
+				buf = slices.Clone(buf[b.config.BatchSize:])
 			}
 		}
 	}

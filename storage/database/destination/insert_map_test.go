@@ -14,7 +14,7 @@ func TestBulkInsertMapGorm(t *testing.T) {
 	bulk, err := NewBulkInsertMapWithGorm(BulkConfig{
 		IsTruncate:  true,
 		Concurrency: 4,
-		PageSize:    337,
+		BatchSize:   337,
 	}, WriteConfig{
 		TableName: insertMapTable,
 	}, gormDB)

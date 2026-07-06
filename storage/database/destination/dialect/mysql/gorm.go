@@ -7,6 +7,7 @@ import (
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/client/mysql"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/destination/dialect"
+	"gorm.io/gorm"
 )
 
 // gormMySQL is the MySQL dialect implementation backed by gorm.
@@ -42,17 +43,37 @@ func (g *gormMySQL) BulkInsertSlice(fields []string, items storage.SliceEntries,
 	return g.BulkInsertMap(sm, batchSize)
 }
 
+// updateTxBatchSize is the max number of UPDATE statements per transaction.
+// items received by BulkUpdateMap are already chunked to BatchSize by bulk.go's
+// buffer flush; this further splits them into smaller transaction batches to
+// limit transaction size and lock duration.
+const updateTxBatchSize = 100
+
 // BulkUpdateMap implements the Dialect interface.
 func (g *gormMySQL) BulkUpdateMap(idName string, items storage.MapEntries) error {
-	for _, item := range items {
-		_id, ok := item[idName]
-		if !ok {
-			return fmt.Errorf("table[%s] [%s] not found in map", g.config.TableName, idName)
+	for i := 0; i < len(items); i += updateTxBatchSize {
+		end := i + updateTxBatchSize
+		if end > len(items) {
+			end = len(items)
 		}
+		batch := items[i:end]
 
-		err := g.DB.Table(g.config.TableName).Where(fmt.Sprintf("`%s` = ?", idName), _id).Omit(idName).UpdateColumns(item).Error
+		err := g.DB.Transaction(func(tx *gorm.DB) error {
+			for _, item := range batch {
+				_id, ok := item[idName]
+				if !ok {
+					return fmt.Errorf("table[%s] [%s] not found in map", g.config.TableName, idName)
+				}
+
+				err := tx.Table(g.config.TableName).Where(fmt.Sprintf("`%s` = ?", idName), _id).Omit(idName).UpdateColumns(item).Error
+				if err != nil {
+					return fmt.Errorf("UpdateColumns: table[%s] %s[%v]: %w", g.config.TableName, idName, _id, err)
+				}
+			}
+			return nil
+		})
 		if err != nil {
-			return fmt.Errorf("UpdateColumns: table[%s] %s[%v]: %w", g.config.TableName, idName, _id, err)
+			return err
 		}
 	}
 

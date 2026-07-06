@@ -38,8 +38,8 @@ type Bulk[E storage.Entry] struct {
 }
 
 func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfig) (*Bulk[E], error) {
-	if c.PageSize <= 0 {
-		return nil, fmt.Errorf("page size[%d] is error", c.PageSize)
+	if c.BatchSize <= 0 {
+		return nil, fmt.Errorf("batch size[%d] is error", c.BatchSize)
 	}
 
 	dest := &Bulk[E]{
@@ -148,12 +148,12 @@ loop:
 
 			buf = append(buf, items...)
 
-			for int64(len(buf)) >= b.config.PageSize {
-				if err := b.writeBatch(buf[:b.config.PageSize]); err != nil {
+			for int64(len(buf)) >= b.config.BatchSize {
+				if err := b.writeBatch(buf[:b.config.BatchSize]); err != nil {
 					return fmt.Errorf("writeBatch: %w", err)
 				}
 
-				buf = slices.Clone(buf[b.config.PageSize:])
+				buf = slices.Clone(buf[b.config.BatchSize:])
 			}
 		}
 	}

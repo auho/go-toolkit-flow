@@ -10,7 +10,7 @@ var _ Format[storage.SliceEntry] = (*insertSliceFormat)(nil)
 
 type insertSliceFormat struct {
 	fields    []string
-	batchSize int
+	batchSize int // number of items per CreateInBatches call
 }
 
 // NewInsertSliceFormat creates a format handler that inserts SliceEntry items.

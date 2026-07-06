@@ -9,7 +9,7 @@ import (
 var _ Format[storage.MapEntry] = (*insertMapFormat)(nil)
 
 type insertMapFormat struct {
-	batchSize int
+	batchSize int // number of items per CreateInBatches call
 }
 
 // NewInsertMapFormat creates a format handler that inserts MapEntry items.

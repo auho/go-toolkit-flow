@@ -12,7 +12,7 @@ import (
 
 // NewBulkInsertMapWithGorm creates a Bulk that inserts MapEntry items via gorm.
 func NewBulkInsertMapWithGorm(c BulkConfig, wc WriteConfig, db *gorm.DB) (*Bulk[storage.MapEntry], error) {
-	return newBulkWithGorm(format.NewInsertMapFormat(int(c.PageSize)), db, c, wc)
+	return newBulkWithGorm(format.NewInsertMapFormat(int(c.BatchSize)), db, c, wc)
 }
 
 // NewBulkInsertSliceWithGorm creates a Bulk that inserts SliceEntry items via gorm.
@@ -21,7 +21,7 @@ func NewBulkInsertSliceWithGorm(c BulkConfig, wc WriteConfig, fields []string, d
 		return nil, errors.New("fields is error")
 	}
 
-	return newBulkWithGorm(format.NewInsertSliceFormat(fields, int(c.PageSize)), db, c, wc)
+	return newBulkWithGorm(format.NewInsertSliceFormat(fields, int(c.BatchSize)), db, c, wc)
 }
 
 // NewBulkUpdateMapWithGorm creates a Bulk that updates MapEntry items via gorm.
