@@ -1,0 +1,55 @@
+package goredis
+
+import (
+	"context"
+
+	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/client/goredis"
+	"github.com/auho/go-toolkit-flow/v3/storage/redis/source/dialect"
+)
+
+var _ dialect.Dialect = (*v9)(nil)
+
+type v9 struct {
+	*goredis.V9
+}
+
+func (v *v9) HashScan(ctx context.Context, keyName string, cursor uint64, count int64) (storage.StringMapEntries, uint64, error) {
+	keys, newCursor, err := v.Client.HScan(ctx, keyName, cursor, "", count).Result()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return v.parseStringMapEntries(keys), newCursor, nil
+}
+
+func (v *v9) ListRange(ctx context.Context, keyName string, start, stop int64) ([]string, error) {
+	return v.Client.LRange(ctx, keyName, start, stop).Result()
+}
+
+func (v *v9) SetScan(ctx context.Context, keyName string, cursor uint64, count int64) ([]string, uint64, error) {
+	return v.Client.SScan(ctx, keyName, cursor, "", count).Result()
+}
+
+func (v *v9) SortedSetScan(ctx context.Context, keyName string, cursor uint64, count int64) (storage.StringMapEntries, uint64, error) {
+	keys, newCursor, err := v.Client.ZScan(ctx, keyName, cursor, "", count).Result()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return v.parseStringMapEntries(keys), newCursor, nil
+}
+
+func (v *v9) KeyScan(ctx context.Context, pattern string, cursor uint64, count int64) ([]string, uint64, error) {
+	return v.Client.Scan(ctx, cursor, pattern, count).Result()
+}
+
+// parseStringMapEntries parses flat key-value string pairs into StringMapEntry slices.
+func (v *v9) parseStringMapEntries(items []string) storage.StringMapEntries {
+	entries := make(storage.StringMapEntries, 0, len(items)/2)
+	for i := 0; i < len(items)-1; i += 2 {
+		entries = append(entries, storage.StringMapEntry{items[i]: items[i+1]})
+	}
+
+	return entries
+}
