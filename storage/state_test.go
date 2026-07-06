@@ -20,6 +20,18 @@ func TestState_Status(t *testing.T) {
 	}
 }
 
+func TestState_Status_NonStringDoesNotPanic(t *testing.T) {
+	s := NewSnapshot()
+	// Simulate misuse: store a non-string value directly into atomic.Value
+	s.status.Store(42)
+
+	// Should not panic; should return ""
+	result := s.Status()
+	if result != "" {
+		t.Errorf("Status() = %q, want empty string for non-string value", result)
+	}
+}
+
 func TestState_MarkAsConfigured(t *testing.T) {
 	s := NewSnapshot()
 	s.MarkAsConfigured()

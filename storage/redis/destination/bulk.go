@@ -85,6 +85,7 @@ func (b *Bulk[E]) Accept() {
 func (b *Bulk[E]) Receive(items []E) error {
 	select {
 	case <-b.writeCtx.Done():
+		return fmt.Errorf("Receive: writeCtx cancelled: %w", b.writeCtx.Err())
 	case b.itemsChan <- items:
 	}
 	return nil

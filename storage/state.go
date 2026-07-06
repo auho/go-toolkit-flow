@@ -52,11 +52,11 @@ type baseState struct {
 }
 
 func (s *baseState) Status() string {
-	v := s.status.Load()
-	if v == nil {
+	v, ok := s.status.Load().(string)
+	if !ok {
 		return ""
 	}
-	return v.(string)
+	return v
 }
 
 func (s *baseState) Amount() int64 {
