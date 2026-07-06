@@ -19,6 +19,9 @@ type WriteConfig = dialect.WriteConfig
 
 var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
 
+// Bulk is a database destination that writes data in batch via gorm
+// CreateInBatches. Destination types are named after their writing strategy
+// (cf. database source's Section, which reads by segmented ID ranges).
 type Bulk[E storage.Entry] struct {
 	dialect dialect.Dialect
 	format  format.Format[E]

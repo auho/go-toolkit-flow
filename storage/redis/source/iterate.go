@@ -13,6 +13,9 @@ import (
 
 var _ storage.Source[storage.MapEntry] = (*Iterator[storage.MapEntry])(nil)
 
+// Iterator is a Redis source that reads data via SCAN-based iteration
+// (HSCAN/SSCAN/ZSCAN/LRANGE). Source types are named after their reading
+// strategy (cf. database source's Section, which reads by segmented ID ranges).
 type Iterator[E storage.Entry] struct {
 	dialect dialect.Dialect
 	format  format.Format[E]

@@ -2,6 +2,8 @@ package source
 
 import "time"
 
+// KeyConfig holds the configuration for a Redis key-based source
+// (hashes/lists/sets/sorted sets/scan).
 type KeyConfig struct {
 	Concurrency     int
 	Amount          int64 // total amount to fetch; not an exact value

@@ -2,6 +2,8 @@ package destination
 
 import "time"
 
+// BulkConfig holds the configuration for a Redis Bulk destination
+// (batch write via pipeline).
 type BulkConfig struct {
 	IsTruncate      bool
 	Concurrency     int

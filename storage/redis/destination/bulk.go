@@ -15,6 +15,9 @@ import (
 
 var _ storage.Destination[storage.MapEntry] = (*Bulk[storage.MapEntry])(nil)
 
+// Bulk is a Redis destination that writes data in batch via pipeline.
+// Destination types are named after their writing strategy (cf. Redis
+// source's Iterator, which reads via SCAN-based iteration).
 type Bulk[E storage.Entry] struct {
 	dialect dialect.Dialect
 	format  format.Format[E]
