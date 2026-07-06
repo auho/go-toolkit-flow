@@ -17,7 +17,7 @@ type gormMySQL struct {
 
 // Truncate implements the Dialect interface.
 func (g *gormMySQL) Truncate() error {
-	return g.DB.Exec(fmt.Sprintf("TRUNCATE TABLE %s", g.config.TableName)).Error
+	return g.DB.Exec(fmt.Sprintf("TRUNCATE TABLE `%s`", g.config.TableName)).Error
 }
 
 // BulkInsertMap implements the Dialect interface.

@@ -10,6 +10,10 @@ import (
 
 // NewDialectGorm creates a MySQL dialect backed by gorm.
 func NewDialectGorm(db *gorm.DB, config dialect.WriteConfig) (dialect.Dialect, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid write config: %w", err)
+	}
+
 	gormDB, err := mysql.NewGorm(db)
 	if err != nil {
 		return nil, fmt.Errorf("NewGorm: %w", err)

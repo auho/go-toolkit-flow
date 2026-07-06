@@ -25,7 +25,7 @@ func (g *gormMySQL) FetchIDBounds() (int64, int64, error) {
 		Min int64
 	}
 
-	query := fmt.Sprintf("MAX(%s) AS max, MIN(%s) AS min", g.config.SegmentIDName, g.config.SegmentIDName)
+	query := fmt.Sprintf("MAX(`%s`) AS max, MIN(`%s`) AS min", g.config.SegmentIDName, g.config.SegmentIDName)
 	err := g.DB.Table(g.config.TableName).Select(query).Scan(&row).Error
 	if err != nil {
 		return 0, 0, fmt.Errorf("FetchIDBounds.Scan: %w", err)

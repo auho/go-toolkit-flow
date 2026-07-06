@@ -187,6 +187,10 @@ func (s *Section[E]) idRange() error {
 		return fmt.Errorf("page size[%d] is error", s.config.PageSize)
 	}
 
+	if s.config.MaxItems < 0 {
+		return fmt.Errorf("max items[%d] is negative", s.config.MaxItems)
+	}
+
 	minID, maxID, err := s.dialect.FetchIDBounds()
 	if err != nil {
 		return fmt.Errorf("dialect.FetchIDBounds: %w", err)
