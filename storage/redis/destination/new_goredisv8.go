@@ -31,7 +31,7 @@ func NewSortedSetsWithGoRedisV8(client *redis.Client, c BulkConfig) (*Bulk[stora
 func newBulkWithGoRedisV8[E storage.Entry](f format.Format[E], client *redis.Client, c BulkConfig) (*Bulk[E], error) {
 	d, err := newGoRedisV8(client, c.getTimeoutDuration())
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dialect: %w", err)
+		return nil, fmt.Errorf("newGoRedisV8: %w", err)
 	}
 
 	return newBulk(f, d, c)

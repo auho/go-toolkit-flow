@@ -18,7 +18,7 @@ func NewBulkInsertMapWithGorm(c BulkConfig, wc WriteConfig, db *gorm.DB) (*Bulk[
 // NewBulkInsertSliceWithGorm creates a Bulk that inserts SliceEntry items via gorm.
 func NewBulkInsertSliceWithGorm(c BulkConfig, wc WriteConfig, fields []string, db *gorm.DB) (*Bulk[storage.SliceEntry], error) {
 	if len(fields) <= 0 {
-		return nil, errors.New("fields is error")
+		return nil, errors.New("fields are empty")
 	}
 
 	return newBulkWithGorm(format.NewInsertSliceFormat(fields, int(c.BatchSize)), db, c, wc)

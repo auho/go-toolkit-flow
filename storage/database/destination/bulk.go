@@ -71,7 +71,7 @@ func (b *Bulk[E]) Prepare(ctx context.Context) error {
 		err := b.dialect.Truncate(truncateCtx)
 		cancel()
 		if err != nil {
-			return err
+			return fmt.Errorf("dialect.Truncate: %w", err)
 		}
 	}
 

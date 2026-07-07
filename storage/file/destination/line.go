@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
+	"golang.org/x/sync/errgroup"
 )
 
 var _ storage.Destination[string] = (*Line)(nil)
@@ -18,7 +18,10 @@ type Line struct {
 	f      *os.File
 	b      *bufio.Writer
 	state  *storage.Snapshot
-	wg     sync.WaitGroup
+
+	itemsChan  chan []string
+	writeGroup *errgroup.Group
+	writeCtx   context.Context
 }
 
 func NewLine(c Config) (*Line, error) {
@@ -39,8 +42,11 @@ func NewLine(c Config) (*Line, error) {
 	return d, nil
 }
 
-func (l *Line) Prepare(_ context.Context) error {
+func (l *Line) Prepare(ctx context.Context) error {
 	l.state.MarkAsPrepare()
+
+	l.itemsChan = make(chan []string, 1)
+	l.writeGroup, l.writeCtx = errgroup.WithContext(ctx)
 
 	return nil
 }
@@ -48,23 +54,18 @@ func (l *Line) Prepare(_ context.Context) error {
 func (l *Line) Accept() {
 	l.state.MarkAsAccepted()
 	l.state.DurationStart()
-	l.wg.Add(1)
+
+	l.writeGroup.Go(func() error {
+		return l.write()
+	})
 }
 
 func (l *Line) Receive(items []string) error {
-	for k := range items {
-		l.state.AddAmount(1)
-		_, err := l.b.WriteString(items[k] + "\n")
-		if err != nil {
-			return fmt.Errorf("WriteString: %w", err)
-		}
+	select {
+	case <-l.writeCtx.Done():
+		return fmt.Errorf("receive: writeCtx cancelled: %w", l.writeCtx.Err())
+	case l.itemsChan <- items:
 	}
-
-	err := l.b.Flush()
-	if err != nil {
-		return fmt.Errorf("flush: %w", err)
-	}
-
 	return nil
 }
 
@@ -75,19 +76,50 @@ func (l *Line) Done() {
 
 	l.state.MarkAsDone()
 
-	l.wg.Done()
+	close(l.itemsChan)
 }
 
 func (l *Line) Finish() error {
-	l.wg.Wait()
+	err := l.writeGroup.Wait()
+
+	if ferr := l.b.Flush(); ferr != nil && err == nil {
+		err = fmt.Errorf("flush: %w", ferr)
+	}
 
 	l.state.DurationStop()
 	l.state.MarkAsFinished()
+
+	return err
+}
+
+func (l *Line) write() error {
+loop:
+	for {
+		select {
+		case <-l.writeCtx.Done():
+			break loop
+		case items, ok := <-l.itemsChan:
+			if !ok {
+				break loop
+			}
+
+			for _, item := range items {
+				l.state.AddAmount(1)
+				_, err := l.b.WriteString(item + "\n")
+				if err != nil {
+					return fmt.Errorf("WriteString: %w", err)
+				}
+			}
+		}
+	}
 
 	return nil
 }
 
 func (l *Line) Close() error {
+	if err := l.b.Flush(); err != nil {
+		return fmt.Errorf("flush: %w", err)
+	}
 	return l.f.Close()
 }
 

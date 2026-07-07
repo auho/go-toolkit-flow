@@ -20,12 +20,20 @@ type gormMySQL struct {
 
 // Truncate implements the Dialect interface.
 func (g *gormMySQL) Truncate(ctx context.Context) error {
-	return g.DB.WithContext(ctx).Exec(fmt.Sprintf("TRUNCATE TABLE `%s`", g.config.TableName)).Error
+	err := g.DB.WithContext(ctx).Exec(fmt.Sprintf("TRUNCATE TABLE `%s`", g.config.TableName)).Error
+	if err != nil {
+		return fmt.Errorf("Exec: table[%s]: %w", g.config.TableName, err)
+	}
+	return nil
 }
 
 // BulkInsertMap implements the Dialect interface.
 func (g *gormMySQL) BulkInsertMap(ctx context.Context, items storage.MapEntries, batchSize int) error {
-	return g.DB.WithContext(ctx).Table(g.config.TableName).CreateInBatches(items, batchSize).Error
+	err := g.DB.WithContext(ctx).Table(g.config.TableName).CreateInBatches(items, batchSize).Error
+	if err != nil {
+		return fmt.Errorf("CreateInBatches: table[%s]: %w", g.config.TableName, err)
+	}
+	return nil
 }
 
 // BulkInsertSlice implements the Dialect interface.

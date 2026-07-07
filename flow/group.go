@@ -206,7 +206,7 @@ func (g *group[SE, DE]) OutputForward(ctx context.Context) error {
 
 	for out := range merged {
 		if err := g.destination.Receive(out); err != nil {
-			return err
+			return fmt.Errorf("destination.Receive: %w", err)
 		}
 	}
 

@@ -35,7 +35,7 @@ func NewScanWithGoRedisV8(client *redis.Client, c KeyConfig) (*Iterator[string],
 func newIteratorWithGoRedisV8[E storage.Entry](f format.Format[E], client *redis.Client, c KeyConfig) (*Iterator[E], error) {
 	d, err := newGoRedisV8(client, c.getTimeoutDuration())
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dialect: %w", err)
+		return nil, fmt.Errorf("newGoRedisV8: %w", err)
 	}
 
 	return newIterator(f, d, c)
