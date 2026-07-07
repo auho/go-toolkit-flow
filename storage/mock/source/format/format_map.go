@@ -1,6 +1,7 @@
 package format
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -26,8 +27,7 @@ func (f *mapFormat) Scan(idName string, id *int64, amount int64) (*int64, storag
 	startUnixNano := time.Now().UnixNano()
 	for i := int64(0); i < amount; i++ {
 		item := make(storage.MapEntry)
-		*id++
-		item[idName] = *id
+		item[idName] = atomic.AddInt64(id, 1)
 		item["content"] = startUnixNano + i
 		items[i] = item
 	}

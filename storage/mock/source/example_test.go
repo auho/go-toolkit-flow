@@ -11,11 +11,15 @@ import (
 // items. Scan launches a goroutine that produces data into ReceiveChan; Finish
 // waits for the goroutine and closes the channel.
 func ExampleNewMap() {
-	s := mocksource.NewMap(mocksource.Config{
+	s, err := mocksource.NewMap(mocksource.Config{
 		Total:       5,
 		PageSize:    2,
 		Concurrency: 1,
 	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	ctx := context.Background()
 	if err := s.Prepare(ctx); err != nil {
@@ -44,11 +48,15 @@ func ExampleNewMap() {
 // ExampleNewString demonstrates a mock in-memory source that generates string
 // items.
 func ExampleNewString() {
-	s := mocksource.NewString(mocksource.Config{
+	s, err := mocksource.NewString(mocksource.Config{
 		Total:       3,
 		PageSize:    1,
 		Concurrency: 1,
 	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	ctx := context.Background()
 	if err := s.Prepare(ctx); err != nil {

@@ -9,16 +9,19 @@ import (
 	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
-func _testMemory[E storage.Entry](t *testing.T, buildMemory func(Config) *Memory[E]) {
+func _testMemory[E storage.Entry](t *testing.T, buildMemory func(Config) (*Memory[E], error)) {
 	factor := rand.Intn(10) + 1
 	total := factor * 100
 	pageSize := factor*factor + 1
-	m := buildMemory(Config{
+	m, err := buildMemory(Config{
 		PageSize: int64(pageSize),
 		Total:    int64(total),
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	err := m.Prepare(context.Background())
+	err = m.Prepare(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -10,6 +10,9 @@ import (
 // V8 wraps a go-redis v8 client.
 type V8 struct {
 	// Client is the underlying go-redis client.
+	// Exported because V8 is not exposed to external callers (returned as
+	// dialect.Dialect via newGoRedisV8); Client is accessed directly by the
+	// dialect package via struct embedding.
 	Client *redis.Client
 }
 

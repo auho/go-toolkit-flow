@@ -1,6 +1,8 @@
 package format
 
 import (
+	"context"
+
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/source/dialect"
 	"github.com/auho/go-toolkit-flow/v3/storage/tool"
@@ -15,8 +17,8 @@ func NewMapFormat() Format[storage.MapEntry] {
 	return &mapFormat{}
 }
 
-func (f *mapFormat) QueryByRange(dialect dialect.Dialect, startID, endID int64) (storage.MapEntries, error) {
-	return dialect.QueryMapByRange(startID, endID)
+func (f *mapFormat) QueryByRange(ctx context.Context, dialect dialect.Dialect, startID, endID int64) (storage.MapEntries, error) {
+	return dialect.QueryMapByRange(ctx, startID, endID)
 }
 
 func (f *mapFormat) Copy(items storage.MapEntries) storage.MapEntries {

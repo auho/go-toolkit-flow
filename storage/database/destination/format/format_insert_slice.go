@@ -1,6 +1,8 @@
 package format
 
 import (
+	"context"
+
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/destination/dialect"
 	"github.com/auho/go-toolkit-flow/v3/storage/tool"
@@ -18,8 +20,8 @@ func NewInsertSliceFormat(fields []string, batchSize int) Format[storage.SliceEn
 	return &insertSliceFormat{fields: fields, batchSize: batchSize}
 }
 
-func (f *insertSliceFormat) Write(d dialect.Dialect, items storage.SliceEntries) error {
-	return d.BulkInsertSlice(f.fields, items, f.batchSize)
+func (f *insertSliceFormat) Write(ctx context.Context, d dialect.Dialect, items storage.SliceEntries) error {
+	return d.BulkInsertSlice(ctx, f.fields, items, f.batchSize)
 }
 
 func (f *insertSliceFormat) Copy(items storage.SliceEntries) storage.SliceEntries {

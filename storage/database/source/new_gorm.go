@@ -17,5 +17,5 @@ func NewSectionMapWithGorm(c SectionConfig, sc ScanConfig, db *gorm.DB) (*Sectio
 		return nil, fmt.Errorf("NewDialectGorm: %w", err)
 	}
 
-	return newSection[storage.MapEntry](format.NewMapFormat(), d, c), nil
+	return newSection[storage.MapEntry](format.NewMapFormat(), d, c)
 }

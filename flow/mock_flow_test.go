@@ -29,7 +29,10 @@ import (
 // Asserts count consistency and field content integrity.
 func TestFlow_ProducerItem(t *testing.T) {
 	total := int64(100)
-	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 10})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dest, err := mockdest.NewInsertMap()
 	if err != nil {
@@ -99,7 +102,10 @@ func TestFlow_ProducerItem(t *testing.T) {
 // Asserts count consistency (source total == destination received).
 func TestFlow_ProducerBatch(t *testing.T) {
 	total := int64(200)
-	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 25})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 25})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dest, err := mockdest.NewInsertMap()
 	if err != nil {
@@ -133,7 +139,10 @@ func TestFlow_ProducerBatch(t *testing.T) {
 // Asserts the source data is fully generated and the flow completes.
 func TestFlow_ConsumerItem(t *testing.T) {
 	total := int64(150)
-	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 15})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 15})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	opts := []Option[map[string]any, map[string]any]{
 		WithSource[map[string]any, map[string]any](src),
@@ -159,7 +168,10 @@ func TestFlow_ConsumerItem(t *testing.T) {
 // Asserts the source data is fully generated and the flow completes.
 func TestFlow_ConsumerBatch(t *testing.T) {
 	total := int64(300)
-	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 30})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 30})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	opts := []Option[map[string]any, map[string]any]{
 		WithSource[map[string]any, map[string]any](src),
@@ -187,7 +199,10 @@ func TestFlow_ConsumerBatch(t *testing.T) {
 // Both destinations must receive the same complete dataset.
 func TestFlow_MultiDestination(t *testing.T) {
 	total := int64(200)
-	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 25})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 25})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dest1, err := mockdest.NewInsertMap()
 	if err != nil {
@@ -244,7 +259,10 @@ func TestFlow_MultiDestination(t *testing.T) {
 // Each group receives the full dataset (source fans out to all groups).
 func TestFlow_MultiGroup(t *testing.T) {
 	total := int64(300)
-	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 30})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 30})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dest1, err := mockdest.NewInsertMap()
 	if err != nil {
@@ -311,7 +329,10 @@ func TestFlow_MultiGroup(t *testing.T) {
 // destination collects 2×total items (group-internal fan-out semantics).
 func TestFlow_MultiRunner(t *testing.T) {
 	total := int64(100)
-	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 10})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dest, err := mockdest.NewInsertMap()
 	if err != nil {
@@ -345,7 +366,10 @@ func TestFlow_MultiRunner(t *testing.T) {
 // Asserts count consistency (source total == destination received).
 func TestFlow_DestinationUpdate(t *testing.T) {
 	total := int64(120)
-	src := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 20})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: total, PageSize: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dest, err := mockdest.NewUpdateMap()
 	if err != nil {
@@ -381,7 +405,10 @@ func TestFlow_DestinationUpdate(t *testing.T) {
 // Asserts count consistency (source total == destination received).
 func TestFlow_SliceEntry(t *testing.T) {
 	total := int64(80)
-	src := mocksrc.NewSlice(mocksrc.Config{Total: total, PageSize: 10})
+	src, err := mocksrc.NewSlice(mocksrc.Config{Total: total, PageSize: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dest, err := mockdest.NewInsertSlice()
 	if err != nil {

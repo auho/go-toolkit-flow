@@ -2,6 +2,7 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -19,14 +20,14 @@ type gormMySQL struct {
 }
 
 // FetchIDBounds queries the minimum and maximum ID bounds of the table.
-func (g *gormMySQL) FetchIDBounds() (int64, int64, error) {
+func (g *gormMySQL) FetchIDBounds(ctx context.Context) (int64, int64, error) {
 	var row struct {
 		Max int64
 		Min int64
 	}
 
 	query := fmt.Sprintf("MAX(`%s`) AS max, MIN(`%s`) AS min", g.config.SegmentIDName, g.config.SegmentIDName)
-	err := g.DB.Table(g.config.TableName).Select(query).Scan(&row).Error
+	err := g.DB.WithContext(ctx).Table(g.config.TableName).Select(query).Scan(&row).Error
 	if err != nil {
 		return 0, 0, fmt.Errorf("FetchIDBounds.Scan: %w", err)
 	}
@@ -35,10 +36,10 @@ func (g *gormMySQL) FetchIDBounds() (int64, int64, error) {
 }
 
 // QueryMapByRange queries MapEntry data within the given ID range.
-func (g *gormMySQL) QueryMapByRange(startID, endID int64) (storage.MapEntries, error) {
+func (g *gormMySQL) QueryMapByRange(ctx context.Context, startID, endID int64) (storage.MapEntries, error) {
 	var rows storage.MapEntries
 
-	tx := g.buildSelectQuery()
+	tx := g.buildSelectQuery(ctx)
 	err := tx.Where(fmt.Sprintf("`%s` >= ? and `%s` <= ?", g.config.SegmentIDName, g.config.SegmentIDName), startID, endID).
 		Scan(&rows).Error
 	if err != nil {
@@ -49,8 +50,8 @@ func (g *gormMySQL) QueryMapByRange(startID, endID int64) (storage.MapEntries, e
 }
 
 // buildSelectQuery builds a SELECT query with MySQL backtick-quoted field names.
-func (g *gormMySQL) buildSelectQuery() *gorm.DB {
-	tx := g.DB.Table(g.config.TableName)
+func (g *gormMySQL) buildSelectQuery(ctx context.Context) *gorm.DB {
+	tx := g.DB.WithContext(ctx).Table(g.config.TableName)
 	if len(g.config.SelectFields) > 0 {
 		var quotedFields []string
 		for _, field := range g.config.SelectFields {

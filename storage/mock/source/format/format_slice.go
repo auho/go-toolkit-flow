@@ -1,6 +1,7 @@
 package format
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -25,8 +26,8 @@ func (f *sliceFormat) Scan(_ string, id *int64, amount int64) (*int64, []storage
 
 	startUnixNano := time.Now().UnixNano()
 	for i := int64(0); i < amount; i++ {
-		*id++
-		items = append(items, storage.SliceEntry{*id, startUnixNano + i})
+		newID := atomic.AddInt64(id, 1)
+		items = append(items, storage.SliceEntry{newID, startUnixNano + i})
 	}
 
 	return id, items

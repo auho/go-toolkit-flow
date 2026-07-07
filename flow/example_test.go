@@ -18,7 +18,11 @@ import (
 // values (concurrency from runtime.NumCPU, duration from timing), so the output
 // is not asserted with // Output:.
 func ExampleRunFlow() {
-	src := mocksrc.NewMap(mocksrc.Config{Total: 10, PageSize: 5})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: 10, PageSize: 5})
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
 
 	dest, err := mockdest.NewInsertMap()
 	if err != nil {
@@ -52,7 +56,11 @@ func ExampleRunFlow() {
 // Note: RunFlow prints runtime-dependent values (concurrency, duration), so
 // the output is not asserted with // Output:.
 func ExampleRunFlow_consumer() {
-	src := mocksrc.NewMap(mocksrc.Config{Total: 10, PageSize: 5})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: 10, PageSize: 5})
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
 
 	opts := []Option[map[string]any, map[string]any]{
 		WithSource[map[string]any, map[string]any](src),
@@ -80,7 +88,11 @@ func ExampleRunFlow_consumer() {
 // Note: RunFlow prints runtime-dependent values (concurrency, duration), so
 // the output is not asserted with // Output:.
 func ExampleRunFlow_multiDestination() {
-	src := mocksrc.NewMap(mocksrc.Config{Total: 10, PageSize: 5})
+	src, err := mocksrc.NewMap(mocksrc.Config{Total: 10, PageSize: 5})
+	if err != nil {
+		fmt.Println("error:", err)
+		return
+	}
 
 	dest1, err := mockdest.NewInsertMap()
 	if err != nil {

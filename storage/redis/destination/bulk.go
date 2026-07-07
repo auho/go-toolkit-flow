@@ -39,7 +39,9 @@ func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfi
 		config:  c,
 	}
 
-	b.initConfig()
+	if err := b.init(); err != nil {
+		return nil, err
+	}
 
 	err := b.format.Check()
 	if err != nil {
@@ -134,21 +136,17 @@ func (b *Bulk[E]) Close() error {
 	return b.dialect.Close()
 }
 
-func (b *Bulk[E]) initConfig() {
-	if b.config.Concurrency <= 0 {
-		b.config.Concurrency = 1
+func (b *Bulk[E]) init() error {
+	if err := b.config.Check(); err != nil {
+		return fmt.Errorf("config.Check: %w", err)
 	}
-
-	if b.config.BatchSize <= 0 {
-		b.config.BatchSize = 20
-	}
-
-	b.config.getTimeoutDuration()
 
 	b.state = storage.NewSnapshot()
 	b.state.SetConcurrency(b.config.Concurrency)
 	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()
+
+	return nil
 }
 
 func (b *Bulk[E]) writeBatch(items []E) error {

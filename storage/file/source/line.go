@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime"
 	"sync"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -26,29 +25,33 @@ type Line struct {
 }
 
 func NewLine(c Config) (*Line, error) {
-	var err error
 	l := &Line{
 		config: c,
 	}
 
+	if err := l.init(); err != nil {
+		return nil, err
+	}
+
+	return l, nil
+}
+
+func (l *Line) init() error {
+	if err := l.config.Check(); err != nil {
+		return fmt.Errorf("config.Check: %w", err)
+	}
+
+	var err error
 	l.file, err = os.Open(l.config.Name)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	l.scanner = bufio.NewScanner(l.file)
 	l.state = storage.NewSnapshot()
 	l.state.MarkAsConfigured()
 
-	if l.config.Concurrency <= 0 {
-		l.config.Concurrency = runtime.NumCPU()
-	}
-
-	if l.config.PageSize <= 0 {
-		l.config.PageSize = 100
-	}
-
-	return l, nil
+	return nil
 }
 
 func (l *Line) Prepare(ctx context.Context) error {

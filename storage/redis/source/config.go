@@ -14,8 +14,26 @@ type KeyConfig struct {
 
 func (c *KeyConfig) getTimeoutDuration() time.Duration {
 	if c.TimeoutDuration <= 0 {
-		c.TimeoutDuration = time.Second * 3
+		return time.Second * 3
 	}
 
 	return c.TimeoutDuration
+}
+
+// Check validates the config and applies defaults for missing fields.
+// Returns an error if any field has an invalid value.
+func (c *KeyConfig) Check() error {
+	if c.Concurrency <= 0 {
+		c.Concurrency = 1
+	}
+
+	if c.PageSize <= 0 {
+		c.PageSize = 100
+	}
+
+	if c.TimeoutDuration <= 0 {
+		c.TimeoutDuration = c.getTimeoutDuration()
+	}
+
+	return nil
 }

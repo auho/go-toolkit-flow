@@ -3,7 +3,6 @@ package destination
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"slices"
 	"sync/atomic"
 
@@ -38,37 +37,39 @@ type Bulk[E storage.Entry] struct {
 }
 
 func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfig) (*Bulk[E], error) {
-	if c.BatchSize <= 0 {
-		return nil, fmt.Errorf("batch size[%d] is error", c.BatchSize)
-	}
-
-	dest := &Bulk[E]{
+	b := &Bulk[E]{
 		dialect: d,
 		format:  f,
 		config:  c,
 	}
 
-	dest.initConfig()
+	if err := b.init(); err != nil {
+		return nil, err
+	}
 
-	return dest, nil
+	return b, nil
 }
 
-func (b *Bulk[E]) initConfig() {
-	if b.config.Concurrency <= 0 {
-		b.config.Concurrency = runtime.NumCPU()
+func (b *Bulk[E]) init() error {
+	if err := b.config.Check(); err != nil {
+		return fmt.Errorf("config.Check: %w", err)
 	}
 
 	b.state = storage.NewSnapshot()
 	b.state.SetConcurrency(b.config.Concurrency)
 	b.state.SetTitle(b.title())
 	b.state.MarkAsConfigured()
+
+	return nil
 }
 
 func (b *Bulk[E]) Prepare(ctx context.Context) error {
 	b.state.MarkAsPrepare()
 
 	if b.config.IsTruncate {
-		err := b.dialect.Truncate()
+		truncateCtx, cancel := context.WithTimeout(ctx, b.config.TimeoutDuration)
+		err := b.dialect.Truncate(truncateCtx)
+		cancel()
 		if err != nil {
 			return err
 		}
@@ -120,7 +121,10 @@ func (b *Bulk[E]) Finish() error {
 }
 
 func (b *Bulk[E]) writeBatch(items []E) error {
-	if err := b.format.Write(b.dialect, items); err != nil {
+	ctx, cancel := context.WithTimeout(b.writeCtx, b.config.TimeoutDuration)
+	defer cancel()
+
+	if err := b.format.Write(ctx, b.dialect, items); err != nil {
 		return fmt.Errorf("format.Write: %w", err)
 	}
 
@@ -169,7 +173,7 @@ loop:
 }
 
 func (b *Bulk[E]) title() string {
-	return fmt.Sprintf("Destination driver[%s]", b.dialect.DBName())
+	return fmt.Sprintf("Destination db[%s]", b.dialect.DBName())
 }
 
 func (b *Bulk[E]) Summary() []string {

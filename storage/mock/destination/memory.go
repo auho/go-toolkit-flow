@@ -114,5 +114,5 @@ func (d *Memory[E]) Close() error {
 }
 
 func (d *Memory[E]) title() string {
-	return fmt.Sprintf("Mock:destination[%s]", d.format.Type())
+	return fmt.Sprintf("Destination mock[%s]", d.format.Type())
 }

@@ -2,6 +2,7 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -18,17 +19,17 @@ type gormMySQL struct {
 }
 
 // Truncate implements the Dialect interface.
-func (g *gormMySQL) Truncate() error {
-	return g.DB.Exec(fmt.Sprintf("TRUNCATE TABLE `%s`", g.config.TableName)).Error
+func (g *gormMySQL) Truncate(ctx context.Context) error {
+	return g.DB.WithContext(ctx).Exec(fmt.Sprintf("TRUNCATE TABLE `%s`", g.config.TableName)).Error
 }
 
 // BulkInsertMap implements the Dialect interface.
-func (g *gormMySQL) BulkInsertMap(items storage.MapEntries, batchSize int) error {
-	return g.DB.Table(g.config.TableName).CreateInBatches(items, batchSize).Error
+func (g *gormMySQL) BulkInsertMap(ctx context.Context, items storage.MapEntries, batchSize int) error {
+	return g.DB.WithContext(ctx).Table(g.config.TableName).CreateInBatches(items, batchSize).Error
 }
 
 // BulkInsertSlice implements the Dialect interface.
-func (g *gormMySQL) BulkInsertSlice(fields []string, items storage.SliceEntries, batchSize int) error {
+func (g *gormMySQL) BulkInsertSlice(ctx context.Context, fields []string, items storage.SliceEntries, batchSize int) error {
 	fieldsLen := len(fields)
 	sm := make(storage.MapEntries, 0, len(items))
 	for _, item := range items {
@@ -40,7 +41,7 @@ func (g *gormMySQL) BulkInsertSlice(fields []string, items storage.SliceEntries,
 		sm = append(sm, m)
 	}
 
-	return g.BulkInsertMap(sm, batchSize)
+	return g.BulkInsertMap(ctx, sm, batchSize)
 }
 
 // updateTxBatchSize is the max number of UPDATE statements per transaction.
@@ -50,7 +51,7 @@ func (g *gormMySQL) BulkInsertSlice(fields []string, items storage.SliceEntries,
 const updateTxBatchSize = 100
 
 // BulkUpdateMap implements the Dialect interface.
-func (g *gormMySQL) BulkUpdateMap(idName string, items storage.MapEntries) error {
+func (g *gormMySQL) BulkUpdateMap(ctx context.Context, idName string, items storage.MapEntries) error {
 	for i := 0; i < len(items); i += updateTxBatchSize {
 		end := i + updateTxBatchSize
 		if end > len(items) {
@@ -58,7 +59,7 @@ func (g *gormMySQL) BulkUpdateMap(idName string, items storage.MapEntries) error
 		}
 		batch := items[i:end]
 
-		err := g.DB.Transaction(func(tx *gorm.DB) error {
+		err := g.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			for _, item := range batch {
 				_id, ok := item[idName]
 				if !ok {

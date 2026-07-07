@@ -104,5 +104,5 @@ func (l *Line) StateString() []string {
 }
 
 func (l *Line) title() string {
-	return fmt.Sprintf("Line file[%s]", l.f.Name())
+	return fmt.Sprintf("Destination file[%s]", l.f.Name())
 }

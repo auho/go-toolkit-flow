@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"runtime"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/source/dialect"
@@ -39,19 +38,20 @@ type Section[E storage.Entry] struct {
 	// concurrency and error handling
 	scanGroup *errgroup.Group
 	scanCtx   context.Context
-	scanErr   error
 }
 
-func newSection[E storage.Entry](f format.Format[E], d dialect.Dialect, c SectionConfig) *Section[E] {
+func newSection[E storage.Entry](f format.Format[E], d dialect.Dialect, c SectionConfig) (*Section[E], error) {
 	s := &Section[E]{
 		dialect: d,
 		format:  f,
 		config:  c,
 	}
 
-	s.initConfig(c)
+	if err := s.init(); err != nil {
+		return nil, err
+	}
 
-	return s
+	return s, nil
 }
 
 func (s *Section[E]) Copy(items []E) []E {
@@ -61,7 +61,7 @@ func (s *Section[E]) Copy(items []E) []E {
 func (s *Section[E]) Prepare(ctx context.Context) error {
 	s.state.MarkAsPrepare()
 
-	err := s.idRange()
+	err := s.idRange(ctx)
 	if err != nil {
 		return fmt.Errorf("idRange: %w", err)
 	}
@@ -143,7 +143,9 @@ func (s *Section[E]) scanRows() {
 						return nil
 					}
 
-					items, err := s.format.QueryByRange(s.dialect, segment[0], segment[1])
+					ctx, cancel := context.WithTimeout(s.scanCtx, s.config.TimeoutDuration)
+					items, err := s.format.QueryByRange(ctx, s.dialect, segment[0], segment[1])
+					cancel()
 					if err != nil {
 						return fmt.Errorf("format.QueryByRange [%d-%d]: %w", segment[0], segment[1], err)
 					}
@@ -164,34 +166,28 @@ func (s *Section[E]) scanRows() {
 	}
 }
 
-func (s *Section[E]) initConfig(config SectionConfig) {
-	s.config = config
-
-	s.total = config.MaxItems
-	s.startID = config.StartID
-	s.endID = config.EndID
-
-	if s.config.Concurrency <= 0 {
-		s.config.Concurrency = runtime.NumCPU()
+func (s *Section[E]) init() error {
+	if err := s.config.Check(); err != nil {
+		return fmt.Errorf("config.Check: %w", err)
 	}
+
+	s.total = s.config.MaxItems
+	s.startID = s.config.StartID
+	s.endID = s.config.EndID
 
 	s.state = storage.NewPageSnapshot()
 	s.state.SetConcurrency(s.config.Concurrency)
 	s.state.SetTitle(s.title())
 	s.state.MarkAsConfigured()
+
+	return nil
 }
 
 // idRange queries the ID bounds from the dialect and computes pagination info.
-func (s *Section[E]) idRange() error {
-	if s.config.PageSize <= 0 {
-		return fmt.Errorf("page size[%d] is error", s.config.PageSize)
-	}
-
-	if s.config.MaxItems < 0 {
-		return fmt.Errorf("max items[%d] is negative", s.config.MaxItems)
-	}
-
-	minID, maxID, err := s.dialect.FetchIDBounds()
+func (s *Section[E]) idRange(ctx context.Context) error {
+	timeoutCtx, cancel := context.WithTimeout(ctx, s.config.TimeoutDuration)
+	defer cancel()
+	minID, maxID, err := s.dialect.FetchIDBounds(timeoutCtx)
 	if err != nil {
 		return fmt.Errorf("dialect.FetchIDBounds: %w", err)
 	}

@@ -65,6 +65,7 @@ type runner[SE, DE storage.Entry] struct {
 	affected int64
 
 	inChan    chan []SE
+	isDone    atomic.Bool
 	outChan   chan []DE
 	executor  Executor[SE, DE]
 	processor processor.Processor[SE]

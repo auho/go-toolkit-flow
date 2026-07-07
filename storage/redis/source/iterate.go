@@ -36,7 +36,9 @@ func newIterator[E storage.Entry](f format.Format[E], d dialect.Dialect, c KeyCo
 		config:  c,
 	}
 
-	i.initConfig()
+	if err := i.init(); err != nil {
+		return nil, err
+	}
 
 	err := f.Check()
 	if err != nil {
@@ -46,21 +48,17 @@ func newIterator[E storage.Entry](f format.Format[E], d dialect.Dialect, c KeyCo
 	return i, nil
 }
 
-func (i *Iterator[E]) initConfig() {
-	if i.config.Concurrency <= 0 {
-		i.config.Concurrency = 1
+func (i *Iterator[E]) init() error {
+	if err := i.config.Check(); err != nil {
+		return fmt.Errorf("config.Check: %w", err)
 	}
-
-	if i.config.PageSize <= 0 {
-		i.config.PageSize = 100
-	}
-
-	i.config.getTimeoutDuration()
 
 	i.state = storage.NewTotalSnapshot()
 	i.state.MarkAsConfigured()
 	i.state.SetConcurrency(i.config.Concurrency)
 	i.state.SetTitle(i.title())
+
+	return nil
 }
 
 func (i *Iterator[E]) Prepare(ctx context.Context) error {
@@ -156,7 +154,7 @@ func (i *Iterator[E]) Copy(items []E) []E {
 }
 
 func (i *Iterator[E]) title() string {
-	return fmt.Sprintf("Source redis[%s]:[%d:%s]:", i.format.Key(), i.dialect.DB(), i.format.Type())
+	return fmt.Sprintf("Source redis[%s][%d:%s]", i.format.Key(), i.dialect.DB(), i.format.Type())
 }
 
 func (i *Iterator[E]) Close() error {

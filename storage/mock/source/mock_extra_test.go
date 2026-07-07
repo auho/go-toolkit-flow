@@ -7,7 +7,10 @@ import (
 )
 
 func TestMemory_Copy(t *testing.T) {
-	m := NewMap(Config{Total: 10, PageSize: 5})
+	m, err := NewMap(Config{Total: 10, PageSize: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	original := []storage.MapEntry{
 		{"id": 1, "name": "foo"},
@@ -27,15 +30,21 @@ func TestMemory_Copy(t *testing.T) {
 }
 
 func TestMemory_Close(t *testing.T) {
-	m := NewMap(Config{Total: 10, PageSize: 5})
-	err := m.Close()
+	m, err := NewMap(Config{Total: 10, PageSize: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = m.Close()
 	if err != nil {
 		t.Errorf("Close() returned error: %v", err)
 	}
 }
 
 func TestMemory_ConfigDefaults(t *testing.T) {
-	m := NewMap(Config{})
+	m, err := NewMap(Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if m.state.Total() != 100 {
 		t.Errorf("default total = %d, want 100", m.state.Total())
@@ -52,7 +61,10 @@ func TestMemory_ConfigDefaults(t *testing.T) {
 }
 
 func TestMemory_SummaryContent(t *testing.T) {
-	m := NewMap(Config{Total: 50, PageSize: 10})
+	m, err := NewMap(Config{Total: 50, PageSize: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
 	summary := m.Summary()
 	if len(summary) == 0 {
 		t.Fatal("Summary() returned empty slice")
@@ -60,7 +72,10 @@ func TestMemory_SummaryContent(t *testing.T) {
 }
 
 func TestMemory_StateContent(t *testing.T) {
-	m := NewMap(Config{Total: 50, PageSize: 10})
+	m, err := NewMap(Config{Total: 50, PageSize: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
 	overview := m.StateString()
 	if len(overview) <= 0 {
 		t.Fatal("StateString() returned empty string")

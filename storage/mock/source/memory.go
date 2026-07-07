@@ -12,9 +12,6 @@ import (
 
 var _ storage.Source[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 
-const defaultMockTotal = 100
-const defaultMockPageSize = 10
-
 // Memory is an in-memory Source implementation for testing.
 // It generates synthetic data in batches and sends it through a channel,
 // mimicking the behavior of real sources (e.g. database, file) without
@@ -43,32 +40,22 @@ type Memory[E storage.Entry] struct {
 
 // NewMemory creates a Memory with the given config and format.
 // Applies defaults: total=100, pageSize=10, concurrency=1, idName="id".
-func NewMemory[E storage.Entry](config Config, f format.Format[E]) *Memory[E] {
+func NewMemory[E storage.Entry](config Config, f format.Format[E]) (*Memory[E], error) {
 	m := &Memory[E]{
 		config: config,
 		format: f,
 	}
 
-	m.initConfig()
+	if err := m.init(); err != nil {
+		return nil, err
+	}
 
-	return m
+	return m, nil
 }
 
-func (m *Memory[E]) initConfig() {
-	if m.config.Total <= 0 {
-		m.config.Total = defaultMockTotal
-	}
-
-	if m.config.PageSize <= 0 {
-		m.config.PageSize = defaultMockPageSize
-	}
-
-	if m.config.Concurrency <= 0 {
-		m.config.Concurrency = 1
-	}
-
-	if m.config.IDName == "" {
-		m.config.IDName = "id"
+func (m *Memory[E]) init() error {
+	if err := m.config.Check(); err != nil {
+		return fmt.Errorf("config.Check: %w", err)
 	}
 
 	m.totalPage = int64(math.Ceil(float64(m.config.Total) / float64(m.config.PageSize)))
@@ -80,6 +67,8 @@ func (m *Memory[E]) initConfig() {
 	m.state.SetConcurrency(m.config.Concurrency)
 	m.state.SetTitle(m.title())
 	m.state.MarkAsConfigured()
+
+	return nil
 }
 
 func (m *Memory[E]) Prepare(ctx context.Context) error {
@@ -149,7 +138,7 @@ func (m *Memory[E]) Copy(items []E) []E {
 }
 
 func (m *Memory[E]) title() string {
-	return fmt.Sprintf("Mock:source[%s]", m.format.Type())
+	return fmt.Sprintf("Source mock[%s]", m.format.Type())
 }
 
 func (m *Memory[E]) Close() error {
