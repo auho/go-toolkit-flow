@@ -29,7 +29,6 @@ type Bulk[E storage.Entry] struct {
 	// Concurrency and error handling
 	writeGroup *errgroup.Group
 	writeCtx   context.Context
-	writeErr   error
 }
 
 func newBulk[E storage.Entry](f format.Format[E], d dialect.Dialect, c BulkConfig) (*Bulk[E], error) {
@@ -55,7 +54,7 @@ func (b *Bulk[E]) Prepare(ctx context.Context) error {
 	b.state.MarkAsPrepare()
 
 	if b.config.IsTruncate {
-		_ctx, cancel := context.WithTimeout(context.Background(), b.config.TimeoutDuration)
+		_ctx, cancel := context.WithTimeout(ctx, b.config.TimeoutDuration)
 		defer cancel()
 
 		_, err := b.dialect.Truncate(_ctx, b.format.Key())
@@ -101,12 +100,12 @@ func (b *Bulk[E]) Done() {
 }
 
 func (b *Bulk[E]) Finish() error {
-	b.writeErr = b.writeGroup.Wait()
+	err := b.writeGroup.Wait()
 
 	b.state.DurationStop()
 	b.state.MarkAsFinished()
 
-	return b.writeErr
+	return err
 }
 
 func (b *Bulk[E]) Summary() []string {
@@ -123,13 +122,6 @@ func (b *Bulk[E]) StateString() []string {
 
 func (b *Bulk[E]) title() string {
 	return fmt.Sprintf("Destination redis[%s][%d:%s]", b.format.Key(), b.dialect.DB(), b.format.Type())
-}
-
-func (b *Bulk[E]) FetchLen() (int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), b.config.TimeoutDuration)
-	defer cancel()
-
-	return b.format.FetchLen(ctx, b.dialect)
 }
 
 func (b *Bulk[E]) Close() error {
@@ -154,7 +146,7 @@ func (b *Bulk[E]) Copy(items []E) []E {
 }
 
 func (b *Bulk[E]) writeBatch(items []E) error {
-	ctx, cancel := context.WithTimeout(context.Background(), b.config.TimeoutDuration)
+	ctx, cancel := context.WithTimeout(b.writeCtx, b.config.TimeoutDuration)
 	defer cancel()
 
 	if err := b.format.Write(ctx, b.dialect, items); err != nil {

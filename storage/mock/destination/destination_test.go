@@ -1,6 +1,7 @@
 package destination
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 
 func TestMemory_Done_Idempotent(t *testing.T) {
 	d := NewMemory(format.NewInsertMapFormat())
+	_ = d.Prepare(context.Background())
 	d.Accept()
 	d.Done()
 	d.Done()
@@ -25,6 +27,7 @@ func TestMemory_Close(t *testing.T) {
 
 func TestMemory_State_Format(t *testing.T) {
 	d := NewMemory(format.NewInsertMapFormat())
+	_ = d.Prepare(context.Background())
 	d.Accept()
 	_ = d.Receive([]storage.MapEntry{{"id": 1}})
 	d.Done()
@@ -50,6 +53,7 @@ func TestMemory_SummaryContent(t *testing.T) {
 
 func TestMemory_Amount(t *testing.T) {
 	d := NewMemory(format.NewInsertMapFormat())
+	_ = d.Prepare(context.Background())
 	d.Accept()
 	_ = d.Receive([]storage.MapEntry{{"id": 1}, {"id": 2}})
 	d.Done()

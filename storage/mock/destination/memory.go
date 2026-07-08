@@ -3,11 +3,11 @@ package destination
 import (
 	"context"
 	"fmt"
-	"sync"
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/mock/destination/format"
+	"golang.org/x/sync/errgroup"
 )
 
 var _ storage.Destination[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
@@ -21,18 +21,21 @@ var _ storage.Destination[storage.MapEntry] = (*Memory[storage.MapEntry])(nil)
 //	Prepare → Accept (starts counter goroutine) → Receive (writes to channel) → Done → Finish → Close
 //
 // Concurrency model:
+//   - Prepare derives writeCtx from the caller's context via errgroup
 //   - Accept starts a single goroutine that drains itemsChan and increments amount
-//   - Receive is called serially by the output forwarder
+//   - Receive is called serially by the output forwarder; it selects on writeCtx
+//     to avoid blocking when the pipeline is cancelled
 //   - Done closes itemsChan via CAS to ensure idempotency
 //   - Finish waits for the counter goroutine to exit
 type Memory[E storage.Entry] struct {
 	format format.Format[E]
 
-	isDone    atomic.Bool
-	state     *storage.Snapshot
-	items     []E
-	itemsChan chan []E
-	chanWg    sync.WaitGroup
+	isDone     atomic.Bool
+	state      *storage.Snapshot
+	items      []E
+	itemsChan  chan []E
+	writeGroup *errgroup.Group
+	writeCtx   context.Context
 }
 
 // NewMemory creates a Memory with the given format.
@@ -44,8 +47,9 @@ func NewMemory[E storage.Entry](f format.Format[E]) *Memory[E] {
 	return d
 }
 
-func (d *Memory[E]) Prepare(_ context.Context) error {
+func (d *Memory[E]) Prepare(ctx context.Context) error {
 	d.state.MarkAsPrepare()
+	d.writeGroup, d.writeCtx = errgroup.WithContext(ctx)
 	return nil
 }
 
@@ -56,16 +60,28 @@ func (d *Memory[E]) Accept() {
 	d.state.DurationStart()
 	d.itemsChan = make(chan []E)
 
-	d.chanWg.Go(func() {
-		for items := range d.itemsChan {
-			d.state.AddAmount(int64(len(items)))
-			d.items = append(d.items, items...)
+	d.writeGroup.Go(func() error {
+		for {
+			select {
+			case <-d.writeCtx.Done():
+				return nil
+			case items, ok := <-d.itemsChan:
+				if !ok {
+					return nil
+				}
+				d.state.AddAmount(int64(len(items)))
+				d.items = append(d.items, items...)
+			}
 		}
 	})
 }
 
 func (d *Memory[E]) Receive(items []E) error {
-	d.itemsChan <- items
+	select {
+	case <-d.writeCtx.Done():
+		return fmt.Errorf("receive: writeCtx cancelled: %w", d.writeCtx.Err())
+	case d.itemsChan <- items:
+	}
 	return nil
 }
 
@@ -83,12 +99,12 @@ func (d *Memory[E]) Done() {
 
 // Finish waits for the counter goroutine to exit after the channel is closed.
 func (d *Memory[E]) Finish() error {
-	d.chanWg.Wait()
+	err := d.writeGroup.Wait()
 
 	d.state.DurationStop()
 	d.state.MarkAsFinished()
 
-	return nil
+	return err
 }
 
 func (d *Memory[E]) Summary() []string {

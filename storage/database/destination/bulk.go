@@ -31,7 +31,6 @@ type Bulk[E storage.Entry] struct {
 	// Concurrency and error handling
 	writeGroup *errgroup.Group
 	writeCtx   context.Context
-	writeErr   error
 
 	isDone atomic.Bool
 }
@@ -112,12 +111,12 @@ func (b *Bulk[E]) Done() {
 }
 
 func (b *Bulk[E]) Finish() error {
-	b.writeErr = b.writeGroup.Wait()
+	err := b.writeGroup.Wait()
 
 	b.state.DurationStop()
 	b.state.MarkAsFinished()
 
-	return b.writeErr
+	return err
 }
 
 func (b *Bulk[E]) Copy(items []E) []E {

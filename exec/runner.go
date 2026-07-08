@@ -172,7 +172,13 @@ func (r *runner[SE, DE]) Start() {
 }
 
 // Done closes inChan, signaling workers that no more data will be sent.
+// Uses CAS to ensure idempotency: subsequent calls are no-ops (mirrors
+// destination Bulk.Done behavior).
 func (r *runner[SE, DE]) Done() {
+	if !r.isDone.CompareAndSwap(false, true) {
+		return
+	}
+
 	close(r.inChan)
 }
 

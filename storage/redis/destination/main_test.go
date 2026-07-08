@@ -81,7 +81,10 @@ func _testKey[E storage.Entry](
 		t.Error(fmt.Sprintf("actual != expected %d != %d", k.state.Amount(), amount))
 	}
 
-	dbAmount, err := k.FetchLen()
+	fetchCtx, fetchCancel := context.WithTimeout(context.Background(), k.config.TimeoutDuration)
+	defer fetchCancel()
+
+	dbAmount, err := k.format.FetchLen(fetchCtx, k.dialect)
 	if err != nil {
 		t.Error("db amount ", err)
 	}
