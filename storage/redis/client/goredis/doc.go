@@ -13,10 +13,11 @@
 //   - V8 (v8.go): wraps github.com/go-redis/redis/v8
 //   - V9 (v9.go): wraps github.com/redis/go-redis/v9
 //
-// Both wrappers expose the same methods (DB, Close, Truncate, HashLen, etc.)
-// so that the source/destination dialect implementations can use either
-// version interchangeably. Users choose the wrapper that matches their
-// go-redis dependency.
+// Both wrappers implement the RedisClient interface (common.go), which
+// exposes all Redis commands needed by the source/destination dialects.
+// The dialect implementations use RedisClient rather than V8/V9 directly,
+// so dialect logic is written once and works with either go-redis version.
+// Users choose the wrapper that matches their go-redis dependency.
 //
 // # API Differences (v8 vs v9)
 //
@@ -25,17 +26,12 @@
 //   - redis.Z, redis.NewClient, redis.Options are unchanged
 //   - Pipeline method signatures are the same
 //
-// The key difference is Pipeline concurrency safety:
+// The key differences handled by the wrappers are:
 //
-// In v8, Pipeline had an internal sync.Mutex, allowing multiple goroutines
-// to safely call pipe.HMSet(), pipe.ZAdd(), etc. on the same pipeline
-// instance concurrently.
-//
-// In v9, this lock was removed for performance — most users use pipelines
-// sequentially in a single goroutine, and the mutex added unnecessary
-// overhead. If concurrent pipeline access is needed in v9, the caller must
-// add external synchronization (e.g., sync.Mutex).
-//
-// The implementations in this project use pipelines within a single
-// goroutine (writeBatch), so the v9 change does not affect correctness.
+//   - Pipeline concurrency safety: v8 Pipeline had an internal sync.Mutex;
+//     v9 removed it. The implementations use pipelines within a single
+//     goroutine, so this does not affect correctness.
+//   - pipe.Close(): present in v8 Pipeliner, removed in v9. The V8 wrapper
+//     calls pipe.Close() after pipe.Exec(); the V9 wrapper does not.
+//   - ZAdd argument: v8 accepts *redis.Z (pointer), v9 accepts redis.Z (value).
 package goredis

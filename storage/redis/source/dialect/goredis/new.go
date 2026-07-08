@@ -16,7 +16,7 @@ func NewDialectGoRedisV8(ctx context.Context, client *redis.Client) (dialect.Dia
 		return nil, fmt.Errorf("ping: %w", err)
 	}
 
-	return &v8{V8: &goredis.V8{Client: client}}, nil
+	return &sourceDialect{client: &goredis.V8{Client: client}}, nil
 }
 
 func NewDialectGoRedisV9(ctx context.Context, client *v9redis.Client) (dialect.Dialect, error) {
@@ -25,5 +25,5 @@ func NewDialectGoRedisV9(ctx context.Context, client *v9redis.Client) (dialect.D
 		return nil, fmt.Errorf("ping: %w", err)
 	}
 
-	return &v9{V9: &goredis.V9{Client: client}}, nil
+	return &sourceDialect{client: &goredis.V9{Client: client}}, nil
 }
