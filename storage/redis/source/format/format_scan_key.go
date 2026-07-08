@@ -39,5 +39,5 @@ func (f *scanKeyFormat) FetchLen(_ context.Context, _ dialect.Dialect) (int64, e
 }
 
 func (f *scanKeyFormat) Copy(items []string) []string {
-	return tool.CopyStrings(items)
+	return tool.CopySliceString(items)
 }

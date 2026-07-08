@@ -109,6 +109,10 @@ func (d *Memory[E]) Items() []E {
 	return d.items
 }
 
+func (d *Memory[E]) Copy(items []E) []E {
+	return d.format.Copy(items)
+}
+
 func (d *Memory[E]) Close() error {
 	return nil
 }

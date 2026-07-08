@@ -33,5 +33,5 @@ func (f *stringFormat) Scan(_ string, id *int64, amount int64) (*int64, []string
 }
 
 func (f *stringFormat) Copy(items []string) []string {
-	return tool.CopyStrings(items)
+	return tool.CopySliceString(items)
 }

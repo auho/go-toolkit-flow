@@ -11,7 +11,8 @@ import "context"
 //
 // Thread safety: each Destination is called serially by a single output-forwarder
 // goroutine (one per group). Implementations do not need to be safe for concurrent
-// Receive calls unless used inside a MultiDestination with shared sub-destinations.
+// Receive calls. When used inside a MultiDestination, items are deep-copied per
+// sub-destination via Copy, so sub-destinations receive independent data.
 type Destination[E Entry] interface {
 	// Prepare initializes the destination (e.g. opens connections, creates tables).
 	Prepare(ctx context.Context) error
@@ -33,6 +34,11 @@ type Destination[E Entry] interface {
 
 	// Close releases resources (e.g. database connections).
 	Close() error
+
+	// Copy creates a deep copy of the given items slice.
+	// Used by MultiDestination to provide independent copies to each
+	// sub-destination, avoiding data races on shared reference-type items.
+	Copy([]E) []E
 
 	// Summary returns human-readable summary lines for display.
 	Summary() []string

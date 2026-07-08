@@ -149,6 +149,10 @@ func (b *Bulk[E]) init() error {
 	return nil
 }
 
+func (b *Bulk[E]) Copy(items []E) []E {
+	return b.format.Copy(items)
+}
+
 func (b *Bulk[E]) writeBatch(items []E) error {
 	ctx, cancel := context.WithTimeout(context.Background(), b.config.TimeoutDuration)
 	defer cancel()

@@ -28,8 +28,8 @@ func CopySliceSlice[E any](items [][]E) [][]E {
 	return newItems
 }
 
-// CopyStrings returns a deep copy of a string slice.
-func CopyStrings(items []string) []string {
+// CopySliceString returns a deep copy of a string slice.
+func CopySliceString(items []string) []string {
 	newItems := make([]string, len(items))
 	copy(newItems, items)
 	return newItems

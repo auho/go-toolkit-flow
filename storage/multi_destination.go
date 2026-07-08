@@ -7,9 +7,12 @@ import (
 
 // MultiDestination fans out to multiple Destinations, analogous to io.MultiWriter.
 // All Destination methods iterate through sub-destinations in order.
-// Receive forwards items sequentially; if any sub-destination returns an error,
-// the remaining sub-destinations are skipped and the error is propagated immediately.
-// Use for "one runner → many destinations" (fan-out) scenarios.
+// Receive and Close use best-effort semantics: all sub-destinations are attempted
+// even if one fails, and errors are collected via errors.Join.
+// Prepare and Finish use fail-fast semantics: the first error stops iteration.
+// Receive deep-copies items for each sub-destination via Copy, so sub-destinations
+// receive independent data and can process them concurrently without data races.
+// Use for "one runner -> many destinations" (fan-out) scenarios.
 // For consumer paths with no destination, use NoopDestination instead.
 type MultiDestination[E Entry] []Destination[E]
 
@@ -33,13 +36,23 @@ func (md MultiDestination[E]) Accept() {
 }
 
 func (md MultiDestination[E]) Receive(items []E) error {
-	for _, d := range md {
-		if err := d.Receive(items); err != nil {
-			return err
+	var errs []error
+	for i, d := range md {
+		// Deep-copy items for all sub-destinations except the last one,
+		// which receives the original slice. This ensures each sub-destination's
+		// async write goroutine operates on independent data.
+		var itemsCopy []E
+		if i < len(md)-1 {
+			itemsCopy = d.Copy(items)
+		} else {
+			itemsCopy = items
+		}
+		if err := d.Receive(itemsCopy); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (md MultiDestination[E]) Done() {
@@ -67,6 +80,13 @@ func (md MultiDestination[E]) Close() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+func (md MultiDestination[E]) Copy(items []E) []E {
+	if len(md) == 0 {
+		return nil
+	}
+	return md[0].Copy(items)
 }
 
 func (md MultiDestination[E]) Summary() []string {

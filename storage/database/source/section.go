@@ -77,7 +77,7 @@ func (s *Section[E]) Scan() {
 	s.state.MarkAsScanning()
 	s.state.DurationStart()
 
-	go s.dispatchSegments()
+	s.scanGroup.Go(s.dispatchSegments)
 	s.scanRows()
 }
 
@@ -98,10 +98,10 @@ func (s *Section[E]) Finish() error {
 // dispatchSegments splits the [startID, endID] range into PageSize-sized
 // segments and sends them to segmentChan.
 // Concurrency model:
-//   - Runs in a single goroutine launched by Scan
+//   - Runs as a scanGroup goroutine registered by Scan
 //   - Sends are cancelled when scanCtx is done
 //   - Closes segmentChan on exit
-func (s *Section[E]) dispatchSegments() {
+func (s *Section[E]) dispatchSegments() error {
 	defer close(s.segmentChan)
 
 	startID := s.startID
@@ -114,7 +114,7 @@ func (s *Section[E]) dispatchSegments() {
 
 		select {
 		case <-s.scanCtx.Done():
-			return
+			return nil
 		case s.segmentChan <- []int64{startID, rightID}:
 		}
 
@@ -124,6 +124,8 @@ func (s *Section[E]) dispatchSegments() {
 
 		startID += s.config.PageSize
 	}
+
+	return nil
 }
 
 // scanRows reads segment ranges from segmentChan and queries data for each.

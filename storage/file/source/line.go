@@ -133,7 +133,7 @@ func (l *Line) StateString() []string {
 }
 
 func (l *Line) Copy(items []string) []string {
-	return tool.CopyStrings(items)
+	return tool.CopySliceString(items)
 }
 
 func (l *Line) title() string {

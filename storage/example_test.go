@@ -89,6 +89,11 @@ func (s *spyDest) Prepare(_ context.Context) error { return nil }
 func (s *spyDest) Accept()                         {}
 func (s *spyDest) Receive(_ []string) error        { return nil }
 func (s *spyDest) Done()                           {}
+func (s *spyDest) Copy(items []string) []string {
+	cp := make([]string, len(items))
+	copy(cp, items)
+	return cp
+}
 func (s *spyDest) Finish() error                   { return nil }
 func (s *spyDest) Close() error                    { return nil }
 func (s *spyDest) Summary() []string               { return []string{s.name} }

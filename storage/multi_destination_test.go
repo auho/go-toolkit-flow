@@ -39,6 +39,12 @@ func (s *spyDestination) Done() {
 	s.doneCount++
 }
 
+func (s *spyDestination) Copy(items []string) []string {
+	cp := make([]string, len(items))
+	copy(cp, items)
+	return cp
+}
+
 func (s *spyDestination) Finish() error {
 	s.finished = true
 	return s.finishErr
@@ -149,8 +155,8 @@ func TestMultiDestination_Receive_OneFails(t *testing.T) {
 	if len(d1.received) != 1 {
 		t.Errorf("d1.received count = %d, want 1", len(d1.received))
 	}
-	if len(d2.received) != 0 {
-		t.Error("d2.received should be empty (short-circuit expected)")
+	if len(d2.received) != 1 {
+		t.Error("d2.received should have 1 batch (best-effort: all destinations attempted)")
 	}
 }
 

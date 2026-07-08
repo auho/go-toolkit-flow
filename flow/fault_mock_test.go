@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/tool"
 	testutilprocessor "github.com/auho/go-toolkit-flow/v3/internal/testutil/processor"
 )
 
@@ -287,6 +288,10 @@ func (d *faultDestination) Finish() error {
 func (d *faultDestination) Close() error {
 	d.closeCalled.Add(1)
 	return d.cfg.closeErr
+}
+
+func (d *faultDestination) Copy(items []storage.MapEntry) []storage.MapEntry {
+	return tool.CopySliceMap[any](items)
 }
 
 func (d *faultDestination) Summary() []string {

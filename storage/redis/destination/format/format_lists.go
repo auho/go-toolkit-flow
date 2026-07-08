@@ -31,5 +31,5 @@ func (f *listsFormat) FetchLen(ctx context.Context, d dialect.Dialect) (int64, e
 }
 
 func (f *listsFormat) Copy(items []string) []string {
-	return tool.CopyStrings(items)
+	return tool.CopySliceString(items)
 }

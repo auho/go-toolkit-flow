@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
+	"github.com/auho/go-toolkit-flow/v3/storage/tool"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -121,6 +122,10 @@ func (l *Line) Close() error {
 		return fmt.Errorf("flush: %w", err)
 	}
 	return l.f.Close()
+}
+
+func (l *Line) Copy(items []string) []string {
+	return tool.CopySliceString(items)
 }
 
 func (l *Line) Summary() []string {
