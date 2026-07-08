@@ -29,7 +29,9 @@ func (f *listsFormat) ScanByRange(ctx context.Context, d dialect.Dialect, cursor
 	}
 
 	// For lists, cursor is offset-based.
-	// When no items are returned, signal completion with cursor=0.
+	// Empty result and 0-cursor both mean "no more data"; the Iterator
+	// in iterate.go treats newCursor == 0 as the termination signal,
+	// so returning 0 here is correct (it is not an error).
 	if len(items) == 0 {
 		return items, 0, nil
 	}

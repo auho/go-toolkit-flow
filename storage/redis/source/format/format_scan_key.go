@@ -22,7 +22,7 @@ func (f *scanKeyFormat) Type() string {
 }
 
 func (f *scanKeyFormat) Key() string {
-	return ""
+	return f.key
 }
 
 func (f *scanKeyFormat) Check() error {
