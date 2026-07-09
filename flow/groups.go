@@ -44,12 +44,13 @@ func (gs *groups[SE, DE]) TotalRunners() int {
 // Uses errgroup.WithContext for fail-fast: the first error cancels remaining
 // groups' runner preparation. destCtx is unaffected (derives from rootCtx).
 func (gs *groups[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
-	g, ctx := errgroup.WithContext(runnerCtx)
+	g, _ := errgroup.WithContext(runnerCtx)
 	for _, grp := range *gs {
 		g.Go(func() error {
-			return grp.Prepare(ctx, destCtx)
+			return grp.Prepare(runnerCtx, destCtx)
 		})
 	}
+
 	return g.Wait()
 }
 

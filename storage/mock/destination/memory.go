@@ -47,92 +47,92 @@ func NewMemory[E storage.Entry](f format.Format[E]) *Memory[E] {
 	return d
 }
 
-func (d *Memory[E]) Prepare(ctx context.Context) error {
-	d.state.MarkAsPrepare()
-	d.writeGroup, d.writeCtx = errgroup.WithContext(ctx)
+func (m *Memory[E]) Prepare(ctx context.Context) error {
+	m.state.MarkAsPrepare()
+	m.writeGroup, m.writeCtx = errgroup.WithContext(ctx)
 	return nil
 }
 
 // Accept creates the items channel and starts a goroutine that counts
 // received items by draining the channel.
-func (d *Memory[E]) Accept() {
-	d.state.MarkAsAccepted()
-	d.state.DurationStart()
-	d.itemsChan = make(chan []E)
+func (m *Memory[E]) Accept() {
+	m.state.MarkAsAccepted()
+	m.state.DurationStart()
+	m.itemsChan = make(chan []E)
 
-	d.writeGroup.Go(func() error {
+	m.writeGroup.Go(func() error {
 		for {
 			select {
-			case <-d.writeCtx.Done():
+			case <-m.writeCtx.Done():
 				return nil
-			case items, ok := <-d.itemsChan:
+			case items, ok := <-m.itemsChan:
 				if !ok {
 					return nil
 				}
-				d.state.AddAmount(int64(len(items)))
-				d.items = append(d.items, items...)
+				m.state.AddAmount(int64(len(items)))
+				m.items = append(m.items, items...)
 			}
 		}
 	})
 }
 
-func (d *Memory[E]) Receive(items []E) error {
+func (m *Memory[E]) Receive(items []E) error {
 	select {
-	case <-d.writeCtx.Done():
-		return fmt.Errorf("receive: writeCtx cancelled: %w", d.writeCtx.Err())
-	case d.itemsChan <- items:
+	case <-m.writeCtx.Done():
+		return fmt.Errorf("receive: writeCtx cancelled: %w", m.writeCtx.Err())
+	case m.itemsChan <- items:
 	}
 	return nil
 }
 
 // Done closes the items channel. Uses CAS to ensure idempotency:
 // subsequent calls are no-ops.
-func (d *Memory[E]) Done() {
-	if !d.isDone.CompareAndSwap(false, true) {
+func (m *Memory[E]) Done() {
+	if !m.isDone.CompareAndSwap(false, true) {
 		return
 	}
 
-	d.state.MarkAsDone()
+	m.state.MarkAsDone()
 
-	close(d.itemsChan)
+	close(m.itemsChan)
 }
 
 // Finish waits for the counter goroutine to exit after the channel is closed.
-func (d *Memory[E]) Finish() error {
-	err := d.writeGroup.Wait()
+func (m *Memory[E]) Finish() error {
+	err := m.writeGroup.Wait()
 
-	d.state.DurationStop()
-	d.state.MarkAsFinished()
+	m.state.DurationStop()
+	m.state.MarkAsFinished()
 
 	return err
 }
 
-func (d *Memory[E]) Summary() []string {
-	return []string{d.title()}
+func (m *Memory[E]) Summary() []string {
+	return []string{m.title()}
 }
 
-func (d *Memory[E]) State() storage.State {
-	return d.state
+func (m *Memory[E]) State() storage.State {
+	return m.state
 }
 
-func (d *Memory[E]) StateString() []string {
-	return []string{d.state.Overview()}
+func (m *Memory[E]) StateString() []string {
+	return []string{m.state.Overview()}
 }
 
 // Items returns all received items. Must be called after Finish() to ensure
 // all data has been collected by the drain goroutine.
-func (d *Memory[E]) Items() []E {
-	return d.items
+func (m *Memory[E]) Items() []E {
+	return m.items
 }
 
-func (d *Memory[E]) Copy(items []E) []E {
-	return d.format.Copy(items)
+func (m *Memory[E]) Copy(items []E) []E {
+	return m.format.Copy(items)
 }
 
-func (d *Memory[E]) Close() error {
+func (m *Memory[E]) Close() error {
 	return nil
 }
 
-func (d *Memory[E]) title() string {
-	return fmt.Sprintf("Destination mock[%s]", d.format.Type())
+func (m *Memory[E]) title() string {
+	return fmt.Sprintf("Destination mock[%s]", m.format.Type())
 }

@@ -1,6 +1,7 @@
 package flow
 
 import (
+	sort "sort"
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/v3/exec"
@@ -289,16 +290,18 @@ func TestFlow_MultiGroup(t *testing.T) {
 		),
 	}
 
-	if err := RunFlow(opts...); err != nil {
+	if err = RunFlow(opts...); err != nil {
 		t.Fatal(err)
 	}
 
 	if src.State().Amount() != total {
 		t.Errorf("source amount = %d, want %d", src.State().Amount(), total)
 	}
+
 	if dest1.State().Amount() != total {
 		t.Errorf("dest1 amount = %d, want %d", dest1.State().Amount(), total)
 	}
+
 	if dest2.State().Amount() != total {
 		t.Errorf("dest2 amount = %d, want %d", dest2.State().Amount(), total)
 	}
@@ -310,6 +313,14 @@ func TestFlow_MultiGroup(t *testing.T) {
 		t.Fatalf("items length mismatch: dest1=%d, dest2=%d", len(items1), len(items2))
 	}
 
+	sort.SliceStable(items1, func(i, j int) bool {
+		return items1[i]["id"].(int64) <= items1[j]["id"].(int64)
+	})
+
+	sort.SliceStable(items2, func(i, j int) bool {
+		return items2[i]["id"].(int64) <= items2[j]["id"].(int64)
+	})
+
 	mismatchCount := 0
 	for i := range items1 {
 		id1, ok1 := items1[i]["id"].(int64)
@@ -318,6 +329,7 @@ func TestFlow_MultiGroup(t *testing.T) {
 			mismatchCount++
 		}
 	}
+
 	if mismatchCount > 0 {
 		t.Errorf("items mismatch between dest1 and dest2: %d items differ", mismatchCount)
 	}
