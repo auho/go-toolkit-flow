@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	gosqlmysql "github.com/go-sql-driver/mysql"
+
 	simpledb "github.com/auho/go-simple-db/v3"
 	mysqlgorm "github.com/auho/go-simple-db/v3/driver/mysql/gorm"
 	"gorm.io/gorm"
@@ -31,7 +33,13 @@ func mustGetEnv(key string) string {
 }
 
 func InitDB() (*gorm.DB, *simpledb.SimpleDB) {
-	dsn := mustGetEnv("TEST_MYSQL_DSN") + "/" + dbName
+	rawDsn := mustGetEnv("TEST_MYSQL_DSN")
+	cfg, err := gosqlmysql.ParseDSN(rawDsn)
+	if err != nil {
+		log.Fatalf("ParseDSN: %v", err)
+	}
+	cfg.DBName = dbName
+	dsn := cfg.FormatDSN()
 
 	dbc := &gorm.Config{
 		Logger: logger.New(
