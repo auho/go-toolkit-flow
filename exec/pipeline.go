@@ -25,28 +25,28 @@ type stageRunner struct {
 	output   func() []string
 }
 
-// MultiStageBuilder constructs a multi-stage Runner with compile-time type safety.
+// PipelineBuilder constructs a Pipeline Runner with compile-time type safety.
 // SE is the source element type (first stage input).
 // DE is the current output type (evolves with each Stage call).
-type MultiStageBuilder[SE, DE storage.Entry] struct {
+type PipelineBuilder[SE, DE storage.Entry] struct {
 	stages []stageRunner
 }
 
-// NewMultiStage creates a new builder with the given source type.
-func NewMultiStage[SE storage.Entry]() *MultiStageBuilder[SE, SE] {
-	return &MultiStageBuilder[SE, SE]{}
+// NewPipeline creates a new pipeline builder with the given source type.
+func NewPipeline[SE storage.Entry]() *PipelineBuilder[SE, SE] {
+	return &PipelineBuilder[SE, SE]{}
 }
 
-// Stage adds a processing stage to the builder.
+// Stage adds a processing stage to the pipeline builder.
 // The runner must accept DE (current output type) and produce DE2 (new output type).
 // Type parameters are inferred from the runner argument.
 //
 // This is a function (not a method) because Go methods cannot have
 // additional type parameters beyond the receiver's.
 func Stage[SE, DE, DE2 storage.Entry](
-	b *MultiStageBuilder[SE, DE],
+	b *PipelineBuilder[SE, DE],
 	r Runner[DE, DE2],
-) *MultiStageBuilder[SE, DE2] {
+) *PipelineBuilder[SE, DE2] {
 	var outOnce sync.Once
 	var bridged <-chan any
 
@@ -79,18 +79,19 @@ func Stage[SE, DE, DE2 storage.Entry](
 	stages := make([]stageRunner, len(b.stages), len(b.stages)+1)
 	copy(stages, b.stages)
 	stages = append(stages, s)
-	return &MultiStageBuilder[SE, DE2]{stages: stages}
+	return &PipelineBuilder[SE, DE2]{stages: stages}
 }
 
-// Build creates the multi-stage Runner.
-func (b *MultiStageBuilder[SE, DE]) Build() Runner[SE, DE] {
-	return &multiStageRunner[SE, DE]{stages: b.stages}
+// Build creates the Pipeline Runner.
+func (b *PipelineBuilder[SE, DE]) Build() Runner[SE, DE] {
+	return &pipelineRunner[SE, DE]{stages: b.stages}
 }
 
-// multiStageRunner chains multiple Runners as stages.
+// pipelineRunner is the Pipeline path implementation of Runner.
+// It chains multiple Runners as stages.
 // It implements Runner[SE, DE] where SE is the first stage's input type
 // and DE is the last stage's output type.
-type multiStageRunner[SE, DE storage.Entry] struct {
+type pipelineRunner[SE, DE storage.Entry] struct {
 	stages      []stageRunner
 	ctx         context.Context
 	bridgeWG    sync.WaitGroup
@@ -98,9 +99,9 @@ type multiStageRunner[SE, DE storage.Entry] struct {
 	outChan     <-chan []DE
 }
 
-var _ Runner[string, string] = (*multiStageRunner[string, string])(nil)
+var _ Runner[string, string] = (*pipelineRunner[string, string])(nil)
 
-func (r *multiStageRunner[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
+func (r *pipelineRunner[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
 	r.ctx = runnerCtx
 
 	for i, s := range r.stages {
@@ -112,7 +113,7 @@ func (r *multiStageRunner[SE, DE]) Prepare(runnerCtx, destCtx context.Context) e
 	return nil
 }
 
-func (r *multiStageRunner[SE, DE]) Start() {
+func (r *pipelineRunner[SE, DE]) Start() {
 	for _, s := range r.stages {
 		s.start()
 	}
@@ -135,15 +136,15 @@ func (r *multiStageRunner[SE, DE]) Start() {
 	}
 }
 
-func (r *multiStageRunner[SE, DE]) Receive(items []SE) {
+func (r *pipelineRunner[SE, DE]) Receive(items []SE) {
 	r.stages[0].receive(items)
 }
 
-func (r *multiStageRunner[SE, DE]) Done() {
+func (r *pipelineRunner[SE, DE]) Done() {
 	r.stages[0].done()
 }
 
-func (r *multiStageRunner[SE, DE]) Finish() error {
+func (r *pipelineRunner[SE, DE]) Finish() error {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	var errs []error
@@ -164,7 +165,7 @@ func (r *multiStageRunner[SE, DE]) Finish() error {
 	return errors.Join(errs...)
 }
 
-func (r *multiStageRunner[SE, DE]) OutChan() <-chan []DE {
+func (r *pipelineRunner[SE, DE]) OutChan() <-chan []DE {
 	r.outChanOnce.Do(func() {
 		src := r.stages[len(r.stages)-1].outChan()
 		ch := make(chan []DE, cap(src))
@@ -179,7 +180,7 @@ func (r *multiStageRunner[SE, DE]) OutChan() <-chan []DE {
 	return r.outChan
 }
 
-func (r *multiStageRunner[SE, DE]) Close() error {
+func (r *pipelineRunner[SE, DE]) Close() error {
 	var errs []error
 	for i, s := range r.stages {
 		if err := s.close(); err != nil {
@@ -189,11 +190,11 @@ func (r *multiStageRunner[SE, DE]) Close() error {
 	return errors.Join(errs...)
 }
 
-func (r *multiStageRunner[SE, DE]) Destinations() []storage.Destination[DE] {
+func (r *pipelineRunner[SE, DE]) Destinations() []storage.Destination[DE] {
 	return nil
 }
 
-func (r *multiStageRunner[SE, DE]) Summary() []string {
+func (r *pipelineRunner[SE, DE]) Summary() []string {
 	var lines []string
 	for i, s := range r.stages {
 		lines = append(lines, fmt.Sprintf("  Stage %d:", i))
@@ -202,7 +203,7 @@ func (r *multiStageRunner[SE, DE]) Summary() []string {
 	return lines
 }
 
-func (r *multiStageRunner[SE, DE]) StateString() []string {
+func (r *pipelineRunner[SE, DE]) StateString() []string {
 	var lines []string
 	for _, s := range r.stages {
 		lines = append(lines, s.stateStr()...)
@@ -210,7 +211,7 @@ func (r *multiStageRunner[SE, DE]) StateString() []string {
 	return lines
 }
 
-func (r *multiStageRunner[SE, DE]) Output() []string {
+func (r *pipelineRunner[SE, DE]) Output() []string {
 	var lines []string
 	for _, s := range r.stages {
 		lines = append(lines, s.output()...)

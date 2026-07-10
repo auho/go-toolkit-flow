@@ -74,14 +74,14 @@
 //
 // # Multi-Stage Pipeline
 //
-// A multi-stage pipeline chains multiple Runners as stages, where each
+// A pipeline chains multiple Runners as stages, where each
 // stage's output feeds the next stage's input. This is achieved by
-// [exec.NewMultiStage] and [exec.Stage], which build an [exec.Runner]
+// [exec.NewPipeline] and [exec.Stage], which build an [exec.Runner]
 // that internally chains sub-runners with type erasure:
 //
 //	Source -> Stage1(E1->E2) -> Stage2(E2->E3) -> ... -> Destination
 //
-// The multi-stage runner implements [exec.Runner] directly, so it can be
+// The pipeline runner implements [exec.Runner] directly, so it can be
 // passed to WithGroup like any simple runner. Branching (fan-out to
 // multiple pipelines) is achieved by placing multiple runners in a group.
 package flow

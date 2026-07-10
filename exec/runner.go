@@ -2,11 +2,11 @@
 // It provides Runner (single task) and Runners (collection) that bind an
 // Executor adapter with a Processor, managing the lifecycle:
 //
-//	Prepare → Start (worker goroutines) → Receive → Done → Finish → Close
+//	Prepare -> Start (worker goroutines) -> Receive -> Done -> Finish -> Close
 //
 // Data flow:
 //
-//	inChan → [worker goroutines: executor.Exec] → outChan
+//	inChan -> [worker goroutines: executor.Exec] -> outChan
 package exec
 
 import (
@@ -19,7 +19,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var _ Runner[string, string] = (*runner[string, string])(nil)
+var _ Runner[string, string] = (*fanOutRunner[string, string])(nil)
 
 // Executor unifies consumer and producer processing strategies.
 // SE is the source element type; DE is the destination element type.
@@ -48,7 +48,7 @@ type Runner[SE, DE storage.Entry] interface {
 	Destinations() []storage.Destination[DE]
 }
 
-// runner implements Runner. It binds an Executor (processing strategy) with
+// fanOutRunner is the Fan-out path implementation of Runner. It binds an Executor (processing strategy) with
 // a Processor (lifecycle + state management) and manages concurrent workers
 // via errgroup.
 //
@@ -59,7 +59,7 @@ type Runner[SE, DE storage.Entry] interface {
 //   - Finish waits for all workers (errgroup.Wait), then closes outChan
 //   - If any worker returns an error, the errgroup cancels the context,
 //     causing other workers to exit early
-type runner[SE, DE storage.Entry] struct {
+type fanOutRunner[SE, DE storage.Entry] struct {
 	total    int64
 	amount   int64
 	affected int64
@@ -88,7 +88,7 @@ type runner[SE, DE storage.Entry] struct {
 // its internal destinations in Prepare (after processor.Prepare succeeds)
 // and exposes them via Destinations() for flow to manage their lifecycle.
 func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], p processor.Processor[SE]) Runner[SE, DE] {
-	r := &runner[SE, DE]{}
+	r := &fanOutRunner[SE, DE]{}
 	r.executor = e
 	r.processor = p
 	r.inChan = make(chan []SE, p.Concurrency())
@@ -98,8 +98,8 @@ func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], p processor.Processor[S
 }
 
 // Prepare initializes the processor and creates the errgroup context.
-// Calls processor.Prepare → (collect internal destinations) → processor.BeforeRun in sequence.
-func (r *runner[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
+// Calls processor.Prepare -> (collect internal destinations) -> processor.BeforeRun in sequence.
+func (r *fanOutRunner[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
 	err := r.processor.Prepare()
 	if err != nil {
 		return fmt.Errorf("processor.Prepare: %w", err)
@@ -127,7 +127,7 @@ func (r *runner[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
 
 // Receive sends items to the inChan. Non-blocking: if the context is cancelled
 // (e.g. due to a worker error), the items are dropped.
-func (r *runner[SE, DE]) Receive(items []SE) {
+func (r *fanOutRunner[SE, DE]) Receive(items []SE) {
 	select {
 	case <-r.startCtx.Done():
 	case r.inChan <- items:
@@ -137,7 +137,7 @@ func (r *runner[SE, DE]) Receive(items []SE) {
 // Start launches worker goroutines that read from inChan, call executor.Exec,
 // and write produced data to outChan. The number of workers equals
 // processor.Concurrency().
-func (r *runner[SE, DE]) Start() {
+func (r *fanOutRunner[SE, DE]) Start() {
 	for i := 0; i < r.processor.Concurrency(); i++ {
 		r.startGroup.Go(func() error {
 			for {
@@ -174,7 +174,7 @@ func (r *runner[SE, DE]) Start() {
 // Done closes inChan, signaling workers that no more data will be sent.
 // Uses CAS to ensure idempotency: subsequent calls are no-ops (mirrors
 // destination Bulk.Done behavior).
-func (r *runner[SE, DE]) Done() {
+func (r *fanOutRunner[SE, DE]) Done() {
 	if !r.isDone.CompareAndSwap(false, true) {
 		return
 	}
@@ -185,7 +185,7 @@ func (r *runner[SE, DE]) Done() {
 // Finish waits for all workers to complete, closes outChan, and calls
 // processor.AfterRun. Returns an error if any worker failed or if
 // AfterRun returns an error.
-func (r *runner[SE, DE]) Finish() error {
+func (r *fanOutRunner[SE, DE]) Finish() error {
 	defer close(r.outChan)
 
 	err := r.startGroup.Wait()
@@ -201,24 +201,24 @@ func (r *runner[SE, DE]) Finish() error {
 	return nil
 }
 
-func (r *runner[SE, DE]) Close() error {
+func (r *fanOutRunner[SE, DE]) Close() error {
 	return r.processor.Close()
 }
 
-func (r *runner[SE, DE]) Summary() []string {
+func (r *fanOutRunner[SE, DE]) Summary() []string {
 	return []string{r.processor.Summary()}
 }
 
-func (r *runner[SE, DE]) StateString() []string {
+func (r *fanOutRunner[SE, DE]) StateString() []string {
 	r.processor.AppendState()
 	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.processor.StateString()...)
 }
 
-func (r *runner[SE, DE]) Output() []string {
+func (r *fanOutRunner[SE, DE]) Output() []string {
 	return r.processor.Output()
 }
 
-func (r *runner[SE, DE]) OutChan() <-chan []DE {
+func (r *fanOutRunner[SE, DE]) OutChan() <-chan []DE {
 	return r.outChan
 }
 
@@ -226,6 +226,6 @@ func (r *runner[SE, DE]) OutChan() <-chan []DE {
 // Returns nil for runners whose processor does not implement DestinationHolder.
 // flow uses this (via a type assertion to storage.DestinationHolder) to manage the
 // lifecycle of internal destinations uniformly.
-func (r *runner[SE, DE]) Destinations() []storage.Destination[DE] {
+func (r *fanOutRunner[SE, DE]) Destinations() []storage.Destination[DE] {
 	return r.internalDests
 }

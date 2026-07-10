@@ -34,7 +34,7 @@ func makeStageRunner[SE, DE storage.Entry](fn func(SE) DE) Runner[SE, DE] {
 	return NewRunner[SE, DE](&transformExecutor[SE, DE]{fn: fn}, &simpleProc{})
 }
 
-func TestMultiStage_DataFlow(t *testing.T) {
+func TestPipeline_DataFlow(t *testing.T) {
 	// Stage 1: double id
 	// Stage 2: add 100 to id
 	// Input id=1 -> 2 -> 102
@@ -48,7 +48,7 @@ func TestMultiStage_DataFlow(t *testing.T) {
 		return storage.MapEntry{"id": id + 100}
 	})
 
-	runner := Stage(Stage(NewMultiStage[storage.MapEntry](), r1), r2).Build()
+	runner := Stage(Stage(NewPipeline[storage.MapEntry](), r1), r2).Build()
 
 	ctx := context.Background()
 	if err := runner.Prepare(ctx, ctx); err != nil {
@@ -89,13 +89,13 @@ func TestMultiStage_DataFlow(t *testing.T) {
 	}
 }
 
-func TestMultiStage_SingleStage(t *testing.T) {
+func TestPipeline_SingleStage(t *testing.T) {
 	r1 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
 		id, _ := e["id"].(int)
 		return storage.MapEntry{"id": id + 1}
 	})
 
-	runner := Stage(NewMultiStage[storage.MapEntry](), r1).Build()
+	runner := Stage(NewPipeline[storage.MapEntry](), r1).Build()
 
 	ctx := context.Background()
 	if err := runner.Prepare(ctx, ctx); err != nil {
@@ -127,7 +127,7 @@ func TestMultiStage_SingleStage(t *testing.T) {
 	}
 }
 
-func TestMultiStage_ThreeStages(t *testing.T) {
+func TestPipeline_ThreeStages(t *testing.T) {
 	// Stage 1: +1
 	// Stage 2: *2
 	// Stage 3: +100
@@ -145,7 +145,7 @@ func TestMultiStage_ThreeStages(t *testing.T) {
 		return storage.MapEntry{"id": id + 100}
 	})
 
-	runner := Stage(Stage(Stage(NewMultiStage[storage.MapEntry](), r1), r2), r3).Build()
+	runner := Stage(Stage(Stage(NewPipeline[storage.MapEntry](), r1), r2), r3).Build()
 
 	ctx := context.Background()
 	if err := runner.Prepare(ctx, ctx); err != nil {
@@ -181,7 +181,7 @@ func TestMultiStage_ThreeStages(t *testing.T) {
 	}
 }
 
-func TestMultiStage_CascadingShutdown(t *testing.T) {
+func TestPipeline_CascadingShutdown(t *testing.T) {
 	r1 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
 		return storage.MapEntry{"id": e["id"]}
 	})
@@ -189,7 +189,7 @@ func TestMultiStage_CascadingShutdown(t *testing.T) {
 		return storage.MapEntry{"id": e["id"]}
 	})
 
-	runner := Stage(Stage(NewMultiStage[storage.MapEntry](), r1), r2).Build()
+	runner := Stage(Stage(NewPipeline[storage.MapEntry](), r1), r2).Build()
 
 	ctx := context.Background()
 	if err := runner.Prepare(ctx, ctx); err != nil {
@@ -216,24 +216,24 @@ func TestMultiStage_CascadingShutdown(t *testing.T) {
 	defer runner.Close()
 }
 
-func TestMultiStage_Destinations_ReturnsNil(t *testing.T) {
+func TestPipeline_Destinations_ReturnsNil(t *testing.T) {
 	r1 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
 		return e
 	})
 
-	runner := Stage(NewMultiStage[storage.MapEntry](), r1).Build()
+	runner := Stage(NewPipeline[storage.MapEntry](), r1).Build()
 
 	if dests := runner.Destinations(); dests != nil {
 		t.Fatalf("expected nil, got %v", dests)
 	}
 }
 
-func TestMultiStage_Summary(t *testing.T) {
+func TestPipeline_Summary(t *testing.T) {
 	r1 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
 		return e
 	})
 
-	runner := Stage(NewMultiStage[storage.MapEntry](), r1).Build()
+	runner := Stage(NewPipeline[storage.MapEntry](), r1).Build()
 
 	ctx := context.Background()
 	_ = runner.Prepare(ctx, ctx)
@@ -252,14 +252,14 @@ func TestMultiStage_Summary(t *testing.T) {
 	defer runner.Close()
 }
 
-func TestMultiStageBuilder_TypeInference(t *testing.T) {
+func TestPipelineBuilder_TypeInference(t *testing.T) {
 	// Verify that type parameters are inferred correctly at compile time
 	r1 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
 		return e
 	})
 
 	// This should compile without explicit type parameters
-	runner := Stage(NewMultiStage[storage.MapEntry](), r1).Build()
+	runner := Stage(NewPipeline[storage.MapEntry](), r1).Build()
 
 	// Verify it implements Runner
 	var _ Runner[storage.MapEntry, storage.MapEntry] = runner
