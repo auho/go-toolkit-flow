@@ -29,7 +29,7 @@ func TestRunner_Prepare_Success(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestRunner_Prepare_ProcessorPrepareError(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
@@ -63,7 +63,7 @@ func TestRunner_Prepare_BeforeRunError(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
@@ -82,7 +82,7 @@ func TestRunner_ReceiveAndStart(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestRunner_Start_ExecError(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, &mockProcessor[storage.MapEntry]{})
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestRunner_Finish_Success(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestRunner_Done(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestRunner_Finish_AfterRunError(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestRunner_State(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestRunner_Output(t *testing.T) {
 	r := NewRunner[storage.MapEntry, storage.MapEntry](executor, p)
 
 	ctx := context.Background()
-	err := r.Prepare(ctx)
+	err := r.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}

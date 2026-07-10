@@ -61,7 +61,7 @@ func TestRunners_Prepare_AllSuccess(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestRunners_Prepare_OneFails(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
@@ -105,7 +105,7 @@ func TestRunners_Start(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestRunners_Receive_Single(t *testing.T) {
 	rs.Add(newMockRunner[storage.MapEntry, storage.MapEntry](exec1, p1))
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestRunners_Receive_Multi(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestRunners_Done(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -221,7 +221,7 @@ func TestRunners_Finish_AllSuccess(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestRunners_Finish_OneFails(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -330,7 +330,7 @@ func TestRunners_State(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}
@@ -366,7 +366,7 @@ func TestRunners_Output(t *testing.T) {
 	)
 
 	ctx := context.Background()
-	err := rs.Prepare(ctx)
+	err := rs.Prepare(ctx, ctx)
 	if err != nil {
 		t.Fatalf("Prepare should succeed, got: %v", err)
 	}

@@ -35,7 +35,7 @@ type Executor[SE, DE storage.Entry] interface {
 
 // Runner defines the lifecycle interface for an executable task.
 type Runner[SE, DE storage.Entry] interface {
-	Prepare(ctx context.Context) error // preparation before processing data
+	Prepare(runnerCtx, destCtx context.Context) error // preparation before processing data
 	Receive([]SE)                      // receive data asynchronously
 	Start()                            // start processing data
 	Done()                             // triggered after upstream data processing
@@ -99,7 +99,7 @@ func NewRunner[SE, DE storage.Entry](e Executor[SE, DE], p processor.Processor[S
 
 // Prepare initializes the processor and creates the errgroup context.
 // Calls processor.Prepare → (collect internal destinations) → processor.BeforeRun in sequence.
-func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
+func (r *runner[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
 	err := r.processor.Prepare()
 	if err != nil {
 		return fmt.Errorf("processor.Prepare: %w", err)
@@ -120,7 +120,7 @@ func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 		return fmt.Errorf("processor.BeforeRun: %w", err)
 	}
 
-	r.startGroup, r.startCtx = errgroup.WithContext(ctx)
+	r.startGroup, r.startCtx = errgroup.WithContext(runnerCtx)
 
 	return nil
 }

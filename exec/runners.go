@@ -28,9 +28,9 @@ func (rs *Runners[SE, DE]) Add(r ...Runner[SE, DE]) {
 }
 
 // Prepare prepares all runners sequentially. Returns an error on the first failure.
-func (rs *Runners[SE, DE]) Prepare(ctx context.Context) error {
+func (rs *Runners[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
 	for _, r := range *rs {
-		if err := r.Prepare(ctx); err != nil {
+		if err := r.Prepare(runnerCtx, destCtx); err != nil {
 			return fmt.Errorf("runner.Prepare: %w", err)
 		}
 	}

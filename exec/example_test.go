@@ -37,12 +37,12 @@ func (p *exampleProc) Concurrency() int { return 1 }
 func (p *exampleProc) Summary() string  { return "exampleProc" }
 
 // ExampleNewRunner demonstrates creating a single Runner and driving its
-// full consumer lifecycle: Prepare → Start → Receive → Done → Finish → Close.
+// full consumer lifecycle: Prepare -> Start -> Receive -> Done -> Finish -> Close.
 func ExampleNewRunner() {
 	r := exec.NewRunner[storage.MapEntry, storage.MapEntry](&exampleExecutor{}, &exampleProc{})
 
 	ctx := context.Background()
-	if err := r.Prepare(ctx); err != nil {
+	if err := r.Prepare(ctx, ctx); err != nil {
 		fmt.Println("prepare error:", err)
 		return
 	}
@@ -76,7 +76,7 @@ func ExampleNewRunners() {
 	rs.Add(r1, r2)
 
 	ctx := context.Background()
-	if err := rs.Prepare(ctx); err != nil {
+	if err := rs.Prepare(ctx, ctx); err != nil {
 		fmt.Println("prepare error:", err)
 		return
 	}
@@ -105,7 +105,7 @@ func ExampleRunner_OutChan() {
 	r := exec.NewRunner[storage.MapEntry, storage.MapEntry](&exampleProducerExecutor{}, &exampleProc{})
 
 	ctx := context.Background()
-	if err := r.Prepare(ctx); err != nil {
+	if err := r.Prepare(ctx, ctx); err != nil {
 		fmt.Println("prepare error:", err)
 		return
 	}
