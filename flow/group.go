@@ -58,12 +58,12 @@ func (g *group[SE, DE]) Done() {
 // closes each runner's OutChan.
 //
 // internalDests.Done() is always called, even if runners.Finish fails, to
-// prevent resource leaks (issue #2 fix).
+// prevent resource leaks when a runner fails.
 func (g *group[SE, DE]) Finish() error {
 	err := g.runners.Finish()
 
 	// Always signal internal destinations Done, even on error, to avoid
-	// leaking the drain goroutine (issue #2 fix).
+	// leaking the drain goroutine when a runner fails.
 	g.internalDests.Done()
 
 	if err != nil {
@@ -96,9 +96,10 @@ func (g *group[SE, DE]) Output() []string {
 // Internal destinations are collected from runners after their Prepare succeeds,
 // because a processor may populate its destinations during Prepare.
 //
-// Context split (issue #1 fix): runnerCtx derives from asyncCtx so that worker
-// goroutines respond to fail-fast cancellation. destCtx derives from rootCtx so
-// that destination write contexts retain flush ability after asyncCtx cancels.
+// Context split: runnerCtx derives from asyncCtx so that worker goroutines
+// respond to fail-fast cancellation. destCtx derives from rootCtx so that
+// destination write contexts retain flush ability after asyncCtx cancels.
+// See package documentation for the context hierarchy rationale.
 func (g *group[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
 	if err := g.runners.Prepare(runnerCtx); err != nil {
 		return fmt.Errorf("runners.Prepare: %w", err)

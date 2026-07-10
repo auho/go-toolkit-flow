@@ -92,7 +92,7 @@ func (gs *groups[SE, DE]) Receive(items []SE, copyFn func([]SE) []SE) {
 // Finish waits for all groups' runners to complete processing, then signals
 // Done on all internal destinations (safe because workers have exited).
 // Collects all errors and returns them joined, ensuring every group's Finish
-// is called even if an earlier one fails (issue #2 fix).
+// is called even if an earlier one fails.
 func (gs *groups[SE, DE]) Finish() error {
 	var errs []error
 	for _, g := range *gs {

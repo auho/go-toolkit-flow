@@ -12,30 +12,30 @@ import (
 )
 
 // This file tests deadlock and resource-leak scenarios caused by context
-// misalignment (#1) and Finish ordering (#2) in flow.run().
+// misalignment and Finish ordering in flow.run().
 //
 // Context hierarchy (flow.go:136-167):
 //   - rootCtx: spans full lifecycle (Prepare → Close), cancelled by defer rootCancel()
 //   - asyncCtx: derived from rootCtx via errgroup.WithContext, covers only Phase 3,
 //     cancelled when g.Wait() returns (fail-fast)
 //
-// Issue #1: source.Prepare(rootCtx) and runner.Prepare(rootCtx) bind scanCtx/startCtx
-// to rootCtx, not asyncCtx. When a Phase 3 goroutine fails, asyncCtx is cancelled but
-// source/runner contexts don't respond, causing source scan goroutine to block on
-// itemsChan <- items, source.Finish() to block on scanGroup.Wait(), and g.Wait() to
-// deadlock.
+// Context misalignment: source.Prepare(rootCtx) and runner.Prepare(rootCtx) bind
+// scanCtx/startCtx to rootCtx, not asyncCtx. When a Phase 3 goroutine fails,
+// asyncCtx is cancelled but source/runner contexts don't respond, causing source
+// scan goroutine to block on itemsChan <- items, source.Finish() to block on
+// scanGroup.Wait(), and g.Wait() to deadlock.
 //
-// Issue #2: runners.Finish() executes sequentially; first failure skips subsequent
-// runners' outChan close, leaking resources.
+// Finish ordering: runners.Finish() executes sequentially; first failure skips
+// subsequent runners' outChan close, leaking resources.
 //
 // TDD note: Tests marked as deadlock-expected will FAIL (timeout) before the fix.
-// After fixing #1/#2, all tests should pass within the timeout.
+// After fixing the context misalignment and Finish ordering, all tests pass.
 
 const deadlockTimeout = 3 * time.Second
 
 // runFlowWithTimeout runs RunFlow in a goroutine and fails the test if it
 // does not return within timeout. This catches deadlocks where g.Wait()
-// blocks forever due to ctx misalignment (#1) or Finish ordering (#2).
+// blocks forever due to ctx misalignment or Finish ordering.
 func runFlowWithTimeout(t *testing.T, opts []Option[storage.MapEntry, storage.MapEntry]) error {
 	t.Helper()
 
@@ -118,12 +118,13 @@ func errorContains(t *testing.T, err error, substr string) {
 }
 
 // =====================================================================================
-// T2: runner worker failure (E3 startGroup) — #1 core deadlock
+// T2: runner worker failure (E3 startGroup) - context deadlock
 // =====================================================================================
 
 // TestDeadlock_WorkerExecError verifies that a worker Exec error does not
-// deadlock the flow. Before #1 fix: asyncCtx cancels → transport exits → source
-// scan goroutine blocks on itemsChan → source.Finish blocks → g.Wait() deadlocks.
+// deadlock the flow. Without the two-layer context hierarchy: asyncCtx cancels
+// -> transport exits -> source scan goroutine blocks on itemsChan -> source.Finish
+// blocks -> g.Wait() deadlocks.
 func TestDeadlock_WorkerExecError(t *testing.T) {
 	src := newFaultSource(faultSourceConfig{
 		total:     1000,
@@ -162,18 +163,17 @@ func TestDeadlock_WorkerExecError_MultiWorker(t *testing.T) {
 }
 
 // =====================================================================================
-// T3: processor.AfterRun failure (E1 main g #3) — #1 deadlock + #2 leak
+// T3: processor.AfterRun failure - deadlock + resource leak
 // =====================================================================================
 
 // TestDeadlock_AfterRunError verifies that an AfterRun error does not deadlock
-// or leak. Before fix: runners.Finish sequential → first failure skips subsequent
-// runners' outChan close → #2 leak. OutputForward blocks on un-closed outChan
-// → g.Wait() deadlocks.
+// or leak. Without the fix: runners.Finish sequential -> first failure skips
+// subsequent runners' outChan close -> resource leak. OutputForward blocks on
+// un-closed outChan -> g.Wait() deadlocks.
 //
 // Note: unlike T2/T4/T6, this test does NOT use scanBlock. The AfterRun error
 // only fires after workers complete, which requires the source to finish
-// normally. The deadlock arises from #2 (unclosed outChan), not #1 (source
-// blocking).
+// normally. The deadlock arises from unclosed outChan, not source blocking.
 func TestDeadlock_AfterRunError(t *testing.T) {
 	src := newFaultSource(faultSourceConfig{
 		total:    100,
@@ -188,7 +188,7 @@ func TestDeadlock_AfterRunError(t *testing.T) {
 	err := runFlowWithTimeout(t, buildOptsMultiRunner(src, []*faultProducerItem{proc1, proc2}, dest))
 	errorContains(t, err, "AfterRun")
 
-	// #2 leak assertion: both runners' AfterRun should be called after fix.
+	// Leak assertion: both runners' AfterRun should be called.
 	if proc1.afterRunCalled.Load() != 1 {
 		t.Errorf("proc1.AfterRun called %d times, want 1", proc1.afterRunCalled.Load())
 	}
@@ -198,7 +198,7 @@ func TestDeadlock_AfterRunError(t *testing.T) {
 }
 
 // =====================================================================================
-// T4: destination.Receive failure (E1 main g #4) — #1 variant deadlock
+// T4: destination.Receive failure - context deadlock variant
 // =====================================================================================
 
 // TestDeadlock_DestinationReceiveError verifies that a destination.Receive error
@@ -220,16 +220,15 @@ func TestDeadlock_DestinationReceiveError(t *testing.T) {
 }
 
 // =====================================================================================
-// T6: multi-group destGroup failure (E4) — #1 variant deadlock
+// T6: multi-group destGroup failure - context deadlock variant
 // =====================================================================================
 
 // TestDeadlock_MultiGroupDestError verifies that a destination.Receive error in
 // one of multiple groups does not deadlock. Source completes normally (no
 // scanBlock); the dest error is surfaced via destGroup's errgroup.
 //
-// Note: a scanBlock variant of this test reveals issue #18 (fanIn range loop
-// not checking ctx.Done()), which is a separate issue from #1/#2 and out of
-// scope for this fix.
+// Note: a scanBlock variant of this test reveals a fanIn range loop
+// not checking ctx.Done(), which is a separate concern.
 func TestDeadlock_MultiGroupDestError(t *testing.T) {
 	src := newFaultSource(faultSourceConfig{
 		total:    100,
@@ -253,8 +252,9 @@ func TestDeadlock_MultiGroupDestError(t *testing.T) {
 // TestDeadlock_SourceScanError verifies that a source scan error is properly
 // surfaced. scanErr is injected during scan; the scan goroutine produces 1 batch
 // then exits, so source.Finish returns quickly. With only 1 batch, the pipeline
-// may complete before asyncCtx cancels (race). After #1 fix, this test passes
-// deterministically because workers exit via startCtx.Done() when asyncCtx cancels.
+// may complete before asyncCtx cancels (race). With the two-layer context
+// hierarchy, this test passes deterministically because workers exit via
+// startCtx.Done() when asyncCtx cancels.
 func TestDeadlock_SourceScanError(t *testing.T) {
 	src := newFaultSource(faultSourceConfig{
 		total:   100,
@@ -269,14 +269,14 @@ func TestDeadlock_SourceScanError(t *testing.T) {
 }
 
 // =====================================================================================
-// T5: source.Finish failure (E1 main g #1) — error path, no deadlock expected
+// T5: source.Finish failure (E1 main g) - error path, no deadlock expected
 // =====================================================================================
 
 // TestDeadlock_SourceFinishError verifies that a source.Finish error does not
-// deadlock. Before #1 fix: source.Finish returns error → asyncCtx cancels →
-// fanIn goroutines exit early via ctx.Done() → workers block on outChan<-
-// (no reader, startCtx=rootCtx not cancelled) → runner.Finish blocks on
-// startGroup.Wait() → g.Wait() deadlocks.
+// deadlock. Without the two-layer context hierarchy: source.Finish returns error
+// -> asyncCtx cancels -> fanIn goroutines exit early via ctx.Done() -> workers
+// block on outChan<- (no reader, startCtx=rootCtx not cancelled) -> runner.Finish
+// blocks on startGroup.Wait() -> g.Wait() deadlocks.
 func TestDeadlock_SourceFinishError(t *testing.T) {
 	src := newFaultSource(faultSourceConfig{
 		total:     100,

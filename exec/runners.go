@@ -61,7 +61,7 @@ func (rs *Runners[SE, DE]) Done() {
 
 // Finish waits for all runners to complete. Collects all errors and returns
 // them joined, ensuring every runner's Finish is called even if an earlier one
-// fails (issue #2 fix: prevents outChan leak when a runner fails).
+// fails. This prevents outChan leaks when a runner fails.
 func (rs *Runners[SE, DE]) Finish() error {
 	var errs []error
 	for _, r := range *rs {

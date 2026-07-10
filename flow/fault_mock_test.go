@@ -21,7 +21,7 @@ import (
 //   - Each method has an injectable error field (xxxErr).
 //   - faultSource.scanCtx derives from the ctx passed to Prepare (rootCtx in
 //     flow.run), mirroring real source implementations. This is critical for
-//     reproducing issue #1: scanCtx does NOT respond to asyncCtx cancellation.
+//     reproducing context deadlock: scanCtx does NOT respond to asyncCtx cancellation.
 //   - faultSource.scanBlock allows the scan goroutine to produce one batch then
 //     block, guaranteeing stable deadlock reproduction (no races with scan speed).
 
@@ -108,7 +108,7 @@ func (s *faultSource) Scan() {
 
 		// If scanBlock is set, block here until the channel is closed or
 		// scanCtx is cancelled. This keeps the scan goroutine alive after
-		// transport exits, reproducing the #1 deadlock.
+		// transport exits, reproducing the context deadlock.
 		if s.cfg.scanBlock != nil {
 			select {
 			case <-s.scanCtx.Done():

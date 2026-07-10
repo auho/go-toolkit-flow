@@ -121,40 +121,8 @@ func (f *flow[SE, DE]) check() error {
 }
 
 // run executes the data processing lifecycle.
-//
-// Data flow:
-//
-//	Source → transport(fan-out) → [group1.runners, group2.runners, ...]
-//	                                 ↓ executor.Exec
-//	                           [runner.OutChan, ...]
-//	                                 ↓ per-group fan-in
-//	                           group.destination.Receive
-//	                                 ↓ (MultiDestination fan-out)
-//	                           [sub-dest1, sub-dest2, ...]
-//
-// Lifecycle phases:
-//  1. Prepare: source.Prepare → groups.Prepare (runners + destination)
-//  2. Start:   source.Scan → groups.Start (runners) → groups.Accept (destination)
-//  3. Async:   errgroup { source.Finish, transport, groups.Finish, groups.OutputForward }
-//  4. Finish:  groups.DestinationFinish
-//  5. Close (deferred): source.Close → groups.Close (runners + destination)
-//
-// Context hierarchy (two-layer to avoid flush race in destination workers):
-//   - rootCtx: spans the full lifecycle (Prepare → Close). Destination write
-//     contexts derive from it via groups.Prepare(destCtx=rootCtx), so they
-//     survive g.Wait()'s cancellation of asyncCtx. This ensures destination
-//     workers can flush buffered data during DestinationFinish (Phase 4) without
-//     racing with context cancellation. Without this separation, g.Wait()
-//     cancels writeCtx before DestinationFinish runs, and workers hitting
-//     select { case <-writeCtx.Done(): return; case items, ok := <-itemsChan }
-//     may randomly pick writeCtx.Done() (both cases ready once Done() closes
-//     itemsChan), skipping the flush of buffered items.
-//   - asyncCtx: derived from rootCtx via errgroup.WithContext. Covers Phase 3
-//     (async goroutines) AND the Prepare context for source/runners. Source
-//     scanCtx and runner startCtx derive from asyncCtx so that scan goroutines
-//     and workers respond to fail-fast cancellation (issue #1 fix). Canceled
-//     when g.Wait() returns, enabling fail-fast for transport/OutputForward/
-//     source-scan/runners without affecting destination write contexts.
+// See package documentation for the full lifecycle, context hierarchy,
+// and data flow overview.
 func (f *flow[SE, DE]) run() error {
 	defer f.close()
 
@@ -165,21 +133,18 @@ func (f *flow[SE, DE]) run() error {
 		}),
 	)
 
-	// rootCtx spans the full lifecycle (Prepare → Close). Destination write
-	// contexts derive from rootCtx. See "Context hierarchy" in the function
-	// doc above for why destination write contexts must derive from rootCtx
-	// rather than asyncCtx.
+	// rootCtx spans the full lifecycle. See package documentation for
+	// the context hierarchy rationale.
 	rootCtx, rootCancel := context.WithCancel(context.Background())
 	defer rootCancel()
 
-	// asyncCtx covers Phase 3 and source/runner Prepare; canceled by g.Wait()
-	// for fail-fast. Source scanCtx and runner startCtx derive from asyncCtx
-	// (issue #1 fix) so they respond to fail-fast cancellation.
+	// asyncCtx covers Phase 3 and source/runner Prepare; canceled by
+	// g.Wait() for fail-fast.
 	g, asyncCtx := errgroup.WithContext(rootCtx)
 
 	// === Phase 1: Prepare ===
 	// All Prepare calls are synchronous so that errors are surfaced before any goroutines start.
-	// Source and runners receive asyncCtx so their goroutines respond to fail-fast (issue #1).
+	// Source and runners receive asyncCtx so their goroutines respond to fail-fast.
 	// Destination receives rootCtx so it retains flush ability after asyncCtx cancels.
 	err := f.source.Prepare(asyncCtx)
 	if err != nil {
