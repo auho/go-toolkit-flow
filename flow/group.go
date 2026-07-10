@@ -75,9 +75,6 @@ func (g *group[SE, DE]) Finish() error {
 
 // DestinationFinish finalizes persistence for this group's destination and
 // internal destinations. Called after all data has been forwarded and Done.
-// Also calls DestinationFinish on runners that manage their own internal
-// destinations (e.g., multiStageRunner), discovered via the DestinationFinisher
-// optional interface.
 func (g *group[SE, DE]) DestinationFinish() error {
 	if err := g.destination.Finish(); err != nil {
 		return fmt.Errorf("destination.Finish: %w", err)
@@ -85,14 +82,6 @@ func (g *group[SE, DE]) DestinationFinish() error {
 
 	if err := g.internalDests.Finish(); err != nil {
 		return fmt.Errorf("internal destination.Finish: %w", err)
-	}
-
-	for _, r := range g.runners.All() {
-		if df, ok := r.(exec.DestinationFinisher); ok {
-			if err := df.DestinationFinish(); err != nil {
-				return fmt.Errorf("runner.DestinationFinish: %w", err)
-			}
-		}
 	}
 
 	return nil
