@@ -60,5 +60,5 @@ type Destination[E Entry] interface {
 // Holders MUST NOT continue calling dest.Receive after their processing has
 // completed, because the pipeline will invoke dest.Done() once workers exit.
 type DestinationHolder[DE Entry] interface {
-	Destinations() ([]Destination[DE], error)
+	HeldDestinations() ([]Destination[DE], error)
 }

@@ -108,8 +108,8 @@ func (r *runner[SE, DE]) Prepare(ctx context.Context) error {
 	// Collect internal destinations after processor.Prepare succeeds, so that
 	// processors that populate destinations during Prepare are discovered.
 	if dh, ok := r.processor.(storage.DestinationHolder[DE]); ok {
-		if dests, err := dh.Destinations(); err != nil {
-			return fmt.Errorf("processor.Destinations: %w", err)
+		if dests, err := dh.HeldDestinations(); err != nil {
+			return fmt.Errorf("processor.HeldDestinations: %w", err)
 		} else {
 			r.internalDests = dests
 		}
