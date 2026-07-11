@@ -43,8 +43,8 @@ type Processor[E storage.Entry] interface {
 	// Close releases resources held by the processor.
 	Close() error
 
-	// AppendState appends current state lines for status display.
-	AppendState()
+	// ExtraState returns additional state lines for status display.
+	ExtraState() []string
 
 	// Concurrency returns the number of worker goroutines to use.
 	Concurrency() int
@@ -78,6 +78,13 @@ type BaseProcessor struct {
 
 func (t *BaseProcessor) StateString() []string {
 	return t.state.Content()
+}
+
+// ExtraState returns additional state lines for status display.
+// The default implementation returns nil; subclasses may override to
+// provide extra state information.
+func (t *BaseProcessor) ExtraState() []string {
+	return nil
 }
 
 // AddStateLine appends a state line and returns its line number (1-based).

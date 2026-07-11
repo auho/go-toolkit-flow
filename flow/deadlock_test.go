@@ -25,11 +25,11 @@ import (
 // scan goroutine to block on itemsChan <- items, source.Finish() to block on
 // scanGroup.Wait(), and g.Wait() to deadlock.
 //
-// Finish ordering: runners.Finish() executes sequentially; first failure skips
-// subsequent runners' outChan close, leaking resources.
+// Finish ordering: runners.Finish() collects all errors via errors.Join so
+// every runner's outChan is closed even when one fails.
 //
-// TDD note: Tests marked as deadlock-expected will FAIL (timeout) before the fix.
-// After fixing the context misalignment and Finish ordering, all tests pass.
+// All tests must complete within the timeout; a deadlock manifests as a
+// timeout failure.
 
 const deadlockTimeout = 3 * time.Second
 
@@ -167,9 +167,10 @@ func TestDeadlock_WorkerExecError_MultiWorker(t *testing.T) {
 // =====================================================================================
 
 // TestDeadlock_AfterRunError verifies that an AfterRun error does not deadlock
-// or leak. Without the fix: runners.Finish sequential -> first failure skips
-// subsequent runners' outChan close -> resource leak. OutputForward blocks on
-// un-closed outChan -> g.Wait() deadlocks.
+// or leak. runners.Finish() collects all errors via errors.Join, ensuring
+// every runner's outChan is closed even when one fails. A first-error-return
+// would skip subsequent outChan closes, causing OutputForward to block on
+// un-closed outChan and g.Wait() to deadlock.
 //
 // Note: unlike T2/T4/T6, this test does NOT use scanBlock. The AfterRun error
 // only fires after workers complete, which requires the source to finish
@@ -202,8 +203,9 @@ func TestDeadlock_AfterRunError(t *testing.T) {
 // =====================================================================================
 
 // TestDeadlock_DestinationReceiveError verifies that a destination.Receive error
-// does not deadlock. Before fix: OutputForward returns error → asyncCtx cancels
-// → transport exits → source blocks → g.Wait() deadlocks.
+// does not deadlock. The two-layer context hierarchy ensures that when
+// OutputForward returns an error and asyncCtx cancels, the transport
+// goroutine exits via ctx.Done() without blocking the source.
 func TestDeadlock_DestinationReceiveError(t *testing.T) {
 	src := newFaultSource(faultSourceConfig{
 		total:     1000,
@@ -226,9 +228,6 @@ func TestDeadlock_DestinationReceiveError(t *testing.T) {
 // TestDeadlock_MultiGroupDestError verifies that a destination.Receive error in
 // one of multiple groups does not deadlock. Source completes normally (no
 // scanBlock); the dest error is surfaced via destGroup's errgroup.
-//
-// Note: a scanBlock variant of this test reveals a fanIn range loop
-// not checking ctx.Done(), which is a separate concern.
 func TestDeadlock_MultiGroupDestError(t *testing.T) {
 	src := newFaultSource(faultSourceConfig{
 		total:    100,
@@ -242,6 +241,37 @@ func TestDeadlock_MultiGroupDestError(t *testing.T) {
 	})
 
 	err := runFlowWithTimeout(t, buildOptsMultiGroup(src, []*faultProducerItem{proc1, proc2}, []storage.Destination[storage.MapEntry]{dest1, dest2}))
+	errorContains(t, err, "Receive")
+}
+
+// =====================================================================================
+// T7: fan-in goroutine ctx cancellation - OutputForward blocked on OutChan
+// =====================================================================================
+
+// TestDeadlock_FanInCtxCancellation verifies that fan-in goroutines exit
+// promptly when ctx is cancelled, even if OutChan is open but not producing
+// data. Fan-in goroutines use select with ctx.Done() so they can exit
+// immediately when cancelled. A plain `for out := range r.OutChan()` would
+// block on receive, preventing merged from closing and causing a deadlock
+// when a destination error cancels asyncCtx.
+//
+// Scenario:
+//   - Source with scanBlock: produces 1 batch then blocks (OutChan stays open)
+//   - Destination with receiveErr: fails on first Receive
+//   - Fan-in goroutines use select with ctx.Done() so they exit when
+//     cancelled, allowing merged to close and preventing deadlock.
+func TestDeadlock_FanInCtxCancellation(t *testing.T) {
+	src := newFaultSource(faultSourceConfig{
+		total:     1000,
+		pageSize:  10,
+		scanBlock: make(chan struct{}),
+	})
+	proc := newFaultProducerItem(faultProducerConfig{})
+	dest := newFaultDestination(faultDestinationConfig{
+		receiveErr: errDestReceive,
+	})
+
+	err := runFlowWithTimeout(t, buildOpts(src, proc, dest))
 	errorContains(t, err, "Receive")
 }
 

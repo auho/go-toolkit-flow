@@ -140,3 +140,56 @@ func ExampleRunner_OutChan() {
 	// id: 4
 	// id: 6
 }
+
+// ExampleNewPipeline demonstrates building a multi-stage pipeline where
+// stage 1 doubles each item's id, and stage 2 doubles it again.
+// The pipeline is built with compile-time type safety using
+// NewPipeline -> Stage -> Stage -> Build.
+func ExampleNewPipeline() {
+	// Stage 1: producer that doubles IDs
+	r1 := exec.NewRunner[storage.MapEntry, storage.MapEntry](&exampleProducerExecutor{}, &exampleProc{})
+	// Stage 2: producer that doubles IDs again
+	r2 := exec.NewRunner[storage.MapEntry, storage.MapEntry](&exampleProducerExecutor{}, &exampleProc{})
+
+	// Build the pipeline: MapEntry -> MapEntry -> MapEntry
+	pipeline := exec.Stage(
+		exec.Stage(exec.NewPipeline[storage.MapEntry](), r1),
+		r2,
+	).Build()
+
+	ctx := context.Background()
+	if err := pipeline.Prepare(ctx, ctx); err != nil {
+		fmt.Println("prepare error:", err)
+		return
+	}
+
+	// Collect final output from the pipeline's OutChan
+	var collected []storage.MapEntry
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for batch := range pipeline.OutChan() {
+			collected = append(collected, batch...)
+		}
+	}()
+
+	pipeline.Start()
+	pipeline.Receive([]storage.MapEntry{{"id": 1}, {"id": 2}, {"id": 3}})
+	pipeline.Done()
+
+	if err := pipeline.Finish(); err != nil {
+		fmt.Println("finish error:", err)
+		return
+	}
+	<-done
+
+	defer pipeline.Close()
+
+	for _, item := range collected {
+		fmt.Println("id:", item["id"])
+	}
+	// Output:
+	// id: 4
+	// id: 8
+	// id: 12
+}

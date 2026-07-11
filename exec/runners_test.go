@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -89,7 +90,7 @@ func TestRunners_Prepare_OneFails(t *testing.T) {
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
-	if !contains(err.Error(), "prepare") {
+	if !strings.Contains(err.Error(), "prepare") {
 		t.Errorf("error should contain 'prepare', got: %v", err)
 	}
 }
@@ -256,7 +257,7 @@ func TestRunners_Finish_OneFails(t *testing.T) {
 	if err == nil {
 		t.Fatal("Finish should return error")
 	}
-	if !contains(err.Error(), "runner.Finish") {
+	if !strings.Contains(err.Error(), "runner.Finish") {
 		t.Errorf("error should contain 'runner.Finish', got: %v", err)
 	}
 }
@@ -298,7 +299,7 @@ func TestRunners_Close_OneFails(t *testing.T) {
 	if err == nil {
 		t.Fatal("Close should return error")
 	}
-	if !contains(err.Error(), "close") {
+	if !strings.Contains(err.Error(), "close") {
 		t.Errorf("error should contain 'close', got: %v", err)
 	}
 }

@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -52,7 +53,7 @@ func TestRunner_Prepare_ProcessorPrepareError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
-	if !contains(err.Error(), "processor.Prepare") {
+	if !strings.Contains(err.Error(), "processor.Prepare") {
 		t.Errorf("error should contain 'processor.Prepare', got: %v", err)
 	}
 }
@@ -67,7 +68,7 @@ func TestRunner_Prepare_BeforeRunError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Prepare should return error")
 	}
-	if !contains(err.Error(), "processor.BeforeRun") {
+	if !strings.Contains(err.Error(), "processor.BeforeRun") {
 		t.Errorf("error should contain 'processor.BeforeRun', got: %v", err)
 	}
 }
@@ -121,7 +122,7 @@ func TestRunner_Start_ExecError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Finish should return error")
 	}
-	if !contains(err.Error(), "executor.Exec") {
+	if !strings.Contains(err.Error(), "executor.Exec") {
 		t.Errorf("error should contain 'executor.Exec', got: %v", err)
 	}
 }
@@ -193,7 +194,7 @@ func TestRunner_Finish_AfterRunError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Finish should return error")
 	}
-	if !contains(err.Error(), "processor.AfterRun") {
+	if !strings.Contains(err.Error(), "processor.AfterRun") {
 		t.Errorf("error should contain 'processor.AfterRun', got: %v", err)
 	}
 }
@@ -226,7 +227,7 @@ func TestRunner_State(t *testing.T) {
 	}
 	foundTotal := false
 	for _, s := range state {
-		if contains(s, "Total") {
+		if strings.Contains(s, "Total") {
 			foundTotal = true
 			break
 		}
@@ -263,17 +264,4 @@ func TestRunner_Close(t *testing.T) {
 	if p.closeCalled.Load() != 1 {
 		t.Errorf("closeCalled should be 1, got %d", p.closeCalled.Load())
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchSubstring(s, substr)
-}
-
-func searchSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

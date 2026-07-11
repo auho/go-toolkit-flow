@@ -320,7 +320,7 @@ type producerItemInterface = interface {
 	BeforeRun() error
 	AfterRun() error
 	Close() error
-	AppendState()
+	ExtraState() []string
 	Concurrency() int
 	Summary() string
 	StateString() []string

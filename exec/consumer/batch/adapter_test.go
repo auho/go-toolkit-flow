@@ -2,6 +2,7 @@ package batch
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -14,7 +15,7 @@ func (m *mockBatch) Prepare() error   { return nil }
 func (m *mockBatch) BeforeRun() error { return nil }
 func (m *mockBatch) AfterRun() error  { return nil }
 func (m *mockBatch) Close() error     { return nil }
-func (m *mockBatch) AppendState()     {}
+func (m *mockBatch) ExtraState() []string { return nil }
 func (m *mockBatch) Concurrency() int { return 1 }
 func (m *mockBatch) StateString() []string  { return nil }
 func (m *mockBatch) Output() []string { return nil }
@@ -29,7 +30,7 @@ func (m *mockBatchErr) Prepare() error   { return nil }
 func (m *mockBatchErr) BeforeRun() error { return nil }
 func (m *mockBatchErr) AfterRun() error  { return nil }
 func (m *mockBatchErr) Close() error     { return nil }
-func (m *mockBatchErr) AppendState()     {}
+func (m *mockBatchErr) ExtraState() []string { return nil }
 func (m *mockBatchErr) Concurrency() int { return 1 }
 func (m *mockBatchErr) StateString() []string  { return nil }
 func (m *mockBatchErr) Output() []string { return nil }
@@ -69,20 +70,7 @@ func TestAdapterExec_Error(t *testing.T) {
 	if err == nil {
 		t.Fatal("Exec should return error")
 	}
-	if !contains(err.Error(), "batch.Exec") {
+	if !strings.Contains(err.Error(), "batch.Exec") {
 		t.Errorf("error should contain 'batch.Exec', got: %v", err)
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchSubstring(s, substr)
-}
-
-func searchSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

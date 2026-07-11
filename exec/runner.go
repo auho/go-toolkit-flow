@@ -36,10 +36,10 @@ type Executor[SE, DE storage.Entry] interface {
 // Runner defines the lifecycle interface for an executable task.
 type Runner[SE, DE storage.Entry] interface {
 	Prepare(runnerCtx, destCtx context.Context) error // preparation before processing data
-	Receive([]SE)                      // receive data asynchronously
-	Start()                            // start processing data
-	Done()                             // triggered after upstream data processing
-	Finish() error                     // data processing completed
+	Receive([]SE)                                     // receive data asynchronously
+	Start()                                           // start processing data
+	Done()                                            // triggered after upstream data processing
+	Finish() error                                    // data processing completed
 	Close() error
 	Summary() []string
 	StateString() []string
@@ -190,7 +190,7 @@ func (r *fanOutRunner[SE, DE]) Finish() error {
 
 	err := r.startGroup.Wait()
 	if err != nil {
-		return fmt.Errorf("runGroup.Wait: %w", err)
+		return fmt.Errorf("startGroup.Wait: %w", err)
 	}
 
 	err = r.processor.AfterRun()
@@ -210,8 +210,8 @@ func (r *fanOutRunner[SE, DE]) Summary() []string {
 }
 
 func (r *fanOutRunner[SE, DE]) StateString() []string {
-	r.processor.AppendState()
-	return append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.processor.StateString()...)
+	lines := append([]string{fmt.Sprintf("Total: %d, Amount %d, Affected %d", atomic.LoadInt64(&r.total), atomic.LoadInt64(&r.amount), atomic.LoadInt64(&r.affected))}, r.processor.StateString()...)
+	return append(lines, r.processor.ExtraState()...)
 }
 
 func (r *fanOutRunner[SE, DE]) Output() []string {

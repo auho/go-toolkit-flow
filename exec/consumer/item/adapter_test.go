@@ -2,6 +2,7 @@ package item
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -17,7 +18,7 @@ func (m *mockItem) Prepare() error   { return nil }
 func (m *mockItem) BeforeRun() error { return nil }
 func (m *mockItem) AfterRun() error  { return nil }
 func (m *mockItem) Close() error     { return nil }
-func (m *mockItem) AppendState()     {}
+func (m *mockItem) ExtraState() []string { return nil }
 func (m *mockItem) Concurrency() int { return 1 }
 func (m *mockItem) StateString() []string  { return nil }
 func (m *mockItem) Output() []string { return nil }
@@ -34,7 +35,7 @@ func (m *mockItemErr) Prepare() error   { return nil }
 func (m *mockItemErr) BeforeRun() error { return nil }
 func (m *mockItemErr) AfterRun() error  { return nil }
 func (m *mockItemErr) Close() error     { return nil }
-func (m *mockItemErr) AppendState()     {}
+func (m *mockItemErr) ExtraState() []string { return nil }
 func (m *mockItemErr) Concurrency() int { return 1 }
 func (m *mockItemErr) StateString() []string  { return nil }
 func (m *mockItemErr) Output() []string { return nil }
@@ -92,20 +93,7 @@ func TestAdapterExec_Error(t *testing.T) {
 	if err == nil {
 		t.Fatal("Exec should return error")
 	}
-	if !contains(err.Error(), "item.Exec") {
+	if !strings.Contains(err.Error(), "item.Exec") {
 		t.Errorf("error should contain 'item.Exec', got: %v", err)
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && searchSubstring(s, substr)
-}
-
-func searchSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

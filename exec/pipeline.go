@@ -9,9 +9,12 @@ import (
 	"github.com/auho/go-toolkit-flow/v3/storage"
 )
 
-// stageRunner is a type-erased Runner for internal use in multi-stage pipelines.
-// Created by the Stage function; type safety is guaranteed at construction time
-// by the builder's compile-time type parameter evolution.
+// ---------------------------------------------------------------------------
+// stageRunner: type-erased Runner for internal use in multi-stage pipelines.
+// Created by the Stage function; type safety is guaranteed at construction
+// time by the builder's compile-time type parameter evolution.
+// ---------------------------------------------------------------------------
+
 type stageRunner struct {
 	prepare  func(runnerCtx, destCtx context.Context) error
 	start    func()
@@ -24,6 +27,12 @@ type stageRunner struct {
 	stateStr func() []string
 	output   func() []string
 }
+
+// ---------------------------------------------------------------------------
+// PipelineBuilder: constructs a Pipeline Runner with compile-time type safety.
+// SE is the source element type (first stage input).
+// DE is the current output type (evolves with each Stage call).
+// ---------------------------------------------------------------------------
 
 // PipelineBuilder constructs a Pipeline Runner with compile-time type safety.
 // SE is the source element type (first stage input).
@@ -49,14 +58,64 @@ func Stage[SE, DE, DE2 storage.Entry](
 ) *PipelineBuilder[SE, DE2] {
 	var outOnce sync.Once
 	var bridged <-chan any
+	var stageCtx context.Context = context.Background()
 
 	s := stageRunner{
-		prepare:  r.Prepare,
-		start:    r.Start,
+		prepare: func(runnerCtx, destCtx context.Context) error {
+			stageCtx = runnerCtx
+			if err := r.Prepare(runnerCtx, destCtx); err != nil {
+				return err
+			}
+			// Prepare internal destinations held by this stage's processor.
+			// Safe to call r.Destinations() now because fanOutRunner.Prepare
+			// populates internalDests before returning.
+			for _, d := range r.Destinations() {
+				if err := d.Prepare(destCtx); err != nil {
+					return fmt.Errorf("internal destination.Prepare: %w", err)
+				}
+			}
+			return nil
+		},
+		start: func() {
+			r.Start()
+			for _, d := range r.Destinations() {
+				d.Accept()
+			}
+		},
 		receive:  func(items any) { r.Receive(items.([]DE)) },
 		done:     r.Done,
-		finish:   r.Finish,
-		close:    r.Close,
+		finish: func() error {
+			var errs []error
+			if err := r.Finish(); err != nil {
+				errs = append(errs, err)
+			}
+			// Always signal Done on internal destinations, even if Finish
+			// failed, to avoid leaking drain goroutines.
+			for _, d := range r.Destinations() {
+				d.Done()
+			}
+			// Finalize persistence for internal destinations. Safe to call
+			// now because workers have exited (r.Finish waited for them),
+			// so no more data will be written to internal dests.
+			for _, d := range r.Destinations() {
+				if err := d.Finish(); err != nil {
+					errs = append(errs, err)
+				}
+			}
+			return errors.Join(errs...)
+		},
+		close: func() error {
+			var errs []error
+			if err := r.Close(); err != nil {
+				errs = append(errs, err)
+			}
+			for _, d := range r.Destinations() {
+				if err := d.Close(); err != nil {
+					errs = append(errs, err)
+				}
+			}
+			return errors.Join(errs...)
+		},
 		summary:  r.Summary,
 		stateStr: r.StateString,
 		output:   r.Output,
@@ -66,8 +125,20 @@ func Stage[SE, DE, DE2 storage.Entry](
 				ch := make(chan any, cap(src))
 				go func() {
 					defer close(ch)
-					for items := range src {
-						ch <- items
+					for {
+						select {
+						case <-stageCtx.Done():
+							return
+						case items, ok := <-src:
+							if !ok {
+								return
+							}
+							select {
+							case <-stageCtx.Done():
+								return
+							case ch <- items:
+							}
+						}
 					}
 				}()
 				bridged = ch
@@ -76,9 +147,7 @@ func Stage[SE, DE, DE2 storage.Entry](
 		},
 	}
 
-	stages := make([]stageRunner, len(b.stages), len(b.stages)+1)
-	copy(stages, b.stages)
-	stages = append(stages, s)
+	stages := append(b.stages, s)
 	return &PipelineBuilder[SE, DE2]{stages: stages}
 }
 
@@ -87,10 +156,13 @@ func (b *PipelineBuilder[SE, DE]) Build() Runner[SE, DE] {
 	return &pipelineRunner[SE, DE]{stages: b.stages}
 }
 
-// pipelineRunner is the Pipeline path implementation of Runner.
+// ---------------------------------------------------------------------------
+// pipelineRunner: the Pipeline path implementation of Runner.
 // It chains multiple Runners as stages.
 // It implements Runner[SE, DE] where SE is the first stage's input type
 // and DE is the last stage's output type.
+// ---------------------------------------------------------------------------
+
 type pipelineRunner[SE, DE storage.Entry] struct {
 	stages      []stageRunner
 	ctx         context.Context
@@ -101,7 +173,13 @@ type pipelineRunner[SE, DE storage.Entry] struct {
 
 var _ Runner[string, string] = (*pipelineRunner[string, string])(nil)
 
+// --- Lifecycle methods ---
+
 func (r *pipelineRunner[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
+	if len(r.stages) == 0 {
+		return fmt.Errorf("pipelineRunner.Prepare: no stages added; call Stage at least once before Build")
+	}
+
 	r.ctx = runnerCtx
 
 	for i, s := range r.stages {
@@ -145,25 +223,20 @@ func (r *pipelineRunner[SE, DE]) Done() {
 }
 
 func (r *pipelineRunner[SE, DE]) Finish() error {
-	var wg sync.WaitGroup
-	var mu sync.Mutex
 	var errs []error
 
 	for i, s := range r.stages {
-		wg.Go(func() {
-			if err := s.finish(); err != nil {
-				mu.Lock()
-				errs = append(errs, fmt.Errorf("stage[%d].Finish: %w", i, err))
-				mu.Unlock()
-			}
-		})
+		if err := s.finish(); err != nil {
+			errs = append(errs, fmt.Errorf("stage[%d].Finish: %w", i, err))
+		}
 	}
-	wg.Wait()
 
 	r.bridgeWG.Wait()
 
 	return errors.Join(errs...)
 }
+
+// --- Output & cleanup methods ---
 
 func (r *pipelineRunner[SE, DE]) OutChan() <-chan []DE {
 	r.outChanOnce.Do(func() {
@@ -171,8 +244,20 @@ func (r *pipelineRunner[SE, DE]) OutChan() <-chan []DE {
 		ch := make(chan []DE, cap(src))
 		go func() {
 			defer close(ch)
-			for items := range src {
-				ch <- items.([]DE)
+			for {
+				select {
+				case <-r.ctx.Done():
+					return
+				case items, ok := <-src:
+					if !ok {
+						return
+					}
+					select {
+					case <-r.ctx.Done():
+						return
+					case ch <- items.([]DE):
+					}
+				}
 			}
 		}()
 		r.outChan = ch
@@ -190,9 +275,16 @@ func (r *pipelineRunner[SE, DE]) Close() error {
 	return errors.Join(errs...)
 }
 
+// Destinations returns nil. Internal destinations held by each stage's
+// processor (via storage.DestinationHolder) are managed within each stage's
+// lifecycle closures (prepare/start/finish/close), not collected to the
+// pipeline level. This is because intermediate stages may have different
+// element types, making type-safe collection to []Destination[DE] impossible.
 func (r *pipelineRunner[SE, DE]) Destinations() []storage.Destination[DE] {
 	return nil
 }
+
+// --- Display methods ---
 
 func (r *pipelineRunner[SE, DE]) Summary() []string {
 	var lines []string

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"golang.org/x/sync/errgroup"
@@ -38,20 +37,20 @@ func (gs *groups[SE, DE]) TotalRunners() int {
 	return n
 }
 
-// Prepare prepares all groups' runners and destinations concurrently.
+// Prepare prepares all groups' runners and destinations sequentially.
 // runnerCtx is passed to runners (derives from asyncCtx for fail-fast);
 // destCtx is passed to destinations (derives from rootCtx for flush ability).
-// Uses errgroup.WithContext for fail-fast: the first error cancels remaining
-// groups' runner preparation. destCtx is unaffected (derives from rootCtx).
+// Collects all errors and returns them joined, ensuring every group's Prepare
+// is attempted even if an earlier one fails.
 func (gs *groups[SE, DE]) Prepare(runnerCtx, destCtx context.Context) error {
-	g, _ := errgroup.WithContext(runnerCtx)
+	var errs []error
 	for _, grp := range *gs {
-		g.Go(func() error {
-			return grp.Prepare(runnerCtx, destCtx)
-		})
+		if err := grp.Prepare(runnerCtx, destCtx); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
-	return g.Wait()
+	return errors.Join(errs...)
 }
 
 // Start launches each group's processing pipeline: runners' worker goroutines
@@ -121,37 +120,28 @@ func (gs *groups[SE, DE]) OutputForward(ctx context.Context) error {
 
 // DestinationFinish finalizes persistence for all groups' destinations and
 // internal destinations. Called after all data has been forwarded and Done.
+// Uses best-effort semantics: all groups are attempted even if one fails,
+// and errors are collected via errors.Join.
 func (gs *groups[SE, DE]) DestinationFinish() error {
+	var errs []error
 	for _, g := range *gs {
 		if err := g.DestinationFinish(); err != nil {
-			return err
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
-// Close closes all groups' runners and destinations concurrently,
-// collecting all errors. Returns a slice of errors (one per failed close
-// operation); if no errors, returns nil. Callers are responsible for logging
-// each error.
-func (gs *groups[SE, DE]) Close() []error {
-	var mu sync.Mutex
-	var allErrs []error
-	var wg sync.WaitGroup
-
-	for _, grp := range *gs {
-		wg.Go(func() {
-			if errs := grp.Close(); len(errs) > 0 {
-				mu.Lock()
-				allErrs = append(allErrs, errs...)
-				mu.Unlock()
-			}
-		})
+// Close closes all groups' runners and destinations, collecting all errors.
+func (gs *groups[SE, DE]) Close() error {
+	var errs []error
+	for _, g := range *gs {
+		if err := g.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	wg.Wait()
-
-	return allErrs
+	return errors.Join(errs...)
 }
 
 // Summary returns summary lines for all groups, including runners and destinations.

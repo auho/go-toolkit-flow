@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -155,7 +156,7 @@ func (g *group[SE, DE]) StateString() []string {
 
 // Close closes this group's runners, destination, and internal destinations,
 // collecting all errors.
-func (g *group[SE, DE]) Close() []error {
+func (g *group[SE, DE]) Close() error {
 	var errs []error
 
 	if err := g.runners.Close(); err != nil {
@@ -170,7 +171,7 @@ func (g *group[SE, DE]) Close() []error {
 		errs = append(errs, fmt.Errorf("internal destination.Close: %w", err))
 	}
 
-	return errs
+	return errors.Join(errs...)
 }
 
 // OutputForward fans in this group's runners' outputs and forwards them to
@@ -192,11 +193,19 @@ func (g *group[SE, DE]) OutputForward(ctx context.Context) error {
 
 	for _, r := range g.runners.All() {
 		fanIn.Go(func() {
-			for out := range r.OutChan() {
+			for {
 				select {
 				case <-ctx.Done():
 					return
-				case merged <- out:
+				case out, ok := <-r.OutChan():
+					if !ok {
+						return
+					}
+					select {
+					case <-ctx.Done():
+						return
+					case merged <- out:
+					}
 				}
 			}
 		})

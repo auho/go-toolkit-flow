@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"testing"
+	"time"
 
 	testutilprocessor "github.com/auho/go-toolkit-flow/v3/internal/testutil/processor"
 	"github.com/auho/go-toolkit-flow/v3/storage"
@@ -216,6 +217,93 @@ func TestPipeline_CascadingShutdown(t *testing.T) {
 	defer runner.Close()
 }
 
+// lifecycleDest is a mock Destination that records lifecycle method calls in order.
+type lifecycleDest struct {
+	calls []string
+}
+
+func (d *lifecycleDest) Prepare(context.Context) error                { d.calls = append(d.calls, "prepare"); return nil }
+func (d *lifecycleDest) Accept()                                      { d.calls = append(d.calls, "accept") }
+func (d *lifecycleDest) Receive([]storage.MapEntry) error             { return nil }
+func (d *lifecycleDest) Done()                                        { d.calls = append(d.calls, "done") }
+func (d *lifecycleDest) Finish() error                                { d.calls = append(d.calls, "finish"); return nil }
+func (d *lifecycleDest) Close() error                                 { d.calls = append(d.calls, "close"); return nil }
+func (d *lifecycleDest) Copy(items []storage.MapEntry) []storage.MapEntry { return items }
+func (d *lifecycleDest) Summary() []string                            { return nil }
+func (d *lifecycleDest) State() storage.State                         { return storage.NewSnapshot() }
+func (d *lifecycleDest) StateString() []string                        { return nil }
+
+// holderProc is a processor that holds an internal destination via
+// storage.DestinationHolder, so the pipeline stage manages its lifecycle.
+type holderProc struct {
+	testutilprocessor.TestProcessor
+	dest *lifecycleDest
+}
+
+func (p *holderProc) Concurrency() int { return 1 }
+func (p *holderProc) Summary() string  { return "holderProc" }
+func (p *holderProc) HeldDestinations() ([]storage.Destination[storage.MapEntry], error) {
+	return []storage.Destination[storage.MapEntry]{p.dest}, nil
+}
+
+// TestPipeline_InternalDestinationLifecycle verifies that internal destinations
+// held by a stage's processor receive lifecycle calls in the correct order:
+// prepare -> accept -> done -> finish -> close.
+func TestPipeline_InternalDestinationLifecycle(t *testing.T) {
+	dest := &lifecycleDest{}
+
+	// Stage 1: processor holds an internal destination
+	r1 := NewRunner[storage.MapEntry, storage.MapEntry](
+		&transformExecutor[storage.MapEntry, storage.MapEntry]{fn: func(e storage.MapEntry) storage.MapEntry {
+			return storage.MapEntry{"id": e["id"]}
+		}},
+		&holderProc{dest: dest},
+	)
+	// Stage 2: simple pass-through
+	r2 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
+		return storage.MapEntry{"id": e["id"]}
+	})
+
+	runner := Stage(Stage(NewPipeline[storage.MapEntry](), r1), r2).Build()
+
+	ctx := context.Background()
+	if err := runner.Prepare(ctx, ctx); err != nil {
+		t.Fatalf("Prepare: %v", err)
+	}
+
+	runner.Start()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for range runner.OutChan() {
+		}
+	}()
+
+	runner.Receive([]storage.MapEntry{{"id": 1}})
+	runner.Done()
+
+	if err := runner.Finish(); err != nil {
+		t.Fatalf("Finish: %v", err)
+	}
+	<-done
+
+	if err := runner.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	// Verify lifecycle order: prepare -> accept -> done -> finish -> close
+	expected := []string{"prepare", "accept", "done", "finish", "close"}
+	if len(dest.calls) != len(expected) {
+		t.Fatalf("expected %d lifecycle calls, got %d: %v", len(expected), len(dest.calls), dest.calls)
+	}
+	for i, want := range expected {
+		if dest.calls[i] != want {
+			t.Fatalf("lifecycle call[%d]: expected %q, got %q (full: %v)", i, want, dest.calls[i], dest.calls)
+		}
+	}
+}
+
 func TestPipeline_Destinations_ReturnsNil(t *testing.T) {
 	r1 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
 		return e
@@ -263,4 +351,98 @@ func TestPipelineBuilder_TypeInference(t *testing.T) {
 
 	// Verify it implements Runner
 	var _ Runner[storage.MapEntry, storage.MapEntry] = runner
+}
+
+// TestPipeline_BridgeCtxCancellation verifies that bridge goroutines in the
+// Stage function's outChan closure and pipelineRunner.OutChan() exit promptly
+// when ctx is cancelled, even if the runner's OutChan is still open.
+//
+// Bridge goroutines use select with ctx.Done() so they can exit immediately
+// when ctx is cancelled. A plain `for items := range src` would block on
+// receive and stay blocked until Finish() closes the runner's OutChan.
+func TestPipeline_BridgeCtxCancellation(t *testing.T) {
+	r1 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
+		return storage.MapEntry{"id": e["id"]}
+	})
+	r2 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
+		return storage.MapEntry{"id": e["id"]}
+	})
+
+	runner := Stage(Stage(NewPipeline[storage.MapEntry](), r1), r2).Build()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	if err := runner.Prepare(ctx, ctx); err != nil {
+		t.Fatalf("Prepare: %v", err)
+	}
+
+	runner.Start()
+
+	// Get OutChan reference - starts the bridge goroutine
+	outCh := runner.OutChan()
+
+	// Cancel ctx - bridge goroutines should exit and close OutChan
+	cancel()
+
+	// OutChan should close within timeout (bridge goroutine exited via ctx.Done)
+	timer := time.NewTimer(3 * time.Second)
+	defer timer.Stop()
+
+	for {
+		select {
+		case _, ok := <-outCh:
+			if !ok {
+				// OutChan closed - bridge goroutines exited via ctx.Done()
+				goto done
+			}
+		case <-timer.C:
+			t.Fatal("OutChan did not close after ctx cancellation (bridge goroutine leak)")
+		}
+	}
+
+done:
+	runner.Done()
+	if err := runner.Finish(); err != nil {
+		t.Fatalf("Finish: %v", err)
+	}
+	defer runner.Close()
+}
+
+// TestPipeline_FinishNoDeadlockOnCtxCancel verifies that Finish() does not
+// deadlock when ctx has been cancelled before Finish is called.
+func TestPipeline_FinishNoDeadlockOnCtxCancel(t *testing.T) {
+	r1 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
+		return storage.MapEntry{"id": e["id"]}
+	})
+	r2 := makeStageRunner(func(e storage.MapEntry) storage.MapEntry {
+		return storage.MapEntry{"id": e["id"]}
+	})
+
+	runner := Stage(Stage(NewPipeline[storage.MapEntry](), r1), r2).Build()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	if err := runner.Prepare(ctx, ctx); err != nil {
+		t.Fatalf("Prepare: %v", err)
+	}
+
+	runner.Start()
+
+	// Send data and cancel ctx immediately (simulating error in another part)
+	runner.Receive([]storage.MapEntry{{"id": 1}, {"id": 2}})
+	runner.Done()
+	cancel()
+
+	// Finish should return promptly, not deadlock
+	done := make(chan error, 1)
+	go func() { done <- runner.Finish() }()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Finish returned error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("Finish deadlocked after ctx cancellation")
+	}
+
+	defer runner.Close()
 }

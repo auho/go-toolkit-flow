@@ -98,7 +98,7 @@ func (rs *Runners[SE, DE]) Summary() []string {
 // StateString returns state lines from all runners, with each runner's summary
 // as a header followed by its state lines.
 func (rs *Runners[SE, DE]) StateString() []string {
-	lines := make([]string, 0)
+	lines := make([]string, 0, len(*rs)*2)
 	for _, r := range *rs {
 		lines = append(lines, r.Summary()...)
 		for _, s := range r.StateString() {
@@ -111,7 +111,7 @@ func (rs *Runners[SE, DE]) StateString() []string {
 
 // Output returns output lines from all runners.
 func (rs *Runners[SE, DE]) Output() []string {
-	lines := make([]string, 0)
+	lines := make([]string, 0, len(*rs))
 	for _, r := range *rs {
 		lines = append(lines, r.Output()...)
 	}
