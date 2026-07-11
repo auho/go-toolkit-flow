@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	gosqlmysql "github.com/go-sql-driver/mysql"
@@ -24,16 +25,34 @@ var IDName = "id"
 var NameName = "name"
 var ValueName = "value"
 
-func mustGetEnv(key string) string {
+func mustGetEnv(key string) (string, error) {
 	v := os.Getenv(key)
 	if v == "" {
-		log.Fatalf("env var %s not set, please configure MySQL DSN, e.g.: export TEST_MYSQL_DSN='root:pass@tcp(host:port)'", key)
+		return "", fmt.Errorf("env var %s not set, please configure MySQL DSN, e.g.: export TEST_MYSQL_DSN='root:pass@tcp(host:port)'", key)
 	}
-	return v
+	return v, nil
+}
+
+func loadDSN() (string, error) {
+	rawDsn, err := mustGetEnv("TEST_MYSQL_DSN")
+	if err != nil {
+		return "", err
+	}
+
+	// Ensure rawDsn ends with "/" for MySQL driver compatibility.
+	if !strings.HasSuffix(rawDsn, "/") {
+		rawDsn += "/"
+	}
+
+	return rawDsn, nil
 }
 
 func InitDB() (*gorm.DB, *simpledb.SimpleDB) {
-	rawDsn := mustGetEnv("TEST_MYSQL_DSN")
+	rawDsn, err := loadDSN()
+	if err != nil {
+		log.Fatalf("loadDSN: %v", err)
+	}
+
 	cfg, err := gosqlmysql.ParseDSN(rawDsn)
 	if err != nil {
 		log.Fatalf("ParseDSN: %v", err)
