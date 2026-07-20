@@ -7,19 +7,22 @@ import (
 	"testing"
 
 	simpledb "github.com/auho/go-simple-db/v3"
-	"gorm.io/gorm"
-
-	"github.com/auho/go-toolkit-flow/v3/internal/testutil"
 	"github.com/auho/go-toolkit-flow/v3/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/source"
+	"github.com/auho/go-toolkit-testutil"
+	"gorm.io/gorm"
 )
 
 var _gormDB *gorm.DB
 var _simpleDB *simpledb.SimpleDB
 
 func TestMain(m *testing.M) {
-	testutil.LoadEnv()
+	err := testutil.LoadEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	_gormDB, _simpleDB = mysql.InitDB()
 	code := m.Run()
 	os.Exit(code)

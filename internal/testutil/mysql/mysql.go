@@ -6,13 +6,11 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"strings"
 	"time"
-
-	gosqlmysql "github.com/go-sql-driver/mysql"
 
 	simpledb "github.com/auho/go-simple-db/v3"
 	mysqlgorm "github.com/auho/go-simple-db/v3/driver/mysql/gorm"
+	"github.com/auho/go-toolkit-testutil/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -25,40 +23,11 @@ var IDName = "id"
 var NameName = "name"
 var ValueName = "value"
 
-func mustGetEnv(key string) (string, error) {
-	v := os.Getenv(key)
-	if v == "" {
-		return "", fmt.Errorf("env var %s not set, please configure MySQL DSN, e.g.: export TEST_MYSQL_DSN='root:pass@tcp(host:port)'", key)
-	}
-	return v, nil
-}
-
-func loadDSN() (string, error) {
-	rawDsn, err := mustGetEnv("TEST_MYSQL_DSN")
-	if err != nil {
-		return "", err
-	}
-
-	// Ensure rawDsn ends with "/" for MySQL driver compatibility.
-	if !strings.HasSuffix(rawDsn, "/") {
-		rawDsn += "/"
-	}
-
-	return rawDsn, nil
-}
-
 func InitDB() (*gorm.DB, *simpledb.SimpleDB) {
-	rawDsn, err := loadDSN()
+	dsn, err := mysql.LoadDSN(dbName)
 	if err != nil {
-		log.Fatalf("loadDSN: %v", err)
+		log.Fatal("mysql.LoadDSN", err)
 	}
-
-	cfg, err := gosqlmysql.ParseDSN(rawDsn)
-	if err != nil {
-		log.Fatalf("ParseDSN: %v", err)
-	}
-	cfg.DBName = dbName
-	dsn := cfg.FormatDSN()
 
 	dbc := &gorm.Config{
 		Logger: logger.New(
@@ -71,12 +40,12 @@ func InitDB() (*gorm.DB, *simpledb.SimpleDB) {
 		),
 	}
 
-	_mysql, err := mysqlgorm.NewMySQL(dsn, dbc)
+	mysqlDB, err := mysqlgorm.NewMySQL(dsn, dbc)
 	if err != nil {
 		log.Fatal("mysqlgorm.NewMySQL ", err)
 	}
 
-	gormDB := _mysql.GormDB()
+	gormDB := mysqlDB.GormDB()
 	sqlDB, err := gormDB.DB()
 	if err != nil {
 		log.Fatal("get sql.DB: ", err)
@@ -93,7 +62,7 @@ func InitDB() (*gorm.DB, *simpledb.SimpleDB) {
 		log.Fatal("create database ", err)
 	}
 
-	return gormDB, simpledb.NewSimple(_mysql)
+	return gormDB, simpledb.NewSimple(mysqlDB)
 }
 
 func CreateTable(db *gorm.DB, table string) {
