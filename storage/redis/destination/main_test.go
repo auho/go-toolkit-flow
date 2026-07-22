@@ -8,9 +8,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/auho/go-toolkit-flow/v3/internal/testutil"
 	testredis "github.com/auho/go-toolkit-flow/v3/internal/testutil/redis"
 	"github.com/auho/go-toolkit-flow/v3/storage"
-	"github.com/auho/go-toolkit-testutil"
 	"github.com/go-redis/redis/v8"
 )
 

@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	simpledb "github.com/auho/go-simple-db/v3"
+	"github.com/auho/go-toolkit-flow/v3/internal/testutil"
 	"github.com/auho/go-toolkit-flow/v3/internal/testutil/mysql"
 	"github.com/auho/go-toolkit-flow/v3/storage"
 	"github.com/auho/go-toolkit-flow/v3/storage/database/source"
-	"github.com/auho/go-toolkit-testutil"
 	"gorm.io/gorm"
 )
 
