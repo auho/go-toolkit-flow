@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
-	"github.com/auho/go-toolkit/v2/console/output"
-	"github.com/auho/go-toolkit/v2/time/timing"
+	"github.com/auho/go-toolkit/v3/console/multiline"
+	"github.com/auho/go-toolkit/v3/time/stopwatch"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -22,15 +22,15 @@ import (
 type flow[SE, DE storage.Entry] struct {
 	source        storage.Source[SE]
 	groups        *groups[SE, DE]
-	refreshOutput *output.Refresh
+	refreshOutput *multiline.Refresh
 	stateInterval time.Duration
 }
 
 // RunFlow is the entry point. It validates options, executes the full lifecycle
 // (check → run → close), and returns any error encountered.
 func RunFlow[SE, DE storage.Entry](opts ...Option[SE, DE]) error {
-	d := timing.NewDuration()
-	d.Start()
+	s := stopwatch.NewStopwatch()
+	s.Start()
 
 	f := &flow[SE, DE]{
 		groups: newGroups[SE, DE](),
@@ -49,7 +49,7 @@ func RunFlow[SE, DE storage.Entry](opts ...Option[SE, DE]) error {
 		return fmt.Errorf("run: %w", err)
 	}
 
-	fmt.Println(d.StringStartToStop())
+	fmt.Println(s.TotalString())
 
 	return nil
 }
@@ -72,9 +72,9 @@ func (f *flow[SE, DE]) check() error {
 func (f *flow[SE, DE]) run() error {
 	defer f.close()
 
-	f.refreshOutput = output.NewRefresh(
-		output.WithInterval(f.stateInterval),
-		output.WithContent(func() ([]string, error) {
+	f.refreshOutput = multiline.NewRefresh(
+		multiline.WithInterval(f.stateInterval),
+		multiline.WithContent(func() ([]string, error) {
 			return f.state(), nil
 		}),
 	)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/auho/go-toolkit/v2/time/timing"
+	"github.com/auho/go-toolkit/v3/time/stopwatch"
 )
 
 // Status constants for the state machine.
@@ -42,12 +42,12 @@ type PageState interface {
 }
 
 // baseState provides concurrent-safe state tracking for Source and Destination
-// implementations. It tracks status, amount, and duration using atomic operations.
+// implementations. It tracks status, amount, and stopwatch using atomic operations.
 type baseState struct {
 	concurrency int
 	title       string
 	amount      int64
-	duration    timing.Duration
+	stopwatch   stopwatch.Stopwatch
 	status      atomic.Value
 }
 
@@ -123,12 +123,12 @@ func (s *baseState) MarkAsFinished() {
 
 // DurationStart starts the duration timer.
 func (s *baseState) DurationStart() {
-	s.duration.Start()
+	s.stopwatch.Start()
 }
 
 // DurationStop stops the duration timer.
 func (s *baseState) DurationStop() {
-	s.duration.Stop()
+	s.stopwatch.Stop()
 }
 
 // Snapshot is a basic state tracker with status, amount, and duration.
@@ -148,7 +148,7 @@ func (s *Snapshot) Overview() string {
 		s.Status(),
 		s.Concurrency(),
 		s.Amount(),
-		s.duration.StringStartToStop())
+		s.stopwatch.TotalString())
 }
 
 // TotalSnapshot extends Snapshot with a Total field for tracking progress against
@@ -179,7 +179,7 @@ func (t *TotalSnapshot) Overview() string {
 		t.Concurrency(),
 		t.Amount(),
 		t.Total(),
-		t.duration.StringStartToStop())
+		t.stopwatch.TotalString())
 }
 
 // PageSnapshot extends TotalSnapshot with pagination tracking (Page, PageSize,
@@ -241,7 +241,7 @@ func (p *PageSnapshot) Overview() string {
 		p.Page(),
 		p.TotalPage(),
 		p.PageSize(),
-		p.duration.StringStartToStop())
+		p.stopwatch.TotalString())
 }
 
 // Compile-time interface conformance checks.

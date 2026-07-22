@@ -20,8 +20,8 @@ import (
 	"fmt"
 
 	"github.com/auho/go-toolkit-flow/v3/storage"
-	"github.com/auho/go-toolkit/v2/console/output"
-	"github.com/auho/go-toolkit/v2/time/timing"
+	"github.com/auho/go-toolkit/v3/console/multiline"
+	"github.com/auho/go-toolkit/v3/time/stopwatch"
 )
 
 // Processor is the core interface that all processors must implement.
@@ -70,10 +70,10 @@ type AfterBatcher[T storage.Entry] interface {
 // management. It is zero-value usable: all fields work directly from their
 // zero values.
 type BaseProcessor struct {
-	duration timing.Duration
-	state    output.MultilineText
-	output   output.MultilineText
-	log      output.MultilineText
+	stopWatch stopwatch.Stopwatch
+	state     multiline.Buffer
+	output    multiline.Buffer
+	log       multiline.Buffer
 }
 
 func (t *BaseProcessor) StateString() []string {
