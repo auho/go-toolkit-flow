@@ -34,6 +34,7 @@ import (
     "github.com/auho/go-toolkit-flow/v3/exec"
     "github.com/auho/go-toolkit-flow/v3/exec/producer/item"
     "github.com/auho/go-toolkit-flow/v3/flow"
+    "github.com/auho/go-toolkit-flow/v3/processor"
     mockdest "github.com/auho/go-toolkit-flow/v3/storage/mock/destination"
     mocksrc "github.com/auho/go-toolkit-flow/v3/storage/mock/source"
 )
@@ -49,7 +50,7 @@ func (p *MyProcessor) Exec(item map[string]any) ([]map[string]any, bool, error) 
 }
 
 func main() {
-    src := mocksrc.NewMap(mocksrc.Config{Total: 100, PageSize: 10})
+    src, _ := mocksrc.NewMap(mocksrc.Config{Total: 100, PageSize: 10})
     dest, _ := mockdest.NewInsertMap()
 
     flow.RunFlow[map[string]any, map[string]any](
@@ -84,6 +85,7 @@ flow.RunFlow[map[string]any, map[string]any](
 |------|-------|-------------|
 | `MapEntry` | `map[string]any` | General-purpose key-value map |
 | `SliceEntry` | `[]any` | Positional slice |
+| `StringSliceEntry` | `[]string` | String-only positional slice |
 | `StringMapEntry` | `map[string]string` | String-only key-value map |
 | `ScoreMapEntry` | `map[any]float64` | Redis sorted set member → score |
 | `string` | — | Plain string |
@@ -104,6 +106,11 @@ flow.RunFlow[map[string]any, map[string]any](
 | Redis | `redissrc.NewSetsWithGoRedisV8(client, cfg)` | `string` |
 | Redis | `redissrc.NewSortedSetsWithGoRedisV8(client, cfg)` | `StringMapEntry` |
 | Redis | `redissrc.NewScanWithGoRedisV8(client, cfg)` | `string` |
+| Redis | `redissrc.NewHashesWithGoRedisV9(client, cfg)` | `StringMapEntry` |
+| Redis | `redissrc.NewListsWithGoRedisV9(client, cfg)` | `string` |
+| Redis | `redissrc.NewSetsWithGoRedisV9(client, cfg)` | `string` |
+| Redis | `redissrc.NewSortedSetsWithGoRedisV9(client, cfg)` | `StringMapEntry` |
+| Redis | `redissrc.NewScanWithGoRedisV9(client, cfg)` | `string` |
 | File | `filesrc.NewLine(cfg)` | `string` |
 
 ### Destination (data writer)
@@ -120,6 +127,10 @@ flow.RunFlow[map[string]any, map[string]any](
 | Redis | `redisdest.NewListsWithGoRedisV8(client, cfg)` | `string` |
 | Redis | `redisdest.NewSetsWithGoRedisV8(client, cfg)` | `string` |
 | Redis | `redisdest.NewSortedSetsWithGoRedisV8(client, cfg)` | `ScoreMapEntry` |
+| Redis | `redisdest.NewHashesWithGoRedisV9(client, cfg)` | `MapEntry` |
+| Redis | `redisdest.NewListsWithGoRedisV9(client, cfg)` | `string` |
+| Redis | `redisdest.NewSetsWithGoRedisV9(client, cfg)` | `string` |
+| Redis | `redisdest.NewSortedSetsWithGoRedisV9(client, cfg)` | `ScoreMapEntry` |
 | File | `filedest.NewLine(cfg)` | `string` |
 
 ## Processor Adapters
@@ -144,6 +155,7 @@ storage/        Source/Destination contracts and entry types
   redis/        Redis source (Iterator) and destination (Bulk) via go-redis
   file/         File source and destination (line-based)
   mock/         In-memory source/destination for testing
+  tool/         Deep copy utilities for entry types
 ```
 
 ## License
